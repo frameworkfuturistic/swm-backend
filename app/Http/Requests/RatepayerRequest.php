@@ -11,7 +11,7 @@ class RatepayerRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -35,7 +35,7 @@ class RatepayerRequest extends FormRequest
             'mobileNo' => 'required|digits:10',
             'landmark' => 'nullable|string|max:100',
             'whatsappNo' => 'nullable|digits:10',
-            'bill_date' => 'required|date|after_or_equal:entity.verification_date',
+            'billDate' => 'required|date',
             'openingDemand' => 'required|numeric|min:0',
             'monthlyDemand' => 'required|numeric|min:0',
         ];

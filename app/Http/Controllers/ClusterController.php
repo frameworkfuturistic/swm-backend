@@ -80,6 +80,8 @@ class ClusterController extends Controller
             $ratepayerData = $validatedData['ratepayer'];
             $ulbId = $request->ulb_id;
 
+            DB::beginTransaction();
+
             $cluster = Cluster::create([
                 'ulb_id' => $ulbId,
                 'tc_id' => $clusterData['appliedtcId'] ?? null,
@@ -103,20 +105,20 @@ class ClusterController extends Controller
             $ratePayer = Ratepayer::create([
                 'ulb_id' => $ulbId,
                 'entity_id' => $cluster->id, // Link the entity
-                'paymentzone_id' => $ratepayerData['paymentzone_id'],
+                'paymentzone_id' => $ratepayerData['paymentzoneId'],
                 'last_payment_id' => null, // Initialize as null, can be updated later
                 'last_transaction_id' => null, // Initialize as null, can be updated later
-                'ratepayer_name' => $ratepayerData['ratepayer_name'],
-                'ratepayer_address' => $ratepayerData['ratepayer_address'],
-                'consumer_no' => $ratepayerData['consumer_no'],
+                'ratepayer_name' => $ratepayerData['ratepayerName'],
+                'ratepayer_address' => $ratepayerData['ratepayerAddress'],
+                'consumer_no' => $ratepayerData['consumerNo'],
                 'longitude' => $ratepayerData['longitude'],
                 'latitude' => $ratepayerData['latitude'],
-                'mobile_no' => $ratepayerData['mobile_no'],
+                'mobile_no' => $ratepayerData['mobileNo'],
                 'landmark' => $ratepayerData['landmark'],
-                'whatsapp_no' => $ratepayerData['whatsapp_no'],
-                'bill_date' => $ratepayerData['bill_date'],
-                'opening_demand' => $ratepayerData['opening_demand'],
-                'monthly_demand' => $ratepayerData['monthly_demand'],
+                'whatsapp_no' => $ratepayerData['whatsappNo'],
+                'bill_date' => $ratepayerData['billDate'],
+                'opening_demand' => $ratepayerData['openingDemand'],
+                'monthly_demand' => $ratepayerData['monthlyDemand'],
                 'is_active' => true,
             ]);
 
@@ -129,6 +131,7 @@ class ClusterController extends Controller
                 Response::HTTP_CREATED
             );
         } catch (\Illuminate\Database\QueryException $e) {
+            DB::rollBack();
             Log::error('Database error during entity update: '.$e->getMessage());
 
             return format_response(
@@ -137,6 +140,7 @@ class ClusterController extends Controller
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Unexpected error during entity update: '.$e->getMessage());
 
             return format_response(
@@ -271,6 +275,52 @@ class ClusterController extends Controller
             return format_response(
                 'Show Cluster Record',
                 $cluster,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    /**
+     * [GET]   /api/entities/{id}          4. Admin can See Entity data
+     * Completed [OK]
+     */
+    public function showAll(Request $request)
+    {
+        try {
+            $ulbId = $request->ulb_id;
+            $clusters = Cluster::select(
+                'id',
+                'cluster_name',
+                'cluster_address',
+                'pincode',
+                'landmark',
+                'cluster_type',
+                'mobile_no',
+                'whatsapp_no',
+                'longitude',
+                'latitude'
+            )->where('ulb_id', $ulbId)->get();
+
+            return format_response(
+                'Show All Cluster Record',
+                $clusters,
                 Response::HTTP_OK
             );
 

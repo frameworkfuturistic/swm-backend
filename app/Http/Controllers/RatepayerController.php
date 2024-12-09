@@ -53,7 +53,7 @@ class RatepayerController extends Controller
             ]);
 
             return format_response(
-                'Entity created successfully',
+                'Ratepayer created successfully',
                 $ratepayer,
                 Response::HTTP_CREATED
             );
@@ -153,7 +153,7 @@ class RatepayerController extends Controller
             $ratepayer->update($updateData);
 
             return format_response(
-                'Entity Geolocation updated successfully',
+                'Ratepayer Geolocation updated successfully',
                 $ratepayer,
                 Response::HTTP_OK
             );
@@ -187,7 +187,7 @@ class RatepayerController extends Controller
             $ratepayer = Ratepayer::findOrFail($id);
 
             return format_response(
-                'Ratepayer updated successfully',
+                'Ratepayer Details',
                 $ratepayer,
                 Response::HTTP_OK
             );

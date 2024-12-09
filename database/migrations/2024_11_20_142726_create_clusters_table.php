@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('clusters', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs')->notNullable(); // Correctly chaining notNullable
+            $table->foreignId('ward_id')->constrained('wards')->notNullable();
             $table->foreignId('verifiedby_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('appliedtc_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('cluster_name', 60)->notNullable(); // Cluster name cannot be null

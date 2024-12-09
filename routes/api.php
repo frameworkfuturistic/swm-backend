@@ -6,12 +6,14 @@ use App\Http\Controllers\API\PaymentController;
 use App\Http\Controllers\API\ZoneController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ClusterController;
+use App\Http\Controllers\DemandController;
 use App\Http\Controllers\DenialReasonController;
 use App\Http\Controllers\EntityController;
 use App\Http\Controllers\PaymentZoneController;
 use App\Http\Controllers\RateListController;
 use App\Http\Controllers\RatepayerController;
 use App\Http\Controllers\SubCategoryController;
+use App\Http\Controllers\WardController;
 use Illuminate\Support\Facades\Route;
 
 // No need for /api prefix here as it's automatically added
@@ -29,20 +31,23 @@ Route::get('test', [EntityController::class, 'test']);
 
 Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->group(function () {
     // Master Entries
-    Route::post('rate-list', [RateListController::class, 'store']);                 //Done
-    Route::put('rate-list/{id}', [RateListController::class, 'update']);            //Done
+    Route::post('rate-list', [RateListController::class, 'store']);                                //Done
+    Route::put('rate-list/{id}', [RateListController::class, 'update']);                           //Done
 
-    Route::post('denial-reasons', [DenialReasonController::class, 'store']);        //Done
-    Route::put('denial-reasons/{id}', [DenialReasonController::class, 'update']);   //Done
+    Route::post('denial-reasons', [DenialReasonController::class, 'store']);                       //Done
+    Route::put('denial-reasons/{id}', [DenialReasonController::class, 'update']);                  //Done
 
-    Route::post('payment-zones', [PaymentZoneController::class, 'store']);          //Done
-    Route::put('payment-zones/{id}', [PaymentZoneController::class, 'update']);     //Done
+    Route::post('payment-zones', [PaymentZoneController::class, 'store']);                         //Done
+    Route::put('payment-zones/{id}', [PaymentZoneController::class, 'update']);                    //Done
 
-    Route::post('categories', [CategoryController::class, 'store']);                //Done
-    Route::put('categories/{id}', [CategoryController::class, 'update']);           //Done
+    Route::post('categories', [CategoryController::class, 'store']);                               //Done
+    Route::put('categories/{id}', [CategoryController::class, 'update']);                          //Done
 
-    Route::post('sub-categories', [SubCategoryController::class, 'store']);         //Done
-    Route::put('sub-categories/{id}', [SubCategoryController::class, 'update']);    //Done
+    Route::post('wards', [WardController::class, 'store']);                         //
+    Route::put('wards/{id}', [WardController::class, 'update']);                    //
+
+    Route::post('sub-categories', [SubCategoryController::class, 'store']);                        //Done
+    Route::put('sub-categories/{id}', [SubCategoryController::class, 'update']);                   //Done
 
     Route::put('entities/{id}', [EntityController::class, 'update']);
     Route::put('clusters/{id}', [ClusterController::class, 'update']);
@@ -54,18 +59,24 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->group(functio
     Route::put('transactions', [EntityController::class, 'transactions/{id}']);
 
     //Demand Generation
-    Route::post('demands/generate/{year}', [EntityController::class, 'store']);
-    Route::post('demands/generate/ratepayer/{year}/{startmonth}/{ratepayerid}', [EntityController::class, 'store']);
+    Route::post('demands/mergeandclean', [DemandController::class, 'mergeAndCleanCurrentDemand']); //Done
+    Route::post('demands/merge', [DemandController::class, 'mergeCurrentDemand']);                 //Done
+    Route::post('demands/clean', [DemandController::class, 'cleanCurrentDemand']);                 //Done
+    Route::post('demands/generate', [DemandController::class, 'generateYearlyDemand']);            //Done
+    Route::post('demands/generate/{id}', [DemandController::class, 'generateRatepayerDemands']);
 
 });
 
 Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
     //Masters
-    Route::get('rate-list', [RateListController::class, 'showAll']);                            //Done
-    Route::get('rate-list/{id}', [RateListController::class, 'show'])->where('id', '[0-9]+');   //Done
+    Route::get('rate-list', [RateListController::class, 'showAll']);                               //Done
+    Route::get('rate-list/{id}', [RateListController::class, 'show'])->where('id', '[0-9]+');      //Done
 
-    Route::get('denial-reasons', [DenialReasonController::class, 'showAll']);                   //Done
+    Route::get('denial-reasons', [DenialReasonController::class, 'showAll']);                      //Done
     Route::get('denial-reasons/{id}', [DenialReasonController::class, 'show'])->where('id', '[0-9]+');   //Done
+
+    Route::get('wards', [DenialReasonController::class, 'showAll']);                            //
+    Route::get('wards/{id}', [DenialReasonController::class, 'show'])->where('id', '[0-9]+');   //
 
     Route::get('payment-zones', [PaymentZoneController::class, 'showAll']);                              //Done
     Route::get('payment-zones/ratepayers/paginated/{zoneId}/{pagination}', [PaymentZoneController::class, 'showRatepayersPaginated']);                   //Done
@@ -77,43 +88,56 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
     Route::get('categories', [CategoryController::class, 'showAll']);                                    //Done
 
     //  Entity Controller endpoints
-    Route::get('entities/paginated/{paginate}', [EntityController::class, 'showAll']);
-    Route::get('entities/{id}', [EntityController::class, 'show'])->where('id', '[0-9]+');
-    Route::post('entities', [EntityController::class, 'store']);
-    Route::post('entities/with-ratepayers', [EntityController::class, 'storeWithRatePayers']);
-    Route::put('entities/geo-location/{id}', [EntityController::class, 'updateGeoLocation']);
-    Route::get('entities/search', [EntityController::class, 'deepSearch']);
-    Route::get('entities/{id}', [EntityController::class, 'show'])->where('id', '[0-9]+');
+    Route::post('entities', [EntityController::class, 'store']);                                   //Done
+    Route::post('entities/with-ratepayers', [EntityController::class, 'storeWithRatePayers']);     //Done
+    Route::get('entities/paginated/{paginate}', [EntityController::class, 'showAll']);             //Done
+    Route::get('entities/{id}', [EntityController::class, 'show'])->where('id', '[0-9]+');         //Done
+    Route::put('entities/geo-location/{id}', [EntityController::class, 'updateGeoLocation']);      //Done
+    Route::get('entities/search', [EntityController::class, 'deepSearch']);                        //Done
 
     //  Cluster Controller endpoints
-    Route::get('clusters/show', [ClusterController::class, 'show']);
-    Route::post('clusters', [ClusterController::class, 'store']);
-    Route::post('clusters/with-ratepayers', [ClusterController::class, 'storeWithRatePayers']);
-    Route::put('clusters/geo-location/{id}', [ClusterController::class, 'updateGeoLocation']);
+    Route::post('clusters', [ClusterController::class, 'store']);                                  //Done
+    Route::get('clusters', [ClusterController::class, 'showAll']);                                 //Done
+    Route::get('clusters/{id}', [ClusterController::class, 'show'])->where('id', '[0-9]+');        //Done
+    Route::post('clusters/with-ratepayers', [ClusterController::class, 'storeWithRatePayers']);    //Done
+    Route::put('clusters/geo-location/{id}', [ClusterController::class, 'updateGeoLocation']);     //Done
     Route::get('clusters/search', [ClusterController::class, 'deepSearch']);
-    Route::get('clusters/{id}', [ClusterController::class, 'show'])->where('id', '[0-9]+');
 
     //Ratepayer Controller endpoints
-    Route::get('ratepayers/show', [RatepayerController::class, 'show']);
-    Route::post('ratepayers', [RatepayerController::class, 'store']);
-    Route::put('ratepayers/geo-location/{id}', [RatepayerController::class, 'updateGeoLocation']);
+    Route::post('ratepayers', [RatepayerController::class, 'store']);                              //Done
+    Route::get('ratepayers/{id}', [RatepayerController::class, 'show'])->where('id', '[0-9]+');    //Done
+    Route::put('ratepayers/geo-location/{id}', [RatepayerController::class, 'updateGeoLocation']); //Done
     Route::get('ratepayers/search', [RatepayerController::class, 'deepSearch']);
-    Route::get('ratepayers/{id}', [RatepayerController::class, 'show'])->where('id', '[0-9]+');
 
-    //Current Demands
+    // Demands
+    Route::get('demands/{year}/{id}', [DemandController::class, 'showYearlyDemand']);
+    Route::get('demands/pending/{year}/{id}', [DemandController::class, 'showPendingDemands']);
+    Route::get('demands/current/{id}', [DemandController::class, 'showCurrentDemand']);
 
-    //Current Transactions
+    // Transactions
     Route::post('transactions', [EntityController::class, 'store']);
 
     //Current Payments
 
-    //Demands
-
-    //Transactions
-
-    //Payments
-
     //TC activities
+    //Get Todays Transactions
+    //Get Date Transactions
+    //Get Payment Transactions
+    //Get Denial Transactions
+    //Get Cancelled Transactions
+    //Get DoorClosed Transactions
+    //Get Deferred Transactions
+    //Get Other Transactions
+    //Update Transaction
+    //Generate Payment Link
+    //Get Nearby Entity Ratepayers
+    //Get Nearby Cluster Ratepayers
+    //Get Todays Deferred Payments
+    //Get Diamond Ratepayers
+    //Get Green Ratepayers
+    //Get Silver Ratepayers
+    //Get Red Ratepayers
+    //Update Ratepayer Grade
 
 });
 

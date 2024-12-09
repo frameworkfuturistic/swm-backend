@@ -19,6 +19,7 @@ return new class extends Migration
             $table->integer('param_int')->nullable(); // `param_int` column with int(11) and NULL default
             $table->smallInteger('param_bool')->nullable(); // `param_bool` column with smallint(6) and NULL default
             $table->dateTime('param_date')->nullable(); // `param_date` column with datetime and NULL default
+            $table->enum('param_type', ['STRING', 'INT', 'BOOL', 'DATE'])->default('STRING')->notNullable(); // Type of entity
         });
     }
 

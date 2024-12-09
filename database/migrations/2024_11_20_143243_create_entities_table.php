@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('entities', function (Blueprint $table) {
             $table->id(); // Auto-increment primary key
             $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
+            $table->foreignId('ward_id')->constrained('wards')->notNullable();
             $table->foreignId('cluster_id')->nullable()->constrained('clusters')->nullOnDelete();
             $table->foreignId('subcategory_id')->constrained('sub_categories');
             $table->foreignId('verifiedby_id')->nullable()->constrained('users')->nullOnDelete();

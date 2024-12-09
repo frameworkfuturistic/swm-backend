@@ -129,20 +129,20 @@ class EntityController extends Controller
                 'ulb_id' => $ulbId,
                 'entity_id' => $entity->id, // Link the entity
                 //   'cluster_id' => $ratepayerData['cluster_id'],
-                'paymentzone_id' => $ratepayerData['paymentzone_id'],
+                //  'paymentzone_id' => $ratepayerData['paymentzoneId'],
                 'last_payment_id' => null, // Initialize as null, can be updated later
                 'last_transaction_id' => null, // Initialize as null, can be updated later
-                'ratepayer_name' => $ratepayerData['ratepayer_name'],
-                'ratepayer_address' => $ratepayerData['ratepayer_address'],
-                'consumer_no' => $ratepayerData['consumer_no'],
+                'ratepayer_name' => $ratepayerData['ratepayerName'],
+                'ratepayer_address' => $ratepayerData['ratepayerAddress'],
+                'consumer_no' => $ratepayerData['consumerNo'],
                 'longitude' => $ratepayerData['longitude'],
                 'latitude' => $ratepayerData['latitude'],
-                'mobile_no' => $ratepayerData['mobile_no'],
+                'mobile_no' => $ratepayerData['mobileNo'],
                 'landmark' => $ratepayerData['landmark'],
-                'whatsapp_no' => $ratepayerData['whatsapp_no'],
-                'bill_date' => $ratepayerData['bill_date'],
-                'opening_demand' => $ratepayerData['opening_demand'],
-                'monthly_demand' => $ratepayerData['monthly_demand'],
+                'whatsapp_no' => $ratepayerData['whatsappNo'],
+                //  'bill_date' => $ratepayerData['bill_date'],
+                'opening_demand' => $ratepayerData['openingDemand'],
+                'monthly_demand' => $ratepayerData['monthlyDemand'],
                 'is_active' => true,
             ]);
 
@@ -409,7 +409,7 @@ class EntityController extends Controller
             $searchTerm = $request->input('search');
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('holding_no', 'LIKE', "%{$searchTerm}%")
-                    ->orWhere('consumer_no', 'LIKE', "%{$searchTerm}%")
+                    ->orWhere('holding_no', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('entity_name', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('entity_address', 'LIKE', "%{$searchTerm}%")
                     ->orWhere('mobile_no', 'LIKE', "%{$searchTerm}%")
@@ -457,7 +457,7 @@ class EntityController extends Controller
 
         // Validate sort column to prevent SQL injection
         $allowedSortColumns = [
-            'id', 'entity_name', 'consumer_no', 'monthly_demand',
+            'id', 'entity_name', 'holding_no', 'monthly_demand',
             'inclusion_date', 'created_at', 'updated_at',
         ];
 

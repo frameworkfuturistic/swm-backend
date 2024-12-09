@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('ratepayers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs');
+            $table->foreignId('ward_id')->constrained('wards')->notNullable();
             $table->foreignId('entity_id')->nullable()->constrained('entities')->nullOnDelete();
             $table->foreignId('cluster_id')->nullable()->constrained('clusters')->nullOnDelete();
             $table->foreignId('paymentzone_id')->nullable()->constrained('payment_zones')->nullOnDelete();

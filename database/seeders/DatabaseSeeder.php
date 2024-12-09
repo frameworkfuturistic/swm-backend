@@ -17,12 +17,13 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
         $this->call(UlbSeeder::class);
+        $this->call(ParamSeeder::class);
+        $this->call(WardsTableSeeder::class);
         $this->call(CategoriesTableSeeder::class);
         $this->call(RateListSeeder::class);
         $this->call(SubCategoriesTableSeeder::class);
         $this->call(DenialReasonsTableSeeder::class);
         $this->call(UsersTableSeeder::class);
-        $this->call(WardsTableSeeder::class);
         $this->call(PaymentZonesTableSeeder::class);
         //   $this->call(ClusterTableSeeder::class);
         $this->call(EntityTableSeeder::class);

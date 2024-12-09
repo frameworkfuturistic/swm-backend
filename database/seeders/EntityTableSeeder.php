@@ -25,6 +25,7 @@ class EntityTableSeeder extends Seeder
         for ($i = 0; $i < 400; $i++) {
             DB::table('entities')->insert([
                 'ulb_id' => 1, // Assuming 10 ULBs exist
+                'ward_id' => 1,
                 'cluster_id' => null, // Assuming 5 clusters exist or null
                 'subcategory_id' => rand(1, 6), // Assuming 20 subcategories exist
                 'verifiedby_id' => rand(1, 2), // Assuming 50 users exist
