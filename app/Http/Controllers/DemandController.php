@@ -12,15 +12,9 @@ class DemandController extends Controller
      */
     public function index()
     {
-        //
-    }
+        $demands = Demand::with('ratepayer')->get();
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        return response()->json($demands);
     }
 
     /**
@@ -28,7 +22,17 @@ class DemandController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'ratepayer_id' => 'required|exists:ratepayers,id',
+            'bill_month' => 'required|integer|between:1,12',
+            'bill_year' => 'required|integer|digits:4',
+            'demand' => 'nullable|integer|min:0',
+            'payment' => 'nullable|integer|min:0',
+        ]);
+
+        $demand = Demand::create($validated);
+
+        return response()->json($demand, 201);
     }
 
     /**
@@ -36,15 +40,7 @@ class DemandController extends Controller
      */
     public function show(Demand $demand)
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Demand $demand)
-    {
-        //
+        return response()->json($demand->load('ratepayer'));
     }
 
     /**
@@ -52,7 +48,17 @@ class DemandController extends Controller
      */
     public function update(Request $request, Demand $demand)
     {
-        //
+        $validated = $request->validate([
+            'ratepayer_id' => 'required|exists:ratepayers,id',
+            'bill_month' => 'required|integer|between:1,12',
+            'bill_year' => 'required|integer|digits:4',
+            'demand' => 'nullable|integer|min:0',
+            'payment' => 'nullable|integer|min:0',
+        ]);
+
+        $demand->update($validated);
+
+        return response()->json($demand);
     }
 
     /**
@@ -60,6 +66,8 @@ class DemandController extends Controller
      */
     public function destroy(Demand $demand)
     {
-        //
+        $demand->delete();
+
+        return response()->json(['message' => 'Demand deleted successfully.']);
     }
 }

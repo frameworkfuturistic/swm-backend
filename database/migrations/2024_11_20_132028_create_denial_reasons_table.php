@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('denial_reasons', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
-            $table->string('reason', 250)->notNullable(); // String column with a max length of 250 
+            $table->string('reason', 250)->notNullable(); // String column with a max length of 250
             $table->unique(['reason'], 'Index_reason'); // Composite unique key with explicit name
             $table->timestamps();
-         });
+        });
     }
 
     /**

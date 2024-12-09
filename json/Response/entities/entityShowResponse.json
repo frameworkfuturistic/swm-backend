@@ -1,0 +1,33 @@
+{
+   "success": true,
+   "message": "Entity updated successfully",
+   "data": {
+       "id": 1,
+       "ulb_id": 1,
+       "cluster_id": null,
+       "subcategory_id": 5,
+       "verify_user_id": 4,
+       "apply_tc_id": 4,
+       "lastpayment_id": null,
+       "holding_no": "HLD-1755",
+       "entity_name": "Bashirian, O'Hara and Purdy",
+       "entity_address": "73915 Aglae Spur\nShannyhaven, MA 92958-6439",
+       "pincode": "834524",
+       "mobile_no": "9849780460",
+       "landmark": "Ledner Estate",
+       "whatsapp_no": "914584085801",
+       "longitude": 85.3371434,
+       "latitude": 23.3743092,
+       "inclusion_date": "1993-05-20T00:00:00.000000Z",
+       "verification_date": "1977-12-15T00:00:00.000000Z",
+       "opening_demand": "16276.21",
+       "monthly_demand": "2801.47",
+       "usage_type": "Residential",
+       "status": "verified"
+   },
+   "meta": {
+       "epoch": 1733539364,
+       "queryTime": 0.1553,
+       "server": "127.0.0.1"
+   }
+}

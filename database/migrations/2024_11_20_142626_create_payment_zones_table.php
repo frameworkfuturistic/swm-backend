@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-      Schema::create('payment_zones', function (Blueprint $table) {
-         $table->id();
-         $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
-         $table->string('payment_zone', 50)->notNullable(); // String column with a max length of 50 
-         $table->unique(['payment_zone', 'ulb_id'], 'Index_payment_zone'); // Composite unique key with explicit name
-         $table->timestamps();
-      });
+        Schema::create('payment_zones', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
+            $table->string('payment_zone', 50)->notNullable(); // String column with a max length of 50
+            $table->json('coordinates'); // Store coordinates as JSON
+            $table->string('description', 250)->notNullable(); // String column with a max length of 50
+            $table->unique(['payment_zone', 'ulb_id'], 'Index_payment_zone'); // Composite unique key with explicit name
+            $table->timestamps();
+        });
     }
 
     /**

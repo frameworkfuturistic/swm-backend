@@ -7,6 +7,25 @@ use Illuminate\Database\Eloquent\Model;
 
 class DenialReason extends Model
 {
-   use HasFactory;
-   protected $fillable = ['reason'];
+    use HasFactory;
+
+    protected $fillable = [
+        'ulb_id',
+        'reason',
+    ];
+
+    protected $hidden = [
+        // 'id',
+        'ulb_id',
+        'created_at',
+        'updated_at',
+    ];
+
+    /**
+     * Relationships
+     */
+    public function ulb()
+    {
+        return $this->belongsTo(Ulb::class);
+    }
 }

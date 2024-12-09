@@ -1,0 +1,32 @@
+{
+   "success": true,
+   "message": "Entity and Ratepayer created successfully",
+   "data": {
+       "ulb_id": 1,
+       "cluster_id": null,
+       "subcategory_id": 3,
+       "verify_user_id": 4,
+       "apply_tc_id": 5,
+       "holding_no": "123ABC",
+       "entity_name": "ABC Entity",
+       "entity_address": "123, Main Street, City",
+       "pincode": "123456",
+       "mobile_no": "9876543210",
+       "landmark": "Near Park",
+       "whatsapp_no": "9876543210",
+       "longitude": 77.123456,
+       "latitude": 28.654321,
+       "inclusion_date": "2024-01-01",
+       "verification_date": "2024-02-01",
+       "opening_demand": 5000,
+       "monthly_demand": 200,
+       "usage_type": "Commercial",
+       "status": "verified",
+       "id": 401
+   },
+   "meta": {
+       "epoch": 1733505984,
+       "queryTime": 21.2458,
+       "server": "127.0.0.1"
+   }
+}

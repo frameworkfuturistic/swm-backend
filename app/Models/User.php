@@ -14,11 +14,13 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
+        'ulb_id',
         'name',
         'email',
         'password',
         'phone',
-        'address'
+        'address',
+        'role',
     ];
 
     protected $hidden = [
@@ -26,7 +28,7 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 
     protected $casts = [

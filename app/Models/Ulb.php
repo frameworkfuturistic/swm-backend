@@ -7,18 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class Ulb extends Model
 {
-   use HasFactory;
-   protected $fillable = ['ulb_name'];
+    use HasFactory;
 
-   /**
-     * The model's default values for attributes.
-     *
-     * @var array
-     */
-   // protected $attributes = [
-   //    'options' => '[]',
-   //    'delayed' => false,
-   // ];
+    protected $fillable = ['ulb_name'];
 
-   
+    /**
+      * The model's default values for attributes.
+      *
+       * @var array
+      */
+    // protected $attributes = [
+    //    'options' => '[]',
+    //    'delayed' => false,
+    // ];
+
 }

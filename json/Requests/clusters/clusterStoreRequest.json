@@ -1,0 +1,14 @@
+{
+   "appliedtcId": 5,
+   "clusterName": "ABC Entity",
+   "clusterAddress": "123, Main Street, City",
+   "landmark": "Near Park",
+   "pincode": "123456",
+   "clusterType" : "Apartment",
+   "mobileNo": "9876543210",
+   "whatsappNo": "9876543210",
+   "longitude": 77.123456,
+   "latitude": 28.654321,
+   "inclusionDate": "2024-01-01",
+   "verificationDate": "2024-02-01"
+}

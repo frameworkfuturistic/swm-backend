@@ -11,14 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-      Schema::create('categories', function (Blueprint $table) {
-         $table->id();
-         $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
-         $table->string('category', 50)->notNullable(); // String column with a max length of 50 
-         $table->unique(['category', 'ulb_id'], 'Index_category'); // Composite unique key with explicit name
-         $table->timestamps();
-      });
-   }
+        Schema::create('categories', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
+            $table->string('category', 50)->notNullable(); // String column with a max length of 50
+            $table->unique(['category', 'ulb_id'], 'Index_category'); // Composite unique key with explicit name
+            $table->timestamps();
+        });
+    }
 
     /**
      * Reverse the migrations.

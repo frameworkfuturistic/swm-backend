@@ -11,22 +11,30 @@ return new class extends Migration
      */
     public function up(): void
     {
-      Schema::create('ratepayers', function (Blueprint $table) { 
-         $table->id();
-         $table->foreignId('ulb_id')->constrained('ulbs');
-         $table->foreignId('entity_id')->constrained('entities')->nullable();
-         $table->foreignId('cluster_id')->constrained('clusters')->nullable();
-         $table->bigInteger('last_payment_id')->unsigned();
-         $table->bigInteger('last_transaction_id')->unsigned();
-         $table->string('ratepayer_name', 50)->nullable();
-         $table->string('consumer_no', 50)->nullable(); // `consumer_no` column as varchar(255), nullable 
-         $table->dateTime('first_payment_date')->nullable(); // `first_payment_date` column as datetime, nullable 
-         $table->dateTime('first_bill_date')->nullable(); // `first_bill_date` column as datetime, nullable 
-         $table->integer('opening_demand')->nullable(); // `opening_demand` column as int(11), nullable 
-         $table->integer('monthly_demand')->nullable(); // `monthly_demand` column as int(11), nullable 
-         $table->timestamps(); 
-      });
-   }
+        Schema::create('ratepayers', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('ulb_id')->constrained('ulbs');
+            $table->foreignId('entity_id')->nullable()->constrained('entities')->nullOnDelete();
+            $table->foreignId('cluster_id')->nullable()->constrained('clusters')->nullOnDelete();
+            $table->foreignId('paymentzone_id')->nullable()->constrained('payment_zones')->nullOnDelete();
+            $table->bigInteger('last_payment_id')->nullable()->constrained('payments')->nullOnDelete();
+            $table->bigInteger('rate_id')->nullable()->constrained('rate_list')->nullOnDelete();
+            $table->bigInteger('last_transaction_id')->nullable()->constrained('transactions')->nullOnDelete();
+            $table->string('ratepayer_name', 50)->nullable();
+            $table->string('ratepayer_address', 255)->nullable();
+            $table->string('consumer_no', 50)->nullable(); // `consumer_no` column as varchar(255), nullable
+            $table->decimal('longitude', 10, 7)->nullable(); // Precision for GPS
+            $table->decimal('latitude', 10, 7)->nullable();
+            $table->string('mobile_no', 15)->nullable();
+            $table->string('landmark', 100)->nullable();
+            $table->string('whatsapp_no', 12)->nullable();
+            $table->dateTime('bill_date')->nullable(); // `first_bill_date` column as datetime, nullable
+            $table->integer('opening_demand')->nullable(); // `opening_demand` column as int(11), nullable
+            $table->integer('monthly_demand')->nullable(); // `monthly_demand` column as int(11), nullable
+            $table->boolean('is_active')->default(true); // Active status
+            $table->timestamps();
+        });
+    }
 
     /**
      * Reverse the migrations.

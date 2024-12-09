@@ -1,0 +1,22 @@
+{
+   "ulb_id": 1,
+   "cluster_id": null,
+   "subcategory_id": 3,
+   "verifiedby_id": 4,
+   "appliedtc_id": 5,
+   "holding_no": "123ABC",
+   "entity_name": "ABC Entity",
+   "entity_address": "123, Main Street, City",
+   "pincode": "123456",
+   "mobile_no": "9876543210",
+   "landmark": "Near Park",
+   "whatsapp_no": "9876543210",
+   "longitude": 77.123456,
+   "latitude": 28.654321,
+   "inclusion_date": "2024-01-01",
+   "verification_date": "2024-02-01",
+   "opening_demand": 5000.00,
+   "monthly_demand": 200.00,
+   "usage_type": "Commercial",
+   "status": "verified"
+}

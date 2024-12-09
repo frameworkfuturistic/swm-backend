@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-      Schema::create('sub_categories', function (Blueprint $table) {
-         $table->id();
-         $table->foreignId('category_id')->constrained('categories');
-         $table->string('sub_category', 50)->notNullable(); // String column with a max length of 50 
-         $table->unique(['sub_category', 'category_id'], 'Index_subcategory'); // Composite unique key with explicit name
-         $table->timestamps();
-      });
+        Schema::create('sub_categories', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('category_id')->constrained('categories');
+            $table->string('sub_category', 50)->notNullable(); // String column with a max length of 50
+            $table->unique(['sub_category', 'category_id'], 'Index_subcategory'); // Composite unique key with explicit name
+            $table->timestamps();
+        });
     }
 
     /**

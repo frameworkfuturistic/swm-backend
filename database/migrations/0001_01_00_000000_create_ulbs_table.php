@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('ulbs', function (Blueprint $table) {
-         $table->id();
-         $table->string('ulb_name', 80)->notNullable(); // String column with a max length of 250 
-         $table->unique(['ulb_name'], 'Index_ulb_name'); // Composite unique key with explicit name
-         $table->timestamps();
+            $table->id();
+            $table->string('ulb_name', 80)->notNullable(); // String column with a max length of 250
+            $table->unique(['ulb_name'], 'Index_ulb_name'); // Composite unique key with explicit name
+            $table->timestamps();
         });
     }
 
