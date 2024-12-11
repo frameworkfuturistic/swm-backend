@@ -1,21 +1,15 @@
 version: '3.8'
 services:
   app:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
-    container_name: laravel-app
+    container_name: swmbackend-app
     restart: unless-stopped
     volumes:
       - .:/var/www/html
     networks:
       - laravel-network
-    environment:
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_DATABASE=${DB_DATABASE}
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
 
   nginx:
     image: nginx:alpine
@@ -31,6 +25,25 @@ services:
     networks:
       - laravel-network
 
+  database:
+    image: mysql:8.0
+    container_name: laravel-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: swm_db
+      MYSQL_ROOT_PASSWORD: xmkdgutzjds
+      MYSQL_USER: anil
+      MYSQL_PASSWORD: patrick
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - laravel-network
+
 networks:
   laravel-network:
     driver: bridge
+
+volumes:
+  mysql-data:
