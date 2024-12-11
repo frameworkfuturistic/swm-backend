@@ -6,8 +6,6 @@ services:
       dockerfile: Dockerfile
     container_name: laravel-app
     restart: unless-stopped
-    ports:
-      - "9000:9000"
     volumes:
       - .:/var/www/html
     networks:
@@ -18,7 +16,7 @@ services:
     container_name: laravel-nginx
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8080:80"  # Changed to map to port 8080
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
       - .:/var/www/html
@@ -32,10 +30,10 @@ services:
     container_name: laravel-mysql
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: laravel_db
-      MYSQL_ROOT_PASSWORD: your_secure_root_password
-      MYSQL_USER: laravel_user
-      MYSQL_PASSWORD: your_secure_user_password
+      MYSQL_DATABASE: swm_db
+      MYSQL_ROOT_PASSWORD: xmkdgutzjds
+      MYSQL_USER: root
+      MYSQL_PASSWORD: patrick
     ports:
       - "3306:3306"
     volumes:
