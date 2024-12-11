@@ -10,6 +10,7 @@ class Ratepayer extends Model
         'ulb_id',
         'entity_id',
         'cluster_id',
+        'ward_id',
         'paymentzone_id',
         'last_payment_id',
         'last_transaction_id',

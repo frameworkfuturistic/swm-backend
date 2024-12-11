@@ -23,6 +23,7 @@ class ClusterRatepayerRequest extends FormRequest
     {
         return [
             'cluster.appliedtcId' => 'nullable|exists:users,id',
+            'cluster.wardId' => 'nullable|exists:wards,id',
             'cluster.clusterName' => 'required|string|max:60|unique:clusters,cluster_name,NULL,id,ulb_id,'.$this->ulb_id,
             'cluster.clusterAddress' => 'nullable|string|max:255',
             'cluster.landmark' => 'nullable|string|max:100',
@@ -36,6 +37,7 @@ class ClusterRatepayerRequest extends FormRequest
             'cluster.verificationDate' => 'nullable|date',
 
             'ratepayer.clusterId' => 'nullable|exists:clusters,id',
+            'ratepayer.wardId' => 'nullable|exists:wards,id',
             'ratepayer.paymentzoneId' => 'required|exists:payment_zones,id',
             'ratepayer.ratepayerName' => 'required|string|max:100',
             'ratepayer.ratepayerAddress' => 'required|string|max:255',

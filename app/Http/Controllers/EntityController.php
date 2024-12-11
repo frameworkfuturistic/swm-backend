@@ -44,6 +44,7 @@ class EntityController extends Controller
                 'ulb_id' => $ulbId,
                 'cluster_id' => $validatedData['clusterId'],
                 'subcategory_id' => $validatedData['subcategoryId'],
+                'ward_id' => $validatedData['wardId'],
                 'verifiedby_id' => $validatedData['verifiedbyId'] ?? null,
                 'appliedtc_id' => $validatedData['appliedtcId'] ?? null,
                 'holding_no' => $validatedData['holdingNo'],
@@ -100,6 +101,7 @@ class EntityController extends Controller
             $entity = Entity::create([
                 'ulb_id' => $ulbId,
                 'cluster_id' => $entityData['clusterId'],
+                'ward_id' => $entityData['wardId'],
                 'subcategory_id' => $entityData['subcategoryId'],
                 'verifiedby_id' => $entityData['verifiedbyId'] ?? null,
                 'appliedtc_id' => $entityData['appliedtcId'] ?? null,
@@ -128,6 +130,7 @@ class EntityController extends Controller
             $ratePayer = Ratepayer::create([
                 'ulb_id' => $ulbId,
                 'entity_id' => $entity->id, // Link the entity
+                'ward_id' => $ratepayerData['wardId'], // Link the entity
                 //   'cluster_id' => $ratepayerData['cluster_id'],
                 //  'paymentzone_id' => $ratepayerData['paymentzoneId'],
                 'last_payment_id' => null, // Initialize as null, can be updated later
@@ -194,24 +197,24 @@ class EntityController extends Controller
             $validatedData = $request->validated();
 
             $updateData = [
-                'cluster_id' => $validatedData['cluster_id'],
-                'subcategory_id' => $validatedData['subcategory_id'],
-                'verifiedby_id' => $validatedData['verifiedby_id'] ?? null,
-                'appliedtc_id' => $validatedData['appliedtc_id'] ?? null,
-                'holding_no' => $validatedData['holding_no'],
-                'entity_name' => $validatedData['entity_name'],
-                'entity_address' => $validatedData['entity_address'],
+                'cluster_id' => $validatedData['clusterId'],
+                'subcategory_id' => $validatedData['subcategoryId'],
+                'verifiedby_id' => $validatedData['verifiedbyId'] ?? null,
+                'appliedtc_id' => $validatedData['appliedtcId'] ?? null,
+                'holding_no' => $validatedData['holdingNo'],
+                'entity_name' => $validatedData['entityName'],
+                'entity_address' => $validatedData['entityAddress'],
                 'pincode' => $validatedData['pincode'],
-                'mobile_no' => $validatedData['mobile_no'],
+                'mobile_no' => $validatedData['mobileNo'],
                 'landmark' => $validatedData['landmark'],
-                'whatsapp_no' => $validatedData['whatsapp_no'],
+                'whatsapp_no' => $validatedData['whatsappNo'],
                 'longitude' => $validatedData['longitude'],
                 'latitude' => $validatedData['latitude'],
-                'inclusion_date' => $validatedData['inclusion_date'],
-                'verification_date' => $validatedData['verification_date'],
-                'opening_demand' => $validatedData['opening_demand'],
-                'monthly_demand' => $validatedData['monthly_demand'],
-                'usage_type' => $validatedData['usage_type'],
+                'inclusion_date' => $validatedData['inclusionDate'],
+                'verification_date' => $validatedData['verificationDate'],
+                'opening_demand' => $validatedData['openingDemand'],
+                'monthly_demand' => $validatedData['monthlyDemand'],
+                'usage_type' => $validatedData['usageType'],
                 'status' => $validatedData['status'],
             ];
 

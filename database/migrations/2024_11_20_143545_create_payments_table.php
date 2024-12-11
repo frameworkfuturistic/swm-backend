@@ -18,10 +18,19 @@ return new class extends Migration
             $table->foreignId('entity_id')->constrained('entities')->nullable();
             $table->foreignId('cluster_id')->constrained('clusters')->nullable();
             $table->foreignId('tc_id')->constrained('users')->notNullable();
-            $table->dateTime('payment_date')->notNullable();
-            $table->enum('payment_mode', ['cash', 'card', 'upi', 'cheque', 'online'])->default('cash');
+            $table->unsignedBigInteger('tran_id')->nullable()->index('Index_TranID');
+            $table->unsignedBigInteger('payment_order_id')->nullable()->index('Index_PaymentOrderID');
+
+            $table->dateTime('payment_date')->notNullable()->index('Index_paymentdate');
+            $table->enum('payment_mode', ['CASH', 'CARD', 'UPI', 'CHEQUE', 'ONLINE'])->nullable()->index('Index_paymentmode');
+            $table->enum('payment_status', ['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'])->default('PENDING')->index('Index_paymentstatus');
             $table->integer('amount')->notNullable();
-            $table->integer('tran_id')->constrained('transactions')->notNullable();
+            $table->boolean('payment_verified')->nullable()->index('Index_paymentverified');
+            $table->boolean('refund_initiated')->nullable()->index('Index_refundinitiated');
+            $table->boolean('refund_verified')->nullable()->index('Index_refundverified');
+            $table->string('card_number', 25)->nullable();
+            $table->string('upi_id', 100)->nullable();
+            $table->string('cheque_number', 25)->nullable();
             $table->boolean('is_canceled')->default(false); // Active status
             $table->timestamps();
         });
@@ -32,10 +41,19 @@ return new class extends Migration
             $table->foreignId('entity_id')->constrained('entities')->nullable();
             $table->foreignId('cluster_id')->constrained('clusters')->nullable();
             $table->foreignId('tc_id')->constrained('users')->notNullable();
-            $table->dateTime('payment_date')->notNullable();
-            $table->enum('payment_mode', ['cash', 'card', 'upi', 'cheque', 'online'])->default('cash');
+            $table->unsignedBigInteger('tran_id')->nullable()->index('Index_TranID');
+            $table->unsignedBigInteger('payment_order_id')->nullable()->index('Index_PaymentOrderID');
+
+            $table->dateTime('payment_date')->notNullable()->index('Index_paymentdate');
+            $table->enum('payment_mode', ['CASH', 'CARD', 'UPI', 'CHEQUE', 'ONLINE'])->nullable()->index('Index_paymentmode');
+            $table->enum('payment_status', ['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'])->default('PENDING')->index('Index_paymentstatus');
             $table->integer('amount')->notNullable();
-            $table->integer('tran_id')->constrained('transactions')->notNullable();
+            $table->boolean('payment_verified')->nullable()->index('Index_paymentverified');
+            $table->boolean('refund_initiated')->nullable()->index('Index_refundinitiated');
+            $table->boolean('refund_verified')->nullable()->index('Index_refundverified');
+            $table->string('card_number', 25)->nullable();
+            $table->string('upi_id', 100)->nullable();
+            $table->string('cheque_number', 25)->nullable();
             $table->boolean('is_canceled')->default(false); // Active status
             $table->timestamps();
         });

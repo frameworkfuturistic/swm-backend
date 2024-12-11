@@ -22,6 +22,7 @@ return new class extends Migration
             $table->foreignId('denial_reason_id')->nullable()->constrained('denial_reasons')->nullOnDelete();
             $table->foreignId('cancelledby_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('verifiedby_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('order_id')->nullable()->index('Index_orderid');
 
             $table->dateTime('event_time')->notNullable();
             $table->date('cancellation_date')->nullable(); // Cancellation date
@@ -42,7 +43,7 @@ return new class extends Migration
             $table->foreignId('ratepayer_id')->constrained('ratepayers')->notNullable();
             $table->foreignId('entity_id')->nullable()->constrained('entities')->nullOnDelete();
             $table->foreignId('cluster_id')->nullable()->constrained('clusters')->nullOnDelete();
-            $table->foreignId('current_payment_id')->nullable()->constrained('payments')->nullOnDelete();
+            $table->foreignId('payment_id')->nullable()->constrained('current_payments')->nullOnDelete();
             $table->foreignId('denial_reason_id')->nullable()->constrained('denial_reasons')->nullOnDelete();
             $table->foreignId('cancelledby_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('verifiedby_id')->nullable()->constrained('users')->nullOnDelete();

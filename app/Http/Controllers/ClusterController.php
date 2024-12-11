@@ -38,6 +38,7 @@ class ClusterController extends Controller
             $cluster = Cluster::create([
                 'ulb_id' => $ulbId,
                 'tc_id' => $validatedData['appliedtcId'] ?? null,
+                'ward_id' => $validatedData['wardId'],
                 'cluster_name' => $validatedData['clusterName'],
                 'cluster_address' => $validatedData['clusterAddress'],
                 'landmark' => $validatedData['landmark'],
@@ -85,6 +86,7 @@ class ClusterController extends Controller
             $cluster = Cluster::create([
                 'ulb_id' => $ulbId,
                 'tc_id' => $clusterData['appliedtcId'] ?? null,
+                'ward_id' => $clusterData['wardId'],
                 'cluster_name' => $clusterData['clusterName'],
                 'cluster_address' => $clusterData['clusterAddress'],
                 'landmark' => $clusterData['landmark'],
@@ -105,6 +107,7 @@ class ClusterController extends Controller
             $ratePayer = Ratepayer::create([
                 'ulb_id' => $ulbId,
                 'entity_id' => $cluster->id, // Link the entity
+                'ward_id' => $ratepayerData['wardId'],
                 'paymentzone_id' => $ratepayerData['paymentzoneId'],
                 'last_payment_id' => null, // Initialize as null, can be updated later
                 'last_transaction_id' => null, // Initialize as null, can be updated later

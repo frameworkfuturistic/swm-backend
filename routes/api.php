@@ -13,7 +13,9 @@ use App\Http\Controllers\PaymentZoneController;
 use App\Http\Controllers\RateListController;
 use App\Http\Controllers\RatepayerController;
 use App\Http\Controllers\SubCategoryController;
+use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\WardController;
+use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 // No need for /api prefix here as it's automatically added
@@ -43,15 +45,15 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->group(functio
     Route::post('categories', [CategoryController::class, 'store']);                               //Done
     Route::put('categories/{id}', [CategoryController::class, 'update']);                          //Done
 
-    Route::post('wards', [WardController::class, 'store']);                         //
-    Route::put('wards/{id}', [WardController::class, 'update']);                    //
+    Route::post('wards', [WardController::class, 'store']);                                        //Done
+    Route::put('wards/{id}', [WardController::class, 'update']);                                   //Done
 
     Route::post('sub-categories', [SubCategoryController::class, 'store']);                        //Done
     Route::put('sub-categories/{id}', [SubCategoryController::class, 'update']);                   //Done
 
-    Route::put('entities/{id}', [EntityController::class, 'update']);
-    Route::put('clusters/{id}', [ClusterController::class, 'update']);
-    Route::put('ratepayers/{id}', [ClusterController::class, 'update']);
+    Route::put('entities/{id}', [EntityController::class, 'update']);                              //Done
+    Route::put('clusters/{id}', [ClusterController::class, 'update']);                             //Done
+    Route::put('ratepayers/{id}', [ClusterController::class, 'update']);                           //Done
 
     Route::put('ratepayers/update-rateid/{rateid}/{id}', [ClusterController::class, 'update']);
 
@@ -75,8 +77,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
     Route::get('denial-reasons', [DenialReasonController::class, 'showAll']);                      //Done
     Route::get('denial-reasons/{id}', [DenialReasonController::class, 'show'])->where('id', '[0-9]+');   //Done
 
-    Route::get('wards', [DenialReasonController::class, 'showAll']);                            //
-    Route::get('wards/{id}', [DenialReasonController::class, 'show'])->where('id', '[0-9]+');   //
+    Route::get('wards', [WardController::class, 'showAll']);                                       //Done
+    Route::get('wards/{id}', [WardController::class, 'show'])->where('id', '[0-9]+');              //Done
 
     Route::get('payment-zones', [PaymentZoneController::class, 'showAll']);                              //Done
     Route::get('payment-zones/ratepayers/paginated/{zoneId}/{pagination}', [PaymentZoneController::class, 'showRatepayersPaginated']);                   //Done
@@ -115,7 +117,11 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
     Route::get('demands/current/{id}', [DemandController::class, 'showCurrentDemand']);
 
     // Transactions
-    Route::post('transactions', [EntityController::class, 'store']);
+    Route::post('transactions/payment', [TransactionController::class, 'cashPayment']);
+    Route::post('transactions/denial', [TransactionController::class, 'store']);
+    Route::post('transactions/door-closed', [TransactionController::class, 'store']);
+    Route::post('transactions/deferred', [TransactionController::class, 'store']);
+    Route::post('transactions/other', [TransactionController::class, 'store']);
 
     //Current Payments
 
@@ -162,6 +168,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
+
+Route::post('/webhooks/razorpay', [WebhookController::class, 'handle']);
 
 Route::fallback(function () {
     return response()->json([

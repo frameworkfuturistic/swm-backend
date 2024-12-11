@@ -14,6 +14,7 @@ class Entity extends Model
         'ulb_id',
         'cluster_id',
         'zone_id',
+        'ward_id',
         'subcategory_id',
         'verify_user_id',
         'apply_tc_id',
@@ -42,6 +43,7 @@ class Entity extends Model
     protected $hidden = [
         // 'id',
         'created_at',
+        'ward_id',
         'deleted_at',
         'updated_at',
         'is_verified',

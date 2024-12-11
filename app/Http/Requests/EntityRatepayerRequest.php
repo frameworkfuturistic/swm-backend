@@ -23,6 +23,7 @@ class EntityRatepayerRequest extends FormRequest
     {
         return [
             'entity.clusterId' => 'nullable|exists:clusters,id',
+            'entity.wardId' => 'nullable|exists:wards,id',
             'entity.subcategoryId' => 'required|exists:sub_categories,id',
             'entity.verifiedbyId' => 'required|exists:users,id',
             'entity.appliedtcId' => 'required|exists:users,id',
@@ -43,6 +44,7 @@ class EntityRatepayerRequest extends FormRequest
             'entity.status' => 'required|in:pending,verified,rejected',
             'ratepayer.ulbId' => 'required|exists:ulbs,id',
             'ratepayer.clusterId' => 'nullable|exists:clusters,id',
+            'ratepayer.wardId' => 'nullable|exists:wards,id',
             'ratepayer.paymentzoneId' => 'required|exists:payment_zones,id',
             'ratepayer.ratepayerName' => 'required|string|max:100',
             'ratepayer.ratepayerAddress' => 'required|string|max:255',

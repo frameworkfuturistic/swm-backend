@@ -25,6 +25,7 @@ class EntityRequest extends FormRequest
             'clusterId' => 'nullable|exists:clusters,id',
             'subcategoryId' => 'required|exists:sub_categories,id',
             'verifiedbyId' => 'required|exists:users,id',
+            'wardId' => 'required|exists:wards,id',
             'appliedtcId' => 'required|exists:users,id',
             'holdingNo' => 'required|string|max:50',
             'entityName' => 'required|string|max:100',

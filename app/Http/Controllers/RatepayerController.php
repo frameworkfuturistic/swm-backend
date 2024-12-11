@@ -36,6 +36,7 @@ class RatepayerController extends Controller
                 'ulb_id' => $ulbId,
                 'cluster_id' => $validatedData['clusterId'],
                 'entity_id' => $validatedData['entityId'],
+                'ward_id' => $validatedData['wardId'],
                 'rate_id' => $validatedData['rateId'],
                 'paymentzone_id' => $validatedData['paymentzoneId'],
                 'ratepayer_name' => $validatedData['ratepayerName'],

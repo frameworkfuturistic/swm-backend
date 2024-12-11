@@ -24,6 +24,7 @@ class ClusterRequest extends FormRequest
     {
         return [
             'appliedtcId' => 'nullable|exists:users,id',
+            'wardId' => 'nullable|exists:wards,id',
             'clusterName' => [
                 'required',
                 'string',

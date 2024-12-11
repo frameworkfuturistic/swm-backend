@@ -25,6 +25,7 @@ class RatepayerRequest extends FormRequest
             'ulbId' => 'required|exists:ulbs,id',
             'clusterId' => 'nullable|exists:clusters,id',
             'entityId' => 'nullable|exists:clusters,id',
+            'wardId' => 'nullable|exists:wards,id',
             'rateId' => 'nullable|exists:rate_list,id',
             'paymentzoneId' => 'required|exists:payment_zones,id',
             'ratepayerName' => 'required|string|max:100',
