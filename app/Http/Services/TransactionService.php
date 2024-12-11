@@ -132,6 +132,13 @@ class TransactionService
         }
     }
 
+    /**
+     * C. createPaymentOrder
+     * when a new non cash payment starts, it should go through payment gateway
+     * when initiating payment gateway, first we need to create a payment order
+     * which will be updated into transaction table. As soon as payment success or failure message
+     * arrives payments table is updated
+     */
     public function createPaymentOrder($validatedData): PaymentOrder
     {
         $paymentOrder = new PaymentOrder;

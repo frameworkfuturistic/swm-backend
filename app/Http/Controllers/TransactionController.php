@@ -33,6 +33,82 @@ use Illuminate\Support\Facades\DB;
  */
 class TransactionController extends Controller
 {
+    public function cashPayment(Request $request)
+    {
+        $tranService = new TransactionService;
+
+        $validatedData = $request->validate([
+            // 'ulbId' => 'required|exists:ulbs,id',
+            'tcId' => 'required|exists:users,id',
+            'ratepayerId' => 'required|exists:ratepayers,id',
+            //  'eventType' => 'required|in:PAYMENT,DENIAL,DOOR-CLOSED,DEFERRED,OTHER',
+            'remarks' => 'nullable|string|max:250',
+            'autoRemarks' => 'nullable|string|max:250',
+            'amount' => 'required|integer|min:1',
+            //  'paymentMode' => 'required_if:event_type,PAYMENT|in:cash,card,upi,cheque,online',
+        ]);
+
+        $validatedData['ulbId'] = $request->ulbId;
+        $validatedData['entityId'] = $request->input('entityId');
+        $validatedData['clusterId'] = $request->input('clusterId');
+        $validatedData['eventType'] = $request->input('PAYMENT');
+        $validatedData['paymentMode'] = 'CASH';
+
+        // Start a transaction to ensure data integrity
+
+        DB::beginTransaction();
+        try {
+            $tranService->extractRatepayerDetails($validatedData['ratepayerId']);
+            $transaction = $tranService->createNewTransaction($validatedData);
+            $payment = $tranService->createNewPayment($validatedData, $transaction->id);
+
+            if ($transaction != null) {
+                $responseData = [
+                    'tranId' => $tranService->transaction->id,
+                    'consumerNo' => $tranService->ratepayer->consumer_no,
+                    'ratepayerName' => $tranService->ratepayer->ratepayer_name,
+                    'ratepayerAddress' => $tranService->ratepayer->ratepayer_address,
+                    'mobileNo' => $tranService->ratepayer->ratepayer_address,
+                    'landmark' => $tranService->ratepayer->landmark,
+                    'longitude' => $tranService->ratepayer->longitude,
+                    'latitude' => $tranService->ratepayer->latitude,
+                    'tranType' => $tranService->transaction->event_type,
+                    'pmtMode' => $tranService->transaction->payment_mode,
+                    'pmtAmount' => $tranService->payment->amount,
+                    'remarks' => $tranService->transaction->remarks,
+                ];
+                DB::commit();
+
+                //Broadcast transaction to Dashboard
+                broadcast(new SiteVisitedEvent(
+                    $responseData,
+                ))->toOthers();
+
+                return format_response(
+                    'success',
+                    $responseData,
+                    Response::HTTP_CREATED
+                );
+            } else {
+                DB::rollBack();
+
+                return format_response(
+                    'An error occurred during insertion',
+                    null,
+                    Response::HTTP_INTERNAL_SERVER_ERROR
+                );
+            }
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return format_response(
+                'An error occurred during insertion',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
     /**
      * Request body
      *{
