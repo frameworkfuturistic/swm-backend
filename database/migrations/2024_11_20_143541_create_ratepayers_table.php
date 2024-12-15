@@ -29,6 +29,7 @@ return new class extends Migration
             $table->string('mobile_no', 15)->nullable();
             $table->string('landmark', 100)->nullable();
             $table->string('whatsapp_no', 12)->nullable();
+            $table->integer('reputation')->notNullable()->default(1);
             $table->dateTime('bill_date')->nullable(); // `first_bill_date` column as datetime, nullable
             $table->integer('opening_demand')->nullable(); // `opening_demand` column as int(11), nullable
             $table->integer('monthly_demand')->nullable(); // `monthly_demand` column as int(11), nullable

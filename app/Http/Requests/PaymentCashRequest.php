@@ -4,14 +4,14 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class TransactionRequest extends FormRequest
+class PaymentCashRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return true;
+        return false;
     }
 
     /**
@@ -24,9 +24,9 @@ class TransactionRequest extends FormRequest
         return [
             'tcId' => 'required|exists:users,id',
             'ratepayerId' => 'required|exists:ratepayers,id',
-            'eventType' => 'required|in:PAYMENT,DENIAL,DOOR-CLOSED,DEFERRED,OTHER',
+            // 'eventType' => 'required|in:PAYMENT,DENIAL,DOOR-CLOSED,DEFERRED,OTHER',
             'remarks' => 'nullable|string|max:250',
-            'autoRemarks' => 'nullable|string|max:250',
+            // 'autoRemarks' => 'nullable|string|max:250',
             'amount' => 'required_if:event_type,PAYMENT|integer|min:1',
             // 'paymentMode' => 'required_if:event_type,PAYMENT|in:cash,card,upi,cheque,online',
             //

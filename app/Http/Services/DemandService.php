@@ -31,7 +31,7 @@ class DemandService
 
         try {
             // Start a database transaction for data integrity
-            DB::transaction(function () use ($year, $ulbId) {
+            DB::transaction(function () use ($year, $ulbId, &$stats) {
 
                 // Query active ratepayers, optionally filtered by ULB
                 $ratepayersQuery = Ratepayer::where('is_active', true);
@@ -39,6 +39,7 @@ class DemandService
                     $ratepayersQuery->where('ulb_id', $ulbId);
                 }
 
+                DB::enableQueryLog();
                 // Iterate through active ratepayers
                 $ratepayersQuery->chunk(100, function ($ratepayers) use ($year, &$stats) {
                     foreach ($ratepayers as $ratepayer) {
@@ -89,12 +90,12 @@ class DemandService
         for ($month = 1; $month <= 12; $month++) {
             $demand = Demand::updateOrCreate(
                 [
+                    'ulb_id' => $ratepayer->ulb_id,
                     'ratepayer_id' => $ratepayer->id,
                     'bill_month' => $month,
                     'bill_year' => $year,
                 ],
                 [
-                    'ulb_id' => $ratepayer->ulb_id,
                     'demand' => $monthlyDemand,
                     'payment' => null,  // Reset payment
                 ]

@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Demand extends Model
 {
     protected $fillable = [
+        'ulb_id',
         'ratepayer_id',
+        'opening_balance',
         'bill_month',
         'bill_year',
         'demand',

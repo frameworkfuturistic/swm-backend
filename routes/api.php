@@ -1,9 +1,6 @@
 <?php
 
 use App\Http\Controllers\API\AuthController;
-use App\Http\Controllers\API\BillController;
-use App\Http\Controllers\API\PaymentController;
-use App\Http\Controllers\API\ZoneController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ClusterController;
 use App\Http\Controllers\DemandController;
@@ -89,6 +86,9 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
     Route::get('categories/{id}', [CategoryController::class, 'show'])->where('id', '[0-9]+');           //Done
     Route::get('categories', [CategoryController::class, 'showAll']);                                    //Done
 
+    Route::get('sub-categories/{id}', [SubCategoryController::class, 'show'])->where('id', '[0-9]+');           //Done
+    Route::get('sub-categories/by-categoryid/{id}', [SubCategoryController::class, 'showAll']);                                    //Done
+
     //  Entity Controller endpoints
     Route::post('entities', [EntityController::class, 'store']);                                   //Done
     Route::post('entities/with-ratepayers', [EntityController::class, 'storeWithRatePayers']);     //Done
@@ -117,7 +117,17 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
     Route::get('demands/current/{id}', [DemandController::class, 'showCurrentDemand']);
 
     // Transactions
-    Route::post('transactions/payment', [TransactionController::class, 'cashPayment']);
+    Route::post('transactions/payment/cash', [TransactionController::class, 'cashPayment']);
+    Route::post('payments/upi-qr', [TransactionController::class, 'generateUpiQr']);
+    Route::post('payments/verify-upi/{qrCodeId}', [TransactionController::class, 'verifyPayment']);
+    Route::post('/gateway/webhook', [WebhookController::class, 'handleWebhook'])->withoutMiddleware(['csrf', 'web']);
+
+    //Use PaymentService
+    Route::post('/payment-links/create', [TransactionController::class, 'createPaymentLink']);
+    Route::delete('/payment-links/{paymentLinkId}', [TransactionController::class, 'cancelPaymentLink']);
+    Route::get('/payment-links/{paymentLinkId}', [TransactionController::class, 'fetchPaymentLinkDetails']);
+
+    Route::post('transactions/create-order', [TransactionController::class, 'cashPayment']);
     Route::post('transactions/denial', [TransactionController::class, 'store']);
     Route::post('transactions/door-closed', [TransactionController::class, 'store']);
     Route::post('transactions/deferred', [TransactionController::class, 'store']);
@@ -168,8 +178,6 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
-
-Route::post('/webhooks/razorpay', [WebhookController::class, 'handle']);
 
 Route::fallback(function () {
     return response()->json([

@@ -41,7 +41,7 @@ class SubCategoryController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function listSubCategories(Request $request, $id)
+    public function showAll(Request $request, $id)
     {
         try {
             // $subCategories = SubCategory::with('category')->where('category_id', $request->categoryId)->get();
@@ -64,7 +64,7 @@ class SubCategoryController extends Controller
             return format_response(
                 'success',
                 $subCategories,
-                Response::HTTP_CREATED
+                Response::HTTP_OK
             );
         } catch (\Illuminate\Validation\ValidationException $e) {
             return format_response(

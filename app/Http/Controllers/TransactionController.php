@@ -10,6 +10,7 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Razorpay\Api\Api;
 
 /**
  * Created on 04/12/2024
@@ -33,6 +34,10 @@ use Illuminate\Support\Facades\DB;
  */
 class TransactionController extends Controller
 {
+    /**
+     * 1. api/transactions/payment/cash
+     * 2.
+     */
     public function cashPayment(Request $request)
     {
         $tranService = new TransactionService;
@@ -58,6 +63,7 @@ class TransactionController extends Controller
 
         DB::beginTransaction();
         try {
+
             $tranService->extractRatepayerDetails($validatedData['ratepayerId']);
             $transaction = $tranService->createNewTransaction($validatedData);
             $payment = $tranService->createNewPayment($validatedData, $transaction->id);
@@ -191,20 +197,5 @@ class TransactionController extends Controller
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
-    }
-
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        $transactions = Transaction::with(['ulb', 'tc', 'ratepayer', 'entity', 'cluster', 'payment'])->get();
-
-        return format_response(
-            'success',
-            $transactions,
-            Response::HTTP_CREATED
-        );
-        //   return response()->json($transactions);
     }
 }

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs');
             $table->foreignId('ratepayer_id')->constrained('ratepayers');
-            $table->integer('opening_balance')->notNullable();
+            $table->integer('opening_balance')->nullable();
             $table->integer('bill_month')->notNullable();
             $table->integer('bill_year')->notNullable();
             $table->integer('demand')->nullable();

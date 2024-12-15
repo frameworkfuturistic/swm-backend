@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use Carbon\Carbon;
+use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -13,47 +13,33 @@ class RatepayerTableSeeder extends Seeder
      */
     public function run()
     {
-        DB::table('ratepayers')->insert([
-            [
-                'ulb_id' => 1,
-                'entity_id' => 1,
-                'cluster_id' => 1,
-                'paymentzone_id' => 1,
-                'last_payment_id' => 1,
-                'last_transaction_id' => 1,
-                'ratepayer_name' => 'John Doe',
-                'ratepayer_address' => '123 Main St, Downtown',
-                'consumer_no' => 'C12345',
-                'mobile_no' => '1234567890',
-                'landmark' => 'Near City Park',
-                'whatsapp_no' => '1234567890',
-                'bill_date' => Carbon::now(),
-                'opening_demand' => 5000,
-                'monthly_demand' => 1500,
-                'is_active' => true,
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ],
-            [
-                'ulb_id' => 1,
-                'entity_id' => 2,
-                'cluster_id' => 2,
-                'paymentzone_id' => 2,
-                'last_payment_id' => 2,
-                'last_transaction_id' => 2,
-                'ratepayer_name' => 'Jane Smith',
-                'ratepayer_address' => '456 Green Road, Suburbia',
-                'consumer_no' => 'C67890',
-                'mobile_no' => '9876543210',
-                'landmark' => 'Opposite Green Park',
-                'whatsapp_no' => '9876543210',
-                'bill_date' => Carbon::now(),
-                'opening_demand' => 8000,
-                'monthly_demand' => 2000,
-                'is_active' => true,
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ],
-        ]);
+        $faker = Faker::create();
+
+        for ($i = 1; $i <= 1000; $i++) {
+            DB::table('ratepayers')->insert([
+                'ulb_id' => 1, // Assuming 50 ULBs
+                'ward_id' => $faker->numberBetween(1, 10), // Assuming 200 Wards
+                'entity_id' => $faker->boolean(50) ? $faker->numberBetween(1, 400) : null, // 50% chance of being null
+                'cluster_id' => $faker->boolean(50) ? null : $faker->numberBetween(1, 20), // Mutually exclusive with entity_id
+                'paymentzone_id' => $faker->optional()->numberBetween(1, 5),
+                'last_payment_id' => null,
+                'rate_id' => $faker->numberBetween(1, 3),
+                'last_transaction_id' => null, //$faker->optional()->numberBetween(1, 500),
+                'ratepayer_name' => $faker->name,
+                'ratepayer_address' => $faker->address,
+                'consumer_no' => $faker->unique()->regexify('[A-Z0-9]{10}'),
+                'longitude' => $faker->optional()->longitude,
+                'latitude' => $faker->optional()->latitude,
+                'mobile_no' => $faker->optional()->numerify('###########'),
+                'landmark' => $faker->optional()->streetName,
+                'whatsapp_no' => $faker->optional()->numerify('###########'),
+                'bill_date' => $faker->optional()->dateTimeThisYear(),
+                'opening_demand' => $faker->optional()->numberBetween(100, 10000),
+                'monthly_demand' => $faker->numberBetween(100, 5000),
+                'is_active' => $faker->boolean(80), // 80% chance of being active
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 }

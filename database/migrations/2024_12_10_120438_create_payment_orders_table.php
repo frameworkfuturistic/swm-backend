@@ -14,36 +14,62 @@ return new class extends Migration
         Schema::create('payment_orders', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
-            $table->unsignedBigInteger('payment_id')->nullable()->index('Index_paymentid');
-            $table->string('razorpay_order_id', 255)->nullable()->index('Index_razorapyorderid');
-            $table->string('gateway_name', 255)->nullable();
-            $table->text('gateway_request_payload')->nullable();
-            $table->text('gateway_response_payload')->nullable();
-            $table->integer('amount')->nullable();
-            $table->string('order_id', 255)->nullable()->index('Index_orderid');
-            $table->string('gateway_payment_id', 255)->nullable()->index('Index_gatewaypaymentid');
-            $table->string('gateway_signature', 255)->nullable();
-            $table->enum('gateway_payment_status', ['CREATED', 'PAID', 'ATTEMPTED'])->default('CREATED');
-            $table->string('gateway_status_code', 255)->nullable();
-            $table->boolean('payment_pending')->nullable();
+            $table->foreignId('user_id')->constrained('users')->notNullable();
+            // $table->unsignedBigInteger('payment_id')->nullable()->index('Index_paymentid');
+
+            // Razorpay specific fields
+            $table->string('razorpay_order_id')->nullable();
+            $table->string('razorpay_payment_id')->nullable();
+            $table->string('razorpay_signature')->nullable();
+
+            // Order details
+            $table->decimal('amount', 10, 2);
+            $table->string('currency')->default('INR');
+
+            // Status tracking
+            $table->string('status')->default('pending');
+            $table->string('payment_status')->nullable();
+            $table->string('payment_method')->nullable();
+
+            // Failure and refund details
+            $table->text('failure_reason')->nullable();
+            $table->decimal('refund_amount', 10, 2)->nullable();
+            $table->string('refund_status')->nullable();
+
+            // Additional metadata
+            $table->json('notes')->nullable();
+
             $table->timestamps();
         });
 
         Schema::create('current_payment_orders', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
-            $table->unsignedBigInteger('payment_id')->nullable()->index('Index_paymentid');
-            $table->string('razorpay_order_id', 255)->nullable()->index('Index_razorapyorderid');
-            $table->string('gateway_name', 255)->nullable();
-            $table->text('gateway_request_payload')->nullable();
-            $table->text('gateway_response_payload')->nullable();
-            $table->integer('amount')->nullable();
-            $table->string('order_id', 255)->nullable()->index('Index_orderid');
-            $table->string('gateway_payment_id', 255)->nullable()->index('Index_gatewaypaymentid');
-            $table->string('gateway_signature', 255)->nullable();
-            $table->enum('gateway_payment_status', ['CREATED', 'PAID', 'ATTEMPTED'])->default('CREATED');
-            $table->string('gateway_status_code', 255)->nullable();
-            $table->boolean('payment_pending')->nullable();
+            $table->foreignId('user_id')->constrained('users')->notNullable();
+            // $table->unsignedBigInteger('payment_id')->nullable()->index('Index_paymentid');
+
+            // Razorpay specific fields
+            $table->string('razorpay_order_id')->nullable();
+            $table->string('razorpay_payment_id')->nullable();
+            $table->string('razorpay_signature')->nullable();
+
+            // Order details
+            $table->decimal('amount', 10, 2);
+            $table->string('currency')->default('INR');
+
+            // Status tracking
+            $table->string('status')->default('pending');
+            $table->string('payment_status')->nullable();
+            $table->string('payment_method')->nullable();
+
+            // Failure and refund details
+            $table->text('failure_reason')->nullable();
+            $table->decimal('refund_amount', 10, 2)->nullable();
+            $table->string('refund_status')->nullable();
+
+            // Additional metadata
+            $table->json('notes')->nullable();
+
             $table->timestamps();
         });
     }
