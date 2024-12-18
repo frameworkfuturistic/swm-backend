@@ -18,6 +18,18 @@ return new class extends Migration
             $table->dateTime('allotment_date')->nullable(); // `first_payment_date` column as datetime, nullable
             $table->dateTime('deactivation_date')->nullable(); // `first_bill_date` column as datetime, nullable
             $table->boolean('is_active')->default(true); // Active status
+            $table->integer('vrno');
+            $table->timestamps();
+        });
+
+        Schema::create('log_tc_has_zones', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('tc_id')->constrained('users');
+            $table->unsignedBigInteger('paymentzone_id')->nullable();
+            $table->dateTime('allotment_date')->nullable(); // `first_payment_date` column as datetime, nullable
+            $table->dateTime('deactivation_date')->nullable(); // `first_bill_date` column as datetime, nullable
+            $table->boolean('is_active')->default(true); // Active status
+            $table->integer('vrno');
             $table->timestamps();
         });
     }

@@ -23,6 +23,7 @@ class SubCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'categoryId' => 'nullable|exists:categories,id',
             'subCategory' => [
                 'required',
                 'string',

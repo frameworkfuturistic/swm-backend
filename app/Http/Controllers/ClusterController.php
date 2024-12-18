@@ -85,7 +85,7 @@ class ClusterController extends Controller
 
             $cluster = Cluster::create([
                 'ulb_id' => $ulbId,
-                'tc_id' => $clusterData['appliedtcId'] ?? null,
+                'appliedtc_id' => auth()->id(),
                 'ward_id' => $clusterData['wardId'],
                 'cluster_name' => $clusterData['clusterName'],
                 'cluster_address' => $clusterData['clusterAddress'],
@@ -106,11 +106,12 @@ class ClusterController extends Controller
 
             $ratePayer = Ratepayer::create([
                 'ulb_id' => $ulbId,
-                'entity_id' => $cluster->id, // Link the entity
+                'cluster_id' => $cluster->id, // Link the entity
                 'ward_id' => $ratepayerData['wardId'],
+                'subcategory_id' => $ratepayerData['subcategoryId'], // Link the entity
                 'paymentzone_id' => $ratepayerData['paymentzoneId'],
-                'last_payment_id' => null, // Initialize as null, can be updated later
-                'last_transaction_id' => null, // Initialize as null, can be updated later
+                //  'last_payment_id' => null, // Initialize as null, can be updated later
+                //  'last_transaction_id' => null, // Initialize as null, can be updated later
                 'ratepayer_name' => $ratepayerData['ratepayerName'],
                 'ratepayer_address' => $ratepayerData['ratepayerAddress'],
                 'consumer_no' => $ratepayerData['consumerNo'],
@@ -119,7 +120,7 @@ class ClusterController extends Controller
                 'mobile_no' => $ratepayerData['mobileNo'],
                 'landmark' => $ratepayerData['landmark'],
                 'whatsapp_no' => $ratepayerData['whatsappNo'],
-                'bill_date' => $ratepayerData['billDate'],
+                //  'bill_date' => $ratepayerData['billDate'],
                 'opening_demand' => $ratepayerData['openingDemand'],
                 'monthly_demand' => $ratepayerData['monthlyDemand'],
                 'is_active' => true,
@@ -129,7 +130,7 @@ class ClusterController extends Controller
             DB::commit();
 
             return format_response(
-                'Entity and Ratepayer created successfully',
+                'Cluster and Ratepayer created successfully',
                 $cluster,
                 Response::HTTP_CREATED
             );

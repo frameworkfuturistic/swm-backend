@@ -32,6 +32,7 @@ return new class extends Migration
             $table->string('auto_remarks', 250)->nullable();
             $table->boolean('is_verified')->default(true); // Active status
             $table->boolean('is_cancelled')->default(true); // Cancelled status
+            $table->integer('vrno');
 
             $table->timestamps();
         });
@@ -56,6 +57,32 @@ return new class extends Migration
             $table->string('auto_remarks', 250)->nullable();
             $table->boolean('is_verified')->default(true); // Active status
             $table->boolean('is_cancelled')->default(true); // Active status
+            $table->integer('vrno');
+
+            $table->timestamps();
+        });
+
+        Schema::create('log_transactions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
+            $table->unsignedBigInteger('tc_id')->nullable();
+            $table->unsignedBigInteger('ratepayer_id')->nullable();
+            $table->unsignedBigInteger('entity_id')->nullable();
+            $table->unsignedBigInteger('cluster_id')->nullable();
+            $table->unsignedBigInteger('payment_id')->nullable();
+            $table->unsignedBigInteger('denial_reason_id')->nullable();
+            $table->unsignedBigInteger('cancelledby_id')->nullable();
+            $table->unsignedBigInteger('verifiedby_id')->nullable();
+
+            $table->dateTime('event_time')->notNullable();
+            $table->date('cancellation_date')->nullable(); // Cancellation date
+            $table->date('verification_date')->nullable(); // Verification date
+            $table->enum('event_type', ['PAYMENT', 'DENIAL', 'DOOR-CLOSED', 'DEFERRED', 'OTHER'])->default('DEFERRED');
+            $table->string('remarks', 250)->nullable();
+            $table->string('auto_remarks', 250)->nullable();
+            $table->boolean('is_verified')->default(true); // Active status
+            $table->boolean('is_cancelled')->default(true); // Active status
+            $table->integer('vrno');
 
             $table->timestamps();
         });

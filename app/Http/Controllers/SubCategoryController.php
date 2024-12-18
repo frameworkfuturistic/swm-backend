@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\SubCategoryRequest;
+use App\Models\Category;
 use App\Models\SubCategory;
 use Exception;
 use Illuminate\Http\Request;
@@ -59,10 +60,12 @@ class SubCategoryController extends Controller
                 abort(404);
             }
 
-            $subCategories = SubCategory::with('category')->where('category_id', $id)->get();
+            // $subCategories = SubCategory::with('category')->where('category_id', $id)->get();
+            $subCategories = SubCategory::where('category_id', $id)->get();
+            $category = Category::find($id);
 
             return format_response(
-                'success',
+                'Sub Categories of '.$category->category,
                 $subCategories,
                 Response::HTTP_OK
             );
@@ -124,11 +127,11 @@ class SubCategoryController extends Controller
     public function show(int $id)
     {
         try {
-            $subCategories = SubCategory::findOrFail($id);
+            $subCategory = SubCategory::findOrFail($id);
 
             return format_response(
-                'Sub Categoriy record',
-                $subCategories,
+                'Sub Category',
+                $subCategory,
                 Response::HTTP_OK
             );
         } catch (\Exception $e) {

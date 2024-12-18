@@ -4,8 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Demand extends Model
+class CurrentDemand extends Model
 {
+    protected $table = 'current_demands';
+
     protected $fillable = [
         'ulb_id',
         'vrno',

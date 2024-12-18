@@ -32,8 +32,10 @@ return new class extends Migration
             $table->string('upi_id', 100)->nullable();
             $table->string('cheque_number', 25)->nullable();
             $table->boolean('is_canceled')->default(false); // Active status
+            $table->integer('vrno');
             $table->timestamps();
         });
+
         Schema::create('current_payments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
@@ -55,6 +57,32 @@ return new class extends Migration
             $table->string('upi_id', 100)->nullable();
             $table->string('cheque_number', 25)->nullable();
             $table->boolean('is_canceled')->default(false); // Active status
+            $table->integer('vrno');
+            $table->timestamps();
+        });
+
+        Schema::create('log_payments', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
+            $table->unsignedBigInteger('ratepayer_id')->nullable();
+            $table->unsignedBigInteger('entity_id')->nullable();
+            $table->unsignedBigInteger('cluster_id')->nullable();
+            $table->unsignedBigInteger('tc_id')->nullable();
+            $table->unsignedBigInteger('tran_id')->nullable();
+            $table->unsignedBigInteger('payment_order_id')->nullable();
+
+            $table->dateTime('payment_date')->notNullable()->index('Index_paymentdate');
+            $table->enum('payment_mode', ['CASH', 'CARD', 'UPI', 'CHEQUE', 'ONLINE'])->nullable()->index('Index_paymentmode');
+            $table->enum('payment_status', ['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'])->default('PENDING')->index('Index_paymentstatus');
+            $table->integer('amount')->notNullable();
+            $table->boolean('payment_verified')->nullable()->index('Index_paymentverified');
+            $table->boolean('refund_initiated')->nullable()->index('Index_refundinitiated');
+            $table->boolean('refund_verified')->nullable()->index('Index_refundverified');
+            $table->string('card_number', 25)->nullable();
+            $table->string('upi_id', 100)->nullable();
+            $table->string('cheque_number', 25)->nullable();
+            $table->boolean('is_canceled')->default(false); // Active status
+            $table->integer('vrno');
             $table->timestamps();
         });
 

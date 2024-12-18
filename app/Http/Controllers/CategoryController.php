@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\SubCategory;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -81,7 +82,7 @@ class CategoryController extends Controller
                 'updated_at' => now(),
             ]);
 
-            $category = Category::create($validated);
+            // $category = Category::create($validated);
 
             return format_response(
                 'Category Created',
@@ -114,11 +115,12 @@ class CategoryController extends Controller
     public function show(int $id)
     {
         try {
-            $categories = Category::findOrFail($id);
+            // $categories = Category::findOrFail($id)->with(SubCategory);
+            $category = Category::with('subCategories')->findOrFail($id);
 
             return format_response(
                 'Category Record',
-                $categories,
+                $category,
                 Response::HTTP_OK
             );
 

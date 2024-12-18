@@ -15,11 +15,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs');
             $table->foreignId('ratepayer_id')->constrained('ratepayers');
-            $table->integer('opening_balance')->nullable();
+            $table->integer('opening_demand')->nullable();
             $table->integer('bill_month')->notNullable();
             $table->integer('bill_year')->notNullable();
             $table->integer('demand')->nullable();
             $table->integer('payment')->nullable();
+            $table->integer('vrno');
             $table->timestamps();
         });
 
@@ -27,10 +28,25 @@ return new class extends Migration
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs');
             $table->foreignId('ratepayer_id')->constrained('ratepayers');
+            $table->integer('opening_demand')->nullable();
             $table->integer('bill_month')->notNullable();
             $table->integer('bill_year')->notNullable();
             $table->integer('demand')->nullable();
             $table->integer('payment')->nullable();
+            $table->integer('vrno');
+            $table->timestamps();
+        });
+
+        Schema::create('log_demands', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('ulb_id')->constrained('ulbs');
+            $table->unsignedBigInteger('ratepayer_id')->nullable();
+            $table->integer('opening_demand')->nullable();
+            $table->integer('bill_month')->nullable();
+            $table->integer('bill_year')->nullable();
+            $table->integer('demand')->nullable();
+            $table->integer('payment')->nullable();
+            $table->integer('vrno');
             $table->timestamps();
         });
 

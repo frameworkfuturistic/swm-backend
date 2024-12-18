@@ -22,7 +22,7 @@ class ClusterRatepayerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'cluster.appliedtcId' => 'nullable|exists:users,id',
+            // 'cluster.appliedtcId' => 'nullable|exists:users,id',
             'cluster.wardId' => 'nullable|exists:wards,id',
             'cluster.clusterName' => 'required|string|max:60|unique:clusters,cluster_name,NULL,id,ulb_id,'.$this->ulb_id,
             'cluster.clusterAddress' => 'nullable|string|max:255',
@@ -34,10 +34,11 @@ class ClusterRatepayerRequest extends FormRequest
             'cluster.longitude' => 'nullable|numeric',
             'cluster.latitude' => 'nullable|numeric',
             'cluster.inclusionDate' => 'nullable|date',
-            'cluster.verificationDate' => 'nullable|date',
+            // 'cluster.verificationDate' => 'nullable|date',
 
-            'ratepayer.clusterId' => 'nullable|exists:clusters,id',
+            // 'ratepayer.clusterId' => 'nullable|exists:clusters,id',
             'ratepayer.wardId' => 'nullable|exists:wards,id',
+            'ratepayer.subcategoryId' => 'nullable|exists:sub_categories,id',
             'ratepayer.paymentzoneId' => 'required|exists:payment_zones,id',
             'ratepayer.ratepayerName' => 'required|string|max:100',
             'ratepayer.ratepayerAddress' => 'required|string|max:255',
@@ -47,7 +48,7 @@ class ClusterRatepayerRequest extends FormRequest
             'ratepayer.mobileNo' => 'required|digits:10',
             'ratepayer.landmark' => 'nullable|string|max:100',
             'ratepayer.whatsappNo' => 'nullable|digits:10',
-            'ratepayer.billDate' => 'nullable|max:11',
+            // 'ratepayer.billDate' => 'nullable|max:11',
             'ratepayer.openingDemand' => 'required|numeric|min:0',
             'ratepayer.monthlyDemand' => 'required|numeric|min:0',
         ];

@@ -13,9 +13,9 @@ class RateListSeeder extends Seeder
     public function run()
     {
         DB::table('rate_list')->insert([
-            ['ulb_id' => 1, 'rate_list' => 'Standard Rate', 'amount' => 100, 'created_at' => now(), 'updated_at' => now()],
-            ['ulb_id' => 1, 'rate_list' => 'Premium Rate', 'amount' => 200, 'created_at' => now(), 'updated_at' => now()],
-            ['ulb_id' => 1, 'rate_list' => 'Discount Rate', 'amount' => 50, 'created_at' => now(), 'updated_at' => now()],
+            ['ulb_id' => 1, 'rate_list' => 'Standard Rate', 'amount' => 100, 'vrno' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['ulb_id' => 1, 'rate_list' => 'Premium Rate', 'amount' => 200, 'vrno' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['ulb_id' => 1, 'rate_list' => 'Discount Rate', 'amount' => 50, 'vrno' => 1, 'created_at' => now(), 'updated_at' => now()],
         ]);
     }
 }

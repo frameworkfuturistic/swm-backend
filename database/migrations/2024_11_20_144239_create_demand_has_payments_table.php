@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('payment_id')->constrained('payments')->notNullable();
             $table->integer('demand')->nullable();
             $table->integer('payment')->nullable();
+            $table->integer('vrno');
             $table->timestamps();
         });
 
@@ -26,6 +27,17 @@ return new class extends Migration
             $table->foreignId('payment_id')->constrained('current_payments')->notNullable();
             $table->integer('demand')->nullable();
             $table->integer('payment')->nullable();
+            $table->integer('vrno');
+            $table->timestamps();
+        });
+
+        Schema::create('log_demand_has_payments', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('demand_id')->constrained('current_demands')->notNullable();
+            $table->unsignedBigInteger('payment_id')->nullable();
+            $table->integer('demand')->nullable();
+            $table->integer('payment')->nullable();
+            $table->integer('vrno');
             $table->timestamps();
         });
 

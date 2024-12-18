@@ -64,7 +64,7 @@ class WardController extends Controller
             );
         } catch (\Exception $e) {
             return format_response(
-                'An error occurred during registration',
+                'An error occurred during Ward Creation, Check for duplicate',
                 null,
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );

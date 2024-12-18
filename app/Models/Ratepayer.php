@@ -11,6 +11,7 @@ class Ratepayer extends Model
         'entity_id',
         'cluster_id',
         'ward_id',
+        'subcategory_id',
         'paymentzone_id',
         'last_payment_id',
         'last_transaction_id',
@@ -59,13 +60,24 @@ class Ratepayer extends Model
         return $this->belongsTo(Ulb::class);
     }
 
-    public function entity()
-    {
-        return $this->belongsTo(Entity::class);
-    }
-
     public function cluster()
     {
         return $this->belongsTo(Cluster::class);
+    }
+
+    public function ward()
+    {
+        return $this->belongsTo(Ward::class);
+    }
+
+    public function paymentZone()
+    {
+        return $this->belongsTo(PaymentZone::class);
+        //   return $this->belongsTo(PaymentZone::class, 'paymentzone_id','id');
+    }
+
+    public function subCategory()
+    {
+        return $this->belongsTo(SubCategory::class);
     }
 }

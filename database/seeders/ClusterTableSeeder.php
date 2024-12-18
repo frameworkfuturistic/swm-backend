@@ -34,6 +34,7 @@ class ClusterTableSeeder extends Seeder
                 'verification_date' => $faker->optional()->date(),
                 'is_active' => $faker->boolean(80), // 80% chance of being active
                 'is_verified' => $faker->boolean(90), // 50% chance of being verified
+                'vrno' => 1,
                 'created_at' => now(),
                 'updated_at' => now(),
                 'deleted_at' => $faker->optional(0.1)->dateTime(), // 10% chance of soft deletion

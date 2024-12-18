@@ -2,16 +2,28 @@
 
 namespace App\Http\Services;
 
+use App\Models\CurrentDemand;
 use App\Models\Demand;
 use App\Models\RateList;
 use App\Models\Ratepayer;
 use App\Models\Transaction;
 use Exception;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class DemandService
 {
+    protected $ulbId;
+
+    protected $stats = [
+        'total_ratepayers' => 0,
+        'demands_generated' => 0,
+        'skipped_ratepayers' => 0,
+        'errors' => [],
+    ];
+
     /**
      * Generate demands for all active ratepayers for a specific year
      *
@@ -21,58 +33,158 @@ class DemandService
      */
     public function generateYearlyDemands(int $year, ?int $ulbId = null): array
     {
-        // Prepare statistics
-        $stats = [
-            'total_ratepayers' => 0,
-            'demands_generated' => 0,
-            'skipped_ratepayers' => 0,
-            'errors' => [],
-        ];
-
+        $ulbId = $ulbId;
         try {
             // Start a database transaction for data integrity
-            DB::transaction(function () use ($year, $ulbId, &$stats) {
-
-                // Query active ratepayers, optionally filtered by ULB
-                $ratepayersQuery = Ratepayer::where('is_active', true);
-                if ($ulbId) {
-                    $ratepayersQuery->where('ulb_id', $ulbId);
-                }
-
-                DB::enableQueryLog();
-                // Iterate through active ratepayers
-                $ratepayersQuery->chunk(100, function ($ratepayers) use ($year, &$stats) {
-                    foreach ($ratepayers as $ratepayer) {
-                        try {
-                            $demands = $this->generateRatepayerDemands($ratepayer, $year);
-                            $stats['demands_generated'] += count($demands);
-                        } catch (\Exception $e) {
-                            $stats['skipped_ratepayers']++;
-                            $stats['errors'][] = [
-                                'ratepayer_id' => $ratepayer->id,
-                                'error' => $e->getMessage(),
-                            ];
-
-                            Log::error('Demand Generation Failed', [
-                                'ratepayer_id' => $ratepayer->id,
-                                'year' => $year,
-                                'error' => $e->getMessage(),
-                            ]);
-                        }
-                        $stats['total_ratepayers']++;
-                    }
-                });
-
+            DB::transaction(function () use (&$stats, $year) {
+                $this->resetOpeningDemand();
+                $this->updateEntityRatepayerDemand();
+                $this->updateClusterRatepayerDemand();
+                $this->mergeDemand();
+                $this->cleanCurrentDemands();
+                $this->generateCurrentDemands($year);
             });
         } catch (Exception $e) {
             Log::error('Unexpected error during entity update: '.$e->getMessage());
         }
 
-        return $stats;
+        return $this->stats;
     }
 
     /**
-     * Generate demands for a specific ratepayer for an entire year
+     * Step 1: Reset opening demand for all active ratepayers
+     */
+    private function resetOpeningDemand()
+    {
+        DB::table('ratepayers')
+            ->where('is_active', 1)
+            ->where('ulb_id', $this->ulbId)
+            ->update(['opening_demand' => 0]);
+
+        Log::info('Opening demands reset successfully.');
+    }
+
+    /**
+     * Step 2: Update opening demand for non-cluster (entity) ratepayers
+     */
+    private function updateEntityRatepayerDemand()
+    {
+        DB::table('ratepayers AS p')
+            ->join(DB::raw('(
+                SELECT d.ratepayer_id, SUM((IFNULL(d.opening_demand, 0) + IFNULL(d.demand, 0)) - IFNULL(d.payment, 0)) AS balance
+                FROM current_demands d
+                INNER JOIN ratepayers r ON d.ratepayer_id = r.id
+                WHERE r.cluster_id IS NULL AND r.is_active = 1
+                GROUP BY d.ratepayer_id
+            ) AS a'), 'p.id', '=', 'a.ratepayer_id')
+            ->update(['p.opening_demand' => DB::raw('a.balance')]);
+
+        Log::info('Opening demands updated for entity ratepayers.');
+    }
+
+    /**
+     * Step 3: Update opening demand for cluster-based ratepayers
+     */
+    private function updateClusterRatepayerDemand()
+    {
+        DB::table('ratepayers AS p')
+            ->join(DB::raw('(
+                SELECT e.cluster_id, SUM((IFNULL(d.opening_demand, 0) + IFNULL(d.demand, 0)) - IFNULL(d.payment, 0)) AS balance
+                FROM demands d
+                INNER JOIN ratepayers r ON d.ratepayer_id = r.id
+                INNER JOIN entities e ON r.entity_id = e.id
+                WHERE e.cluster_id IS NOT NULL AND r.is_active = 1
+                GROUP BY e.cluster_id
+            ) AS a'), 'p.cluster_id', '=', 'a.cluster_id')
+            ->update(['p.opening_demand' => DB::raw('a.balance')]);
+
+        Log::info('Opening demands updated for cluster ratepayers.');
+    }
+
+    /**
+     * Step 4: Clean current demands for the given ULB ID
+     */
+    private function cleanCurrentDemands()
+    {
+        DB::table('current_demands')
+            ->where('ulb_id', $this->ulbId)
+            ->delete();
+
+        Log::info('Current demands table cleaned for ULB ID: '.$this->ulbId);
+    }
+
+    /**
+     * Step 5 Generate Current Demand
+     */
+    private function generateCurrentDemands($year)
+    {
+        // Query active ratepayers, optionally filtered by ULB
+        $ratepayersQuery = Ratepayer::where('is_active', true);
+        if ($this->ulbId) {
+            $ratepayersQuery->where('ulb_id', $this->ulbId);
+        }
+
+        //  DB::enableQueryLog();
+        // Iterate through active ratepayers
+        $ratepayersQuery->chunk(100, function ($ratepayers) use ($year, &$stats) {
+            foreach ($ratepayers as $ratepayer) {
+                try {
+                    $demands = $this->generateRatepayerDemands($ratepayer, $year);
+                    $this->stats['demands_generated'] += count($demands);
+                } catch (\Exception $e) {
+                    $this->$stats['skipped_ratepayers']++;
+                    $this->$stats['errors'][] = [
+                        'ratepayer_id' => $ratepayer->id,
+                        'error' => $e->getMessage(),
+                    ];
+
+                    Log::error('Demand Generation Failed', [
+                        'ratepayer_id' => $ratepayer->id,
+                        'year' => $year,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+                $this->stats['total_ratepayers']++;
+            }
+        });
+    }
+
+    /**
+     * Step 5 Alternate: Generate current demands for ratepayers
+     */
+    private function generateCurrentDemandsAlternate()
+    {
+        $billMonth = Carbon::now()->month;
+        $billYear = Carbon::now()->year;
+
+        // Insert demands for non-clustered ratepayers
+        DB::table('current_demands')->insertUsing([
+            'ulb_id', 'ratepayer_id', 'bill_month', 'bill_year', 'demand', 'payment', 'vrno', 'created_at', 'updated_at',
+        ], DB::table('ratepayers AS p')
+            ->select([
+                'p.ulb_id', 'p.id', DB::raw($billMonth), DB::raw($billYear), 'p.monthly_demand', DB::raw(0), 'p.vrno', DB::raw('NOW()'), DB::raw('NOW()'),
+            ])
+            ->whereNull('p.cluster_id')
+            ->where('p.is_active', 1)
+        );
+
+        // Insert demands for clustered ratepayers
+        DB::table('current_demands')->insertUsing([
+            'ulb_id', 'ratepayer_id', 'bill_month', 'bill_year', 'demand', 'payment', 'vrno', 'created_at', 'updated_at',
+        ], DB::table('ratepayers AS p')
+            ->select([
+                'p.ulb_id', 'p.id', DB::raw($billMonth), DB::raw($billYear), DB::raw('SUM(p.monthly_demand)'), DB::raw(0), 'p.vrno', DB::raw('NOW()'), DB::raw('NOW()'),
+            ])
+            ->whereNotNull('p.cluster_id')
+            ->where('p.is_active', 1)
+            ->groupBy('p.cluster_id', 'p.id')
+        );
+
+        Log::info('Current demands generated successfully for ULB ID: '.$this->ulbId);
+    }
+
+    /**
+     * Step 5.1: Generate demands for a specific ratepayer for an entire year
      *
      * @param  Ratepayer  $ratepayer  Ratepayer model instance
      * @param  int  $year  Year for demand generation
@@ -88,7 +200,7 @@ class DemandService
 
         // Generate demands for all 12 months
         for ($month = 1; $month <= 12; $month++) {
-            $demand = Demand::updateOrCreate(
+            $demand = CurrentDemand::updateOrCreate(
                 [
                     'ulb_id' => $ratepayer->ulb_id,
                     'ratepayer_id' => $ratepayer->id,
@@ -96,6 +208,7 @@ class DemandService
                     'bill_year' => $year,
                 ],
                 [
+                    'vrno' => 1,
                     'demand' => $monthlyDemand,
                     'payment' => null,  // Reset payment
                 ]
@@ -108,7 +221,7 @@ class DemandService
     }
 
     /**
-     * Calculate monthly demand for a ratepayer
+     * Step 5.1.1 Calculate monthly demand for a ratepayer
      *
      * @return float|int Monthly demand amount
      */
@@ -211,25 +324,33 @@ class DemandService
         }
     }
 
-    public function mergeDemand(int $ulb_id): bool
+    public function mergeDemand(): bool
     {
         try {
-            // Start a transaction for safety
-            DB::transaction(function () use ($ulb_id) {
-                // Step 1: Append current demands to demands table
-                DB::table('demands')->insert(
-                    DB::table('current_demands')->where('ulb_id', $ulb_id)->select(
-                        'ulb_id',
-                        'ratepayer_id',
-                        'bill_month',
-                        'bill_year',
-                        'demand',
-                        'payment',
-                        'created_at',
-                        'updated_at'
-                    )->get()->toArray()
-                );
-            });
+
+            $columns = Schema::getColumnListing('current_demand');
+
+            DB::table('demands')->insertUsing(
+                $columns,
+                DB::table('current_demands')->select('*')->where('ulb_id', $this->ulbId)
+            );
+
+            // // Start a transaction for safety
+            // DB::transaction(function () use ($ulb_id) {
+            //     // Step 1: Append current demands to demands table
+            //     DB::table('demands')->insert(
+            //         DB::table('current_demands')->where('ulb_id', $ulb_id)->select(
+            //             'ulb_id',
+            //             'ratepayer_id',
+            //             'bill_month',
+            //             'bill_year',
+            //             'demand',
+            //             'payment',
+            //             'created_at',
+            //             'updated_at'
+            //         )->get()->toArray()
+            //     );
+            // });
 
             return true;
         } catch (\Exception $e) {

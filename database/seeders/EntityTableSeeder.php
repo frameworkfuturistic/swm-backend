@@ -46,6 +46,7 @@ class EntityTableSeeder extends Seeder
                 'verification_date' => $faker->boolean(50) ? $faker->date() : null,
                 'opening_demand' => $faker->randomFloat(2, 1000, 50000),
                 'monthly_demand' => $faker->randomFloat(2, 500, 5000),
+                'vrno' => 1,
                 'is_active' => $faker->boolean(),
                 'is_verified' => $faker->boolean(),
                 'usage_type' => $faker->randomElement(['Residential', 'Commercial', 'Industrial', 'Institutional']),
