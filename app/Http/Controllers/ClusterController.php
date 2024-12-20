@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Created on 06/12/2024
@@ -51,6 +52,7 @@ class ClusterController extends Controller
                 'inclusion_date' => $validatedData['inclusionDate'],
                 'is_active' => true,
                 'is_verified' => false,
+                'vrno' => 1,
             ]);
 
             return format_response(
@@ -161,11 +163,12 @@ class ClusterController extends Controller
      * Request json =>json/entities/entityRequest.json
      * Response json =>json/entities/entityResponse.json
      */
-    public function update(ClusterRequest $request, int $id)
+    public function update(ClusterRatepayerRequest $request, int $id)
     {
         try {
-            $entity = Cluster::find($id);
-            if ($entity == null) {
+            DB::beginTransaction();
+            $cluster = Cluster::find($id);
+            if ($cluster == null) {
                 return format_response(
                     'Invalid Reference id',
                     null,
@@ -173,27 +176,72 @@ class ClusterController extends Controller
                 );
             }
 
-            $validatedData = $request->validated();
+            $ratepayer = Ratepayer::where('cluster_id', $id)
+                ->where('is_active', 1) // Assuming 1 means active
+                ->first();
 
-            $updateData = [
-                'tc_id' => $validatedData['appliedtcId'] ?? null,
-                'cluster_name' => $validatedData['clusterName'],
-                'cluster_address' => $validatedData['clusterAddress'],
-                'landmark' => $validatedData['landmark'],
-                'pincode' => $validatedData['pincode'],
-                'cluster_type' => $validatedData['clusterType'],
-                'mobile_no' => $validatedData['mobileNo'],
-                'whatsapp_no' => $validatedData['whatsappNo'],
-                'longitude' => $validatedData['longitude'],
-                'latitude' => $validatedData['latitude'],
-                'inclusion_date' => $validatedData['inclusionDate'],
+            if ($ratepayer == null) {
+                return format_response(
+                    'Record not found or There is no active ratepayer for selected Entity',
+                    null,
+                    Response::HTTP_NOT_FOUND
+                );
+            }
+
+            $validatedData = $request->validated();
+            $columns = Schema::getColumnListing('log_clusters');
+            DB::table('log_clusters')->insertUsing(
+                $columns,
+                DB::table('clusters')->select('*')->where('id', $id)
+            );
+
+            $columns = Schema::getColumnListing('log_ratepayers');
+            DB::table('log_ratepayers')->insertUsing(
+                $columns,
+                DB::table('ratepayers')->select('*')->where('id', $ratepayer->id)
+            );
+
+            $updateClusterData = [
+                'tc_id' => $validatedData['cluster']['appliedtcId'] ?? null,
+                'ward_id' => $validatedData['cluster']['wardId'],
+                'cluster_name' => $validatedData['cluster']['clusterName'],
+                'cluster_address' => $validatedData['cluster']['clusterAddress'],
+                'landmark' => $validatedData['cluster']['landmark'],
+                'pincode' => $validatedData['cluster']['pincode'],
+                'cluster_type' => $validatedData['cluster']['clusterType'],
+                'mobile_no' => $validatedData['cluster']['mobileNo'],
+                'whatsapp_no' => $validatedData['cluster']['whatsappNo'],
+                'longitude' => $validatedData['cluster']['longitude'],
+                'latitude' => $validatedData['cluster']['latitude'],
+                'inclusion_date' => $validatedData['cluster']['inclusionDate'],
+                'vrno' => $cluster->vrno + 1,
             ];
 
-            $entity->update($updateData);
+            $updateRatepayerData = [
+                'ward_id' => $validatedData['ratepayer']['wardId'], // Link the entity
+                'subcategory_id' => $validatedData['ratepayer']['subcategoryId'], // Link the entity
+                'paymentzone_id' => $validatedData['ratepayer']['paymentzoneId'],
+                'ratepayer_name' => $validatedData['ratepayer']['ratepayerName'],
+                'ratepayer_address' => $validatedData['ratepayer']['ratepayerAddress'],
+                'consumer_no' => $validatedData['ratepayer']['consumerNo'],
+                'longitude' => $validatedData['ratepayer']['longitude'],
+                'latitude' => $validatedData['ratepayer']['latitude'],
+                'mobile_no' => $validatedData['ratepayer']['mobileNo'],
+                'landmark' => $validatedData['ratepayer']['landmark'],
+                'whatsapp_no' => $validatedData['ratepayer']['whatsappNo'],
+                'opening_demand' => $validatedData['ratepayer']['openingDemand'],
+                'monthly_demand' => $validatedData['ratepayer']['monthlyDemand'],
+                'vrno' => $ratepayer->vrno + 1,
+            ];
+
+            $cluster->update($updateClusterData);
+            $ratepayer->update($updateRatepayerData);
+
+            DB::commit();
 
             return format_response(
-                'Entity updated successfully',
-                $entity,
+                'Cluster updated successfully',
+                $cluster,
                 Response::HTTP_OK
             );
 
@@ -271,10 +319,40 @@ class ClusterController extends Controller
      * [GET]   /api/entities/{id}          4. Admin can See Entity data
      * Completed [OK]
      */
-    public function show($id)
+    public function show()
     {
         try {
-            $cluster = Cluster::findOrFail($id);
+            $cluster = Cluster::all();
+
+            return format_response(
+                'Show Cluster Record',
+                $cluster,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    public function showById($id)
+    {
+        try {
+            $cluster = Cluster::find($id);
 
             return format_response(
                 'Show Cluster Record',

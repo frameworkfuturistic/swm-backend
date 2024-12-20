@@ -19,7 +19,10 @@ return new class extends Migration
             $table->integer('bill_month')->notNullable();
             $table->integer('bill_year')->notNullable();
             $table->integer('demand')->nullable();
+            $table->integer('total_demand')->nullable();
             $table->integer('payment')->nullable();
+            $table->unsignedBigInteger('payment_id')->nullable();
+            $table->dateTime('last_payment_date')->nullable();
             $table->integer('vrno');
             $table->timestamps();
         });
@@ -32,7 +35,10 @@ return new class extends Migration
             $table->integer('bill_month')->notNullable();
             $table->integer('bill_year')->notNullable();
             $table->integer('demand')->nullable();
+            $table->integer('total_demand')->nullable();
             $table->integer('payment')->nullable();
+            $table->unsignedBigInteger('payment_id')->nullable();
+            $table->dateTime('last_payment_date')->nullable();
             $table->integer('vrno');
             $table->timestamps();
         });
@@ -45,7 +51,10 @@ return new class extends Migration
             $table->integer('bill_month')->nullable();
             $table->integer('bill_year')->nullable();
             $table->integer('demand')->nullable();
+            $table->integer('total_demand')->nullable();
             $table->integer('payment')->nullable();
+            $table->unsignedBigInteger('payment_id')->nullable();
+            $table->dateTime('last_payment_date')->nullable();
             $table->integer('vrno');
             $table->timestamps();
         });

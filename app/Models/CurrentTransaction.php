@@ -4,8 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Transaction extends Model
+class CurrentTransaction extends Model
 {
+    protected $table = 'current_transactions';
+
     protected $fillable = [
         'ulb_id',
         'tc_id',
@@ -52,6 +54,6 @@ class Transaction extends Model
 
     public function payment()
     {
-        return $this->belongsTo(Payment::class);
+        return $this->belongsTo(CurrentPayment::class);
     }
 }

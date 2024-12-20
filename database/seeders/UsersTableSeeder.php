@@ -22,6 +22,7 @@ class UsersTableSeeder extends Seeder
             'password' => Hash::make('password'), // Default password: "password"
             'role' => 'agency_admin',
             'remember_token' => Str::random(10),
+            'is_active' => 1,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -34,6 +35,7 @@ class UsersTableSeeder extends Seeder
             'password' => Hash::make('password'), // Default password: "password"
             'role' => 'municipal_office',
             'remember_token' => Str::random(10),
+            'is_active' => 1,
             'created_at' => now(),
             'updated_at' => now(),
         ]);

@@ -16,6 +16,7 @@ class CurrentDemand extends Model
         'bill_month',
         'bill_year',
         'demand',
+        'total_demand',
         'payment',
     ];
 

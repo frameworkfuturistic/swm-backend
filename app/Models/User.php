@@ -24,9 +24,10 @@ class User extends Authenticatable
     ];
 
     protected $hidden = [
-        'id',
+        'ulb_id',
         'password',
         'remember_token',
+        'email_verified_at',
         'created_at',
         'updated_at',
     ];

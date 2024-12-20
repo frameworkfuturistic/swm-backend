@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Services\DemandService;
+use App\Models\CurrentDemand;
 use App\Models\Demand;
+use App\Models\PaymentZone;
 use App\Models\Ratepayer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class DemandController extends Controller
@@ -83,9 +86,34 @@ class DemandController extends Controller
     /**
      * Display the specified resource.
      */
-    public function showCurrentDemand(int $ratePayerId, $year, $month)
+    public function showRatepayerCurrentDemand(int $id)
     {
-        //   return response()->json($demand->load('ratepayer'));
+        try {
+            $ratepayers = CurrentDemand::where('ratepayer_id', $id)->get();
+
+            return format_response(
+                'Ratepayer Details',
+                $ratepayers,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
     }
 
     /**
@@ -218,6 +246,52 @@ class DemandController extends Controller
                     Response::HTTP_OK
                 );
             }
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    public function zoneCurrentDemands($id)
+    {
+        try {
+            $zone = PaymentZone::find($id);
+
+            $results = DB::table('current_demands as c')
+                ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
+                ->select(
+                    'c.ratepayer_id',
+                    'r.consumer_no',
+                    'r.ratepayer_name',
+                    'r.ratepayer_address',
+                    'r.mobile_no',
+                    DB::raw('SUM(c.total_demand) as totalDemand')
+                )
+                ->whereRaw('c.total_demand - c.payment > 0')  // Ensure unpaid demand exists
+                ->whereRaw('MONTH(SYSDATE()) <= c.bill_month')  // Ensure current month is less than or equal to bill_month
+                ->where('r.paymentzone_id', $id)  // Ensure current month is less than or equal to bill_month
+                ->groupBy('c.ratepayer_id', 'r.consumer_no', 'r.ratepayer_name', 'r.ratepayer_address', 'r.mobile_no')  // Group by ratepayer_id and relevant columns
+                ->get();
+
+            return format_response(
+                'Show Pending Demands from '.$zone->payment_zone,
+                $results,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
         } catch (\Exception $e) {
             Log::error('Unexpected error during entity update: '.$e->getMessage());
 

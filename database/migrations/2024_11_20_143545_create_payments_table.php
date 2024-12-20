@@ -15,10 +15,17 @@ return new class extends Migration
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
             $table->foreignId('ratepayer_id')->constrained('ratepayers')->notNullable();
-            $table->foreignId('entity_id')->constrained('entities')->nullable();
-            $table->foreignId('cluster_id')->constrained('clusters')->nullable();
+
+            $table->unsignedBigInteger('entity_id')->nullable()->default(null);
+            $table->foreign('entity_id')->references('id')->on('entities');
+
+            $table->unsignedBigInteger('cluster_id')->nullable()->default(null);
+            $table->foreign('cluster_id')->references('id')->on('clusters');
+
             $table->foreignId('tc_id')->constrained('users')->notNullable();
-            $table->unsignedBigInteger('tran_id')->nullable()->index('Index_TranID');
+
+            $table->unsignedBigInteger('tran_id')->nullable()->default(null);
+
             $table->unsignedBigInteger('payment_order_id')->nullable()->index('Index_PaymentOrderID');
 
             $table->dateTime('payment_date')->notNullable()->index('Index_paymentdate');
@@ -40,10 +47,17 @@ return new class extends Migration
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
             $table->foreignId('ratepayer_id')->constrained('ratepayers')->notNullable();
-            $table->foreignId('entity_id')->constrained('entities')->nullable();
-            $table->foreignId('cluster_id')->constrained('clusters')->nullable();
+
+            $table->unsignedBigInteger('entity_id')->nullable()->default(null);
+            $table->foreign('entity_id')->references('id')->on('entities');
+
+            $table->unsignedBigInteger('cluster_id')->nullable()->default(null);
+            $table->foreign('cluster_id')->references('id')->on('clusters');
+
             $table->foreignId('tc_id')->constrained('users')->notNullable();
-            $table->unsignedBigInteger('tran_id')->nullable()->index('Index_TranID');
+
+            $table->unsignedBigInteger('tran_id')->nullable()->default(null);
+
             $table->unsignedBigInteger('payment_order_id')->nullable()->index('Index_PaymentOrderID');
 
             $table->dateTime('payment_date')->notNullable()->index('Index_paymentdate');
@@ -65,8 +79,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
             $table->unsignedBigInteger('ratepayer_id')->nullable();
-            $table->unsignedBigInteger('entity_id')->nullable();
-            $table->unsignedBigInteger('cluster_id')->nullable();
+            $table->unsignedBigInteger('entity_id')->nullable()->default(null);
+            $table->unsignedBigInteger('cluster_id')->nullable()->default(null);
             $table->unsignedBigInteger('tc_id')->nullable();
             $table->unsignedBigInteger('tran_id')->nullable();
             $table->unsignedBigInteger('payment_order_id')->nullable();

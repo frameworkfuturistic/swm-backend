@@ -187,7 +187,9 @@ class RatepayerController extends Controller
     public function show($id)
     {
         try {
-            $ratepayer = Ratepayer::findOrFail($id);
+            $ratepayer = Ratepayer::with(['entity', 'cluster'])
+                ->where('id', $id)
+                ->firstOrFail();
 
             return format_response(
                 'Ratepayer Details',
@@ -283,6 +285,47 @@ class RatepayerController extends Controller
             return format_response(
                 'Success',
                 $results,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+
+    }
+
+    public function searchNearby(Request $request)
+    {
+        try {
+            $request->validate([
+                'longitude' => 'required|numeric',
+                'latitude' => 'required|numeric',
+                'radius' => 'nullable|numeric|min:1|max:10000',
+            ]);
+
+            $longitude = $request->input('longitude');
+            $latitude = $request->input('latitude');
+            $radius = $request->input('radius', 100); // Default radius is 100 meters
+
+            $ratepayers = Ratepayer::nearby($longitude, $latitude, $radius)->get();
+
+            return format_response(
+                'Success',
+                $ratepayers,
                 Response::HTTP_OK
             );
 

@@ -72,6 +72,49 @@ class AuthController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'role' => $request->role,
+                'is_active' => 1,
+            ]);
+
+            $token = $user->createToken('auth-token');
+
+            return format_response(
+                'User registered successfully',
+                $user,
+                201,
+                ['token' => $token->plainTextToken]
+            );
+
+        } catch (ValidationException $e) {
+            return format_response(
+                'Validation Failed',
+                $e->errors(),
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        } catch (\Exception $e) {
+            return format_response(
+                'An error occurred during registration',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    public function createTC(Request $request)
+    {
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users',
+                'password' => ['required', 'confirmed', Password::defaults()],
+            ]);
+
+            $user = User::create([
+                'ulb_id' => $request->ulb_id,
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => 'tax_collector',
+                'is_active' => 1,
             ]);
 
             $token = $user->createToken('auth-token');

@@ -28,7 +28,18 @@ class Cluster extends Model
         'verification_date',
     ];
 
-    protected $hidden = ['ulb_id', 'ward_id', 'created_at', 'updated_at'];
+    protected $hidden = [
+        'ulb_id',
+        'ward_id',
+        'verifiedby_id',
+        'appliedtc_id',
+        'verification_date',
+        'is_verified',
+        'vrno',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+    ];
 
     /**
      * Relationships

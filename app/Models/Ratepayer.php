@@ -65,6 +65,11 @@ class Ratepayer extends Model
         return $this->belongsTo(Cluster::class);
     }
 
+    public function entity()
+    {
+        return $this->belongsTo(Entity::class);
+    }
+
     public function ward()
     {
         return $this->belongsTo(Ward::class);
@@ -79,5 +84,18 @@ class Ratepayer extends Model
     public function subCategory()
     {
         return $this->belongsTo(SubCategory::class);
+    }
+
+    public function scopeNearby($query, $longitude, $latitude, $radius = 100)
+    {
+        return $query->selectRaw(
+            '*, ROUND(ST_Distance_Sphere(POINT(longitude, latitude), POINT(?, ?))) AS distance_in_meters',
+            [$longitude, $latitude]
+        )
+            ->whereRaw(
+                'ROUND(ST_Distance_Sphere(POINT(longitude, latitude), POINT(?, ?))) <= ?',
+                [$longitude, $latitude, $radius]
+            )
+            ->orderBy('distance_in_meters');
     }
 }
