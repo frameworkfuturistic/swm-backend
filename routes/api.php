@@ -17,6 +17,7 @@ use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
+Route::get('/ping/{id}', [AuthController::class, 'ping']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
@@ -97,11 +98,12 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
     //****** See a list of Suspended TCs */
     Route::put('tc/{id}/suspend', [TCController::class, 'suspend']);
     Route::put('tc/{id}/revoke-suspension', [TCController::class, 'revoke']);
+    Route::post('tc/assign-zone', [TCController::class, 'assignZone']);
 
 });
 
 //Search
-Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('search')->group(function () {
+Route::middleware(['auth:sanctum', 'append-ulb', 'force-json', 'api'])->prefix('search')->group(function () {
     Route::get('ratepayers', [RatepayerController::class, 'deepSearch']);
     Route::get('ratepayers/{id}', [RatepayerController::class, 'show'])->where('id', '[0-9]+');
     //  Route::get('payment-zone/{id}/ratepayers', [RatepayerController::class, 'showZoneRatepayers']);
@@ -110,7 +112,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('search')->grou
     //  Route::get('ratepayers/payment-zone/paginated/{id}/{page_size}', [RatepayerController::class, 'showZoneRatepayersPaginated']);
     Route::get('ratepayers/nearby', [RatepayerController::class, 'searchNearby']);
 
-    Route::get('tc/{id}', [TCController::class, 'store']);
+    //  Route::get('tc/{id}', [TCController::class, 'store']);
+    Route::get('tc/zones', [TCController::class, 'showTCZones']);
 
 });
 
@@ -138,34 +141,34 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('demand')->grou
     Route::get('zone/{id}', [DemandController::class, 'zoneCurrentDemands']);
 
     Route::get('demands/pending/{year}/{id}', [DemandController::class, 'showPendingDemands']);
-    Route::get('ratepayer/{id}/demands/current', [DemandController::class, 'showRatepayerCurrentDemand']);
+    Route::get('current/ratepayer/{id}', [DemandController::class, 'showRatepayerCurrentDemand']);
 
 });
 
 //Transactions
 Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('transactions')->group(function () {
-    Route::post('ratepayer/{id}/cash-payment', [TransactionController::class, 'cashPayment']);
+    Route::post('ratepayer/cash-payment', [TransactionController::class, 'cashPayment']);
+    Route::post('transactions/deferred', [TransactionController::class, 'deferred']);
 
-    Route::post('payments/upi-qr', [TransactionController::class, 'generateUpiQr']);
-    Route::post('payments/verify-upi/{qrCodeId}', [TransactionController::class, 'verifyPayment']);
-    Route::post('/gateway/webhook', [WebhookController::class, 'handleWebhook'])->withoutMiddleware(['csrf', 'web']);
+    //  Route::post('payments/upi-qr', [TransactionController::class, 'generateUpiQr']);
+    //  Route::post('payments/verify-upi/{qrCodeId}', [TransactionController::class, 'verifyPayment']);
+    //  Route::post('/gateway/webhook', [WebhookController::class, 'handleWebhook'])->withoutMiddleware(['csrf', 'web']);
 
-    Route::post('transactions/create-order', [TransactionController::class, 'cashPayment']);
-    Route::post('transactions/denial', [TransactionController::class, 'store']);
-    Route::post('transactions/door-closed', [TransactionController::class, 'store']);
-    Route::post('transactions/deferred', [TransactionController::class, 'store']);
-    Route::post('transactions/other', [TransactionController::class, 'store']);
+    //  Route::post('transactions/create-order', [TransactionController::class, 'cashPayment']);
+    //  Route::post('transactions/denial', [TransactionController::class, 'store']);
+    //  Route::post('transactions/door-closed', [TransactionController::class, 'store']);
+    //  Route::post('transactions/other', [TransactionController::class, 'store']);
 
-    Route::get('transactions/{tran-date}', [TCController::class, 'store']);
-    Route::get('transactions/payment/{tran-date}', [TCController::class, 'store']);
-    Route::get('transactions/denial/{tran-date}', [TCController::class, 'store']);
-    Route::get('transactions/no-show/{tran-date}', [TCController::class, 'store']);
-    Route::get('transactions/deferred/{tran-date}', [TCController::class, 'store']);
+    //  Route::get('transactions/{tran-date}', [TCController::class, 'store']);
+    //  Route::get('transactions/payment/{tran-date}', [TCController::class, 'store']);
+    //  Route::get('transactions/denial/{tran-date}', [TCController::class, 'store']);
+    //  Route::get('transactions/no-show/{tran-date}', [TCController::class, 'store']);
+    //  Route::get('transactions/deferred/{tran-date}', [TCController::class, 'store']);
 
-    Route::put('transactions/cancel-pmt/{id}', [TCController::class, 'store']);
+    //  Route::put('transactions/cancel-pmt/{id}', [TCController::class, 'store']);
 
-    Route::get('tc/dashboard', [TCController::class, 'dashboard']);
-    Route::get('tc/profile', [TCController::class, 'store']);
+    //  Route::get('tc/dashboard', [TCController::class, 'dashboard']);
+    //  Route::get('tc/profile', [TCController::class, 'store']);
 
 });
 

@@ -14,6 +14,10 @@ return new class extends Migration
         Schema::create('demands', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs');
+
+            $table->unsignedBigInteger('tc_id')->nullable()->default(null);
+            $table->foreign('tc_id')->references('id')->on('users');
+
             $table->foreignId('ratepayer_id')->constrained('ratepayers');
             $table->integer('opening_demand')->nullable();
             $table->integer('bill_month')->notNullable();
@@ -30,6 +34,10 @@ return new class extends Migration
         Schema::create('current_demands', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs');
+
+            $table->unsignedBigInteger('tc_id')->nullable()->default(null);
+            $table->foreign('tc_id')->references('id')->on('users');
+
             $table->foreignId('ratepayer_id')->constrained('ratepayers');
             $table->integer('opening_demand')->nullable();
             $table->integer('bill_month')->notNullable();
@@ -46,6 +54,7 @@ return new class extends Migration
         Schema::create('log_demands', function (Blueprint $table) {
             $table->id();
             $table->foreignId('ulb_id')->constrained('ulbs');
+            $table->unsignedBigInteger('tc_id')->nullable();
             $table->unsignedBigInteger('ratepayer_id')->nullable();
             $table->integer('opening_demand')->nullable();
             $table->integer('bill_month')->nullable();

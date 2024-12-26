@@ -8,12 +8,14 @@ class Demand extends Model
 {
     protected $fillable = [
         'ulb_id',
+        'tc_id',
         'vrno',
         'ratepayer_id',
         'opening_balance',
         'bill_month',
         'bill_year',
         'demand',
+        'total_demand',
         'payment',
     ];
 

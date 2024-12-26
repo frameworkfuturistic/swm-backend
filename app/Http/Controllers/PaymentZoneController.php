@@ -273,6 +273,7 @@ class PaymentZoneController extends Controller
             $polygonCoordinates = json_encode($validatedData['coordinates']);
 
             $updateData = [
+                'ward_id' => $validatedData['wardId'],
                 'payment_zone' => $validatedData['paymentZone'],
                 'coordinates' => $polygonCoordinates,
                 'description' => $validatedData['description'],

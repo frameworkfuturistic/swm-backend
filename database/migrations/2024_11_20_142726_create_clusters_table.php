@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('cluster_address', 255)->nullable();
             $table->string('pincode', 6)->nullable(); // Corrected nullable, pincode can be empty
             $table->string('landmark', 100)->nullable();
-            $table->enum('cluster_type', ['Apartment', 'Building', 'Govt Institution', 'Colony', 'Other', 'None'])->default('None')->notNullable();
+            $table->enum('cluster_type', ['Apartment', 'Building', 'Govt-Building', 'Colony', 'Other', 'None'])->default('None')->notNullable();
             $table->string('mobile_no', 12)->nullable();
             $table->string('whatsapp_no', 12)->nullable();
             $table->decimal('longitude', 10, 7)->nullable(); // Precision for GPS

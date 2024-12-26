@@ -27,6 +27,7 @@ return new class extends Migration
             $table->dateTime('event_time')->notNullable();
             $table->date('cancellation_date')->nullable(); // Cancellation date
             $table->date('verification_date')->nullable(); // Verification date
+            $table->date('schedule_date')->nullable(); // Verification date
             $table->enum('event_type', ['PAYMENT', 'DENIAL', 'DOOR-CLOSED', 'DEFERRED', 'OTHER'])->default('DEFERRED');
             $table->string('remarks', 250)->nullable();
             $table->string('auto_remarks', 250)->nullable();
@@ -52,6 +53,7 @@ return new class extends Migration
             $table->dateTime('event_time')->notNullable();
             $table->date('cancellation_date')->nullable(); // Cancellation date
             $table->date('verification_date')->nullable(); // Verification date
+            $table->date('schedule_date')->nullable(); // Verification date
             $table->enum('event_type', ['PAYMENT', 'DENIAL', 'DOOR-CLOSED', 'DEFERRED', 'OTHER'])->default('DEFERRED');
             $table->string('remarks', 250)->nullable();
             $table->string('auto_remarks', 250)->nullable();
@@ -77,6 +79,7 @@ return new class extends Migration
             $table->dateTime('event_time')->notNullable();
             $table->date('cancellation_date')->nullable(); // Cancellation date
             $table->date('verification_date')->nullable(); // Verification date
+            $table->date('schedule_date')->nullable(); // Verification date
             $table->enum('event_type', ['PAYMENT', 'DENIAL', 'DOOR-CLOSED', 'DEFERRED', 'OTHER'])->default('DEFERRED');
             $table->string('remarks', 250)->nullable();
             $table->string('auto_remarks', 250)->nullable();

@@ -74,7 +74,7 @@ class TransactionService
         $payment = $this->createPaymentRecord($validatedData, $tranId);
 
         // Process and adjust demands
-        $this->processPendingDemands($validatedData['ratepayerId'], $validatedData['amount'], $payment);
+        $this->processPendingDemands($validatedData['ratepayerId'], $validatedData['amount'], $payment, $validatedData['tcId']);
 
         return $payment;
     }
@@ -84,7 +84,7 @@ class TransactionService
      *
      * @throws Exception
      */
-    protected function processPendingDemands(int $ratepayerId, float $amount, CurrentPayment $payment): void
+    protected function processPendingDemands(int $ratepayerId, float $amount, CurrentPayment $payment, int $tcId): void
     {
         $pendingDemands = $this->getPendingDemands($ratepayerId);
         $this->demandTillDate = $pendingDemands->sum('total_demand');
@@ -95,7 +95,7 @@ class TransactionService
             $outstandingAmount = $demand->demand - $demand->payment;
 
             if ($remainingAmount >= $outstandingAmount) {
-                $this->adjustDemand($demand, $outstandingAmount, $payment->id);
+                $this->adjustDemand($demand, $outstandingAmount, $payment->id, $tcId);
                 $remainingAmount -= $outstandingAmount;
             } else {
                 break; // Partial payments not allowed
@@ -105,6 +105,10 @@ class TransactionService
         if ($remainingAmount > 0) {
             throw new Exception('Payment amount must fully cover one or more pending demands.');
         }
+        $ratepayer = Ratepayer::find($ratepayerId);
+        $ratepayer->lastpayment_amt = $amount;
+        $ratepayer->lastpayment_date = now();
+        $ratepayer->save();
     }
 
     /**
@@ -122,10 +126,11 @@ class TransactionService
     /**
      * Adjust an individual demand record
      */
-    protected function adjustDemand(CurrentDemand $demand, float $amount, int $paymentId): void
+    protected function adjustDemand(CurrentDemand $demand, float $amount, int $paymentId, int $tcId): void
     {
         $demand->payment += $amount;
         $demand->payment_id = $paymentId;
+        $demand->tc_id = $tcId;
         $demand->last_payment_date = now();
         $demand->save();
     }

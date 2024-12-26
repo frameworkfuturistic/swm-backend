@@ -34,7 +34,8 @@ return new class extends Migration
             $table->enum('usage_type', ['Residential', 'Commercial', 'Industrial', 'Institutional'])->default('Residential')->notNullable(); // Type of entity
             $table->enum('status', ['verified', 'pending', 'suspended', 'closed'])->default('pending')->notNullable();
             $table->integer('reputation')->notNullable()->default(1);
-            $table->dateTime('bill_date')->nullable(); // `first_bill_date` column as datetime, nullable
+            $table->integer('lastpayment_amt')->nullable();
+            $table->dateTime('lastpayment_date')->nullable();
             $table->integer('opening_demand')->nullable(); // `opening_demand` column as int(11), nullable
             $table->integer('monthly_demand')->nullable(); // `monthly_demand` column as int(11), nullable
             $table->boolean('is_active')->default(true); // Active status

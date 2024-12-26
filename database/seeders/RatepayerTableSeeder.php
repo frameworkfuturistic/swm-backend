@@ -38,7 +38,6 @@ class RatepayerTableSeeder extends Seeder
                 'usage_type' => $faker->randomElement(['Residential', 'Commercial', 'Industrial', 'Institutional']),
                 'status' => 'verified',
                 'reputation' => 1,
-                'bill_date' => $faker->optional()->dateTimeThisYear(),
                 'opening_demand' => $faker->optional()->numberBetween(100, 10000),
                 'monthly_demand' => $faker->numberBetween(100, 5000),
                 'vrno' => 1,

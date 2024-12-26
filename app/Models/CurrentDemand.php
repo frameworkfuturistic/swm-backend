@@ -10,6 +10,7 @@ class CurrentDemand extends Model
 
     protected $fillable = [
         'ulb_id',
+        'tc_id',
         'vrno',
         'ratepayer_id',
         'opening_balance',
@@ -18,6 +19,15 @@ class CurrentDemand extends Model
         'demand',
         'total_demand',
         'payment',
+    ];
+
+    protected $hidden = [
+        'ulb_id',
+        'tc_id',
+        'vrno',
+        'payment_id',
+        'created_at',
+        'updated_at',
     ];
 
     /**

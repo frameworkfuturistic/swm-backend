@@ -246,7 +246,7 @@ class RatepayerService
         }
 
         // Pagination
-        $perPage = $request->input('per_page', 15);
+        $perPage = $request->input('per_page', 50);
         $perPage = max(1, min(100, $perPage)); // Limit between 1 and 100
 
         // Execute pagination

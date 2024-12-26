@@ -234,4 +234,32 @@ class AuthController extends Controller
             'user' => $request->user(),
         ]);
     }
+
+    public function ping(Request $request, $id)
+    {
+
+        $user = User::find($id);
+        if ($user == null) {
+            return format_response(
+                'Bad User',
+                null,
+                Response::HTTP_BAD_REQUEST
+            );
+        }
+
+        if (! $user->is_active) {
+            return format_response(
+                'Suspended',
+                null,
+                Response::HTTP_BAD_REQUEST
+            );
+        }
+
+        return format_response(
+            'Active',
+            null,
+            Response::HTTP_OK
+        );
+
+    }
 }

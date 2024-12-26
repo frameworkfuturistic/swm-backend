@@ -25,7 +25,7 @@ class ClusterTableSeeder extends Seeder
                 'cluster_address' => $faker->optional()->address,
                 'pincode' => $faker->optional()->regexify('[1-9][0-9]{5}'), // Valid 6-digit PIN code
                 'landmark' => $faker->optional()->streetName,
-                'cluster_type' => $faker->randomElement(['Apartment', 'Building', 'Govt Institution', 'Colony', 'Other', 'None']),
+                'cluster_type' => $faker->randomElement(['Apartment', 'Building', 'Govt-Building', 'Colony', 'Other']),
                 'mobile_no' => $faker->optional()->numerify('###########'),
                 'whatsapp_no' => $faker->optional()->numerify('###########'),
                 'longitude' => $faker->optional()->longitude,

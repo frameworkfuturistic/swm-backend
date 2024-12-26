@@ -19,8 +19,9 @@ class DemandController extends Controller
         try {
             $year = $request->CURRENT_YEAR;
             $ulb_id = $request->ulb_id;
+            $tcId = auth()->user()->id;
             $service = new DemandService;
-            $stats = $service->generateYearlyDemands($year, $ulb_id);
+            $stats = $service->generateYearlyDemands($year, $ulb_id, $tcId);
 
             return format_response(
                 'Demand Generated Successfully',
@@ -89,10 +90,13 @@ class DemandController extends Controller
     public function showRatepayerCurrentDemand(int $id)
     {
         try {
-            $ratepayers = CurrentDemand::where('ratepayer_id', $id)->get();
+            DB::enableQueryLog();
+            $ratepayers = CurrentDemand::where('ratepayer_id', $id)
+                ->whereRaw('MONTH(SYSDATE()) >= bill_month')
+                ->get();
 
             return format_response(
-                'Ratepayer Details',
+                'Current Demand',
                 $ratepayers,
                 Response::HTTP_OK
             );
@@ -270,10 +274,13 @@ class DemandController extends Controller
                     'r.ratepayer_name',
                     'r.ratepayer_address',
                     'r.mobile_no',
+                    'r.reputation',
+                    'r.lastpayment_amt',
+                    DB::raw('DATE_FORMAT(r.lastpayment_date,"%d/%m/%Y") as lastpayment_date'),
                     DB::raw('SUM(c.total_demand) as totalDemand')
                 )
                 ->whereRaw('c.total_demand - c.payment > 0')  // Ensure unpaid demand exists
-                ->whereRaw('MONTH(SYSDATE()) <= c.bill_month')  // Ensure current month is less than or equal to bill_month
+                ->whereRaw('MONTH(SYSDATE()) >= c.bill_month')  // Ensure current month is less than or equal to bill_month
                 ->where('r.paymentzone_id', $id)  // Ensure current month is less than or equal to bill_month
                 ->groupBy('c.ratepayer_id', 'r.consumer_no', 'r.ratepayer_name', 'r.ratepayer_address', 'r.mobile_no')  // Group by ratepayer_id and relevant columns
                 ->get();

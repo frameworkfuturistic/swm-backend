@@ -32,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'tc' => \App\Http\Middleware\TCMiddleware::class,
             'office' => \App\Http\Middleware\OfficeMiddleware::class,
+            'force-json' => \App\Http\Middleware\ForceJsonResponse::class,
         ]);
         // $middleware->append(AddUlbIdToResponse::class);
         //

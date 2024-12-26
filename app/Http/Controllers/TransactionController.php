@@ -74,17 +74,17 @@ class TransactionController extends Controller
             if ($transaction != null) {
                 $responseData = [
                     'tranId' => $transaction->id,
-                    'consumerNo' => $tranService->ratepayer->consumer_no,
-                    'ratepayerName' => $tranService->ratepayer->ratepayer_name,
-                    'ratepayerAddress' => $tranService->ratepayer->ratepayer_address,
-                    'mobileNo' => $tranService->ratepayer->mobile_no,
-                    'landmark' => $tranService->ratepayer->landmark,
-                    'longitude' => $tranService->ratepayer->longitude,
-                    'latitude' => $tranService->ratepayer->latitude,
+                    //   'consumerNo' => $tranService->ratepayer->consumer_no,
+                    //   'ratepayerName' => $tranService->ratepayer->ratepayer_name,
+                    //   'ratepayerAddress' => $tranService->ratepayer->ratepayer_address,
+                    //   'mobileNo' => $tranService->ratepayer->mobile_no,
+                    //   'landmark' => $tranService->ratepayer->landmark,
+                    //   'longitude' => $tranService->ratepayer->longitude,
+                    //   'latitude' => $tranService->ratepayer->latitude,
                     'tranType' => $transaction->event_type,
                     'pmtMode' => $validatedData['paymentMode'],
                     'pmtAmount' => $validatedData['amount'],
-                    'remarks' => $validatedData['remarks'],
+                    //   'remarks' => $validatedData['remarks'],
                 ];
                 DB::commit();
 
@@ -196,6 +196,86 @@ class TransactionController extends Controller
 
             return format_response(
                 'An error occurred during insertion',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    public function deferred(Request $request)
+    {
+        $tranService = new TransactionService;
+
+        $validatedData = $request->validate([
+            // 'ulbId' => 'required|exists:ulbs,id',
+            // 'tcId' => 'required|exists:users,id',
+            'ratepayerId' => 'required|exists:ratepayers,id',
+            'schedule_field' => 'required|date_format:Y-m-d',
+            //  'eventType' => 'required|in:PAYMENT,DENIAL,DOOR-CLOSED,DEFERRED,OTHER',
+            'remarks' => 'nullable|string|max:250',
+            // 'autoRemarks' => 'nullable|string|max:250',
+            'amount' => 'required|integer|min:1',
+            //  'paymentMode' => 'required_if:event_type,PAYMENT|in:cash,card,upi,cheque,online',
+        ]);
+
+        $ratepayer = Ratepayer::find($validatedData['ratepayerId']);
+        $validatedData['ulbId'] = $request->ulb_id;
+        $validatedData['tcId'] = auth()->user()->id;
+        $validatedData['entityId'] = $ratepayer->entity_id;
+        $validatedData['clusterId'] = $ratepayer->cluster_id;
+        $validatedData['eventType'] = 'PAYMENT';
+        $validatedData['paymentMode'] = 'CASH';
+
+        // Start a transaction to ensure data integrity
+
+        DB::beginTransaction();
+        try {
+
+            $tranService->extractRatepayerDetails($validatedData['ratepayerId']);
+            $transaction = $tranService->createNewTransaction($validatedData);
+            $payment = $tranService->createNewPayment($validatedData, $transaction->id);
+
+            if ($transaction != null) {
+                $responseData = [
+                    'tranId' => $transaction->id,
+                    //   'consumerNo' => $tranService->ratepayer->consumer_no,
+                    //   'ratepayerName' => $tranService->ratepayer->ratepayer_name,
+                    //   'ratepayerAddress' => $tranService->ratepayer->ratepayer_address,
+                    //   'mobileNo' => $tranService->ratepayer->mobile_no,
+                    //   'landmark' => $tranService->ratepayer->landmark,
+                    //   'longitude' => $tranService->ratepayer->longitude,
+                    //   'latitude' => $tranService->ratepayer->latitude,
+                    'tranType' => $transaction->event_type,
+                    'pmtMode' => $validatedData['paymentMode'],
+                    'pmtAmount' => $validatedData['amount'],
+                    //   'remarks' => $validatedData['remarks'],
+                ];
+                DB::commit();
+
+                //Broadcast transaction to Dashboard
+                broadcast(new SiteVisitedEvent(
+                    $responseData,
+                ))->toOthers();
+
+                return format_response(
+                    'success',
+                    $responseData,
+                    Response::HTTP_CREATED
+                );
+            } else {
+                DB::rollBack();
+
+                return format_response(
+                    'An error occurred during insertion',
+                    null,
+                    Response::HTTP_INTERNAL_SERVER_ERROR
+                );
+            }
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return format_response(
+                'An error occurred during insertion. '.$e->getMessage().' Demand Till Date = '.$tranService->demandTillDate,
                 null,
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );

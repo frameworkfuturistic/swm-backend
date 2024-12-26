@@ -15,6 +15,7 @@ class PaymentZonesTableSeeder extends Seeder
         $paymentZones = [
             [
                 'payment_zone' => 'Zone 1',
+                'ward_id' => 1,
                 'coordinates' => json_encode([
                     ['lat' => 28.7041, 'lng' => 77.1025],
                     ['lat' => 28.7051, 'lng' => 77.1035],
@@ -24,6 +25,7 @@ class PaymentZonesTableSeeder extends Seeder
             ],
             [
                 'payment_zone' => 'Zone 2',
+                'ward_id' => 1,
                 'coordinates' => json_encode([
                     ['lat' => 28.7091, 'lng' => 77.1065],
                     ['lat' => 28.7101, 'lng' => 77.1075],
@@ -33,6 +35,7 @@ class PaymentZonesTableSeeder extends Seeder
             ],
             [
                 'payment_zone' => 'Zone 3',
+                'ward_id' => 1,
                 'coordinates' => json_encode([
                     ['lat' => 28.7151, 'lng' => 77.1105],
                     ['lat' => 28.7161, 'lng' => 77.1115],
@@ -42,6 +45,7 @@ class PaymentZonesTableSeeder extends Seeder
             ],
             [
                 'payment_zone' => 'Zone 4',
+                'ward_id' => 1,
                 'coordinates' => json_encode([
                     ['lat' => 28.7201, 'lng' => 77.1135],
                     ['lat' => 28.7211, 'lng' => 77.1145],
@@ -51,6 +55,7 @@ class PaymentZonesTableSeeder extends Seeder
             ],
             [
                 'payment_zone' => 'Zone 5',
+                'ward_id' => 1,
                 'coordinates' => json_encode([
                     ['lat' => 28.7251, 'lng' => 77.1165],
                     ['lat' => 28.7261, 'lng' => 77.1175],
@@ -63,6 +68,7 @@ class PaymentZonesTableSeeder extends Seeder
         foreach ($paymentZones as $zone) {
             DB::table('payment_zones')->insert([
                 'ulb_id' => rand(1, 5), // Assuming there are 5 ULBs in the `ulbs` table
+                'ward_id' => 1,
                 'payment_zone' => $zone['payment_zone'],
                 'coordinates' => $zone['coordinates'],
                 'description' => $zone['description'],

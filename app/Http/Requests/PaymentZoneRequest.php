@@ -27,6 +27,7 @@ class PaymentZoneRequest extends FormRequest
                 'required',
                 'string',
                 'max:60',
+                'wardId' => 'required|exists:wards,id',
                 Rule::unique('payment_zones', 'payment_zone')
                     ->where('ulb_id', $this->input('ulb_id'))
                     ->ignore($this->route('id'), 'id'), // Exclude the current record by ID
