@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('ratepayer_schedule', function (Blueprint $table) {
             $table->id(); // Auto-increment primary key
+            $table->foreignId('ulb_id')->constrained('ulbs');
             $table->unsignedBigInteger('tc_id'); // Foreign key or reference id
             $table->unsignedBigInteger('ratepayer_id'); // Foreign key or reference id
-            $table->unsignedBigInteger('bill_id'); // Foreign key or reference id
             $table->date('schedule_date'); // Schedule date
             $table->timestamps(); // Created at and Updated at timestamps
         });

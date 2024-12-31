@@ -9,6 +9,7 @@ use App\Models\PaymentZone;
 use App\Models\Ratepayer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -19,7 +20,7 @@ class DemandController extends Controller
         try {
             $year = $request->CURRENT_YEAR;
             $ulb_id = $request->ulb_id;
-            $tcId = auth()->user()->id;
+            $tcId = Auth::user()->id;
             $service = new DemandService;
             $stats = $service->generateYearlyDemands($year, $ulb_id, $tcId);
 

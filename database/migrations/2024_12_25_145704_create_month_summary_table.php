@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('month_summary', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('ulb_id')->constrained('ulbs');
             $table->unsignedBigInteger('zone_id');
             $table->integer('month');
             $table->integer('year');

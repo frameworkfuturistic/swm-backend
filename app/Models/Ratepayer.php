@@ -24,6 +24,8 @@ class Ratepayer extends Model
         'landmark',
         'whatsapp_no',
         'bill_date',
+        'longitude',
+        'latitude',
         'opening_demand',
         'monthly_demand',
     ];

@@ -7,6 +7,7 @@ use App\Models\PaymentZone;
 use App\Models\Ratepayer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -36,26 +37,37 @@ class PaymentZoneController extends Controller
     public function showAll(Request $request)
     {
         try {
+            $userId = Auth::user()->id;
             $ulbId = $request->input('ulb_id', 1);
 
-            DB::enableQueryLog();
-
-            $data = DB::table('payment_zones as z')
-                ->leftJoin('ratepayers as r', function ($join) {
-                    $join->on('r.paymentzone_id', '=', 'z.id')
-                        ->where('r.ulb_id', '=', 1)
-                        ->where('r.is_active', '=', true);
-                })
+            $baseQuery = DB::table('payment_zones as z')
+                ->join('tc_has_zones as t', 'z.id', '=', 't.paymentzone_id')
+                ->Join('wards as w', 'z.ward_id', '=', 'w.id') // Join with wards table to get ward_name
                 ->select(
                     'z.id as zoneId',
-                    'z.payment_zone',
-                    DB::raw("'A' as category"),
+                    'z.payment_zone as paymentZone',
                     'z.description',
-                    DB::raw('SUM(IF(r.entity_id IS NOT NULL, 1, 0)) as entityCount'),
-                    DB::raw('SUM(IF(r.cluster_id IS NOT NULL, 1, 0)) as clusterCount')
+                    'w.ward_name as wardName',
+                    'z.apartments',
+                    'z.buildings',
+                    'z.govt_buildings as govtBuildings',
+                    'z.colonies',
+                    'z.other_buildings as otherBuildings',
+                    'z.residential',
+                    'z.commercial',
+                    'z.industrial',
+                    'z.institutional',
+                    'z.monthly_demand as monthlyDemand',
+                    'z.yearly_demand as yearlyDemand'
                 )
-                ->groupBy('z.id', 'z.payment_zone', 'z.description')
-                ->get();
+                ->where('z.ulb_id', $ulbId)
+                ->where('t.is_active', true);
+
+            if (Auth::user()->role == 'tax_collector') {
+                $data = $baseQuery->where('r.tc_id', $userId)->get();
+            } else {
+                $data = $baseQuery->get();
+            }
 
             return format_response(
                 'success',
@@ -86,6 +98,7 @@ class PaymentZoneController extends Controller
             $validated = $request->validate([
                 // 'ulb_id' => 'required|exists:ulbs,id',
                 'paymentZone' => 'required|string|max:50|unique:payment_zones,payment_zone,NULL,id,ulb_id,'.$request->ulb_id,
+                'wardId' => 'required|exists:wards,id',
                 'coordinates' => 'required|array',
                 'coordinates.*' => 'array|min:2', // Validate lat, lng pairs
                 'description' => 'required|string|max:250',
@@ -96,6 +109,7 @@ class PaymentZoneController extends Controller
 
             $paymentZone = DB::table('payment_zones')->insert([
                 'ulb_id' => $ulbId,
+                'ward_id' => $validated['wardId'],
                 'payment_zone' => $validated['paymentZone'],
                 'coordinates' => $polygonCoordinates,
                 'description' => $validated['description'],

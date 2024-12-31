@@ -11,7 +11,7 @@ class RateList extends Model
 
     protected $table = 'rate_list';
 
-    protected $fillable = ['ulb_id', 'rate_list', 'amount'];
+    protected $fillable = ['ulb_id', 'rate_list', 'amount', 'vrno'];
 
     protected $hidden = ['ulb_id', 'created_at', 'updated_at'];
 }

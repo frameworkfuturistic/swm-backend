@@ -12,5 +12,7 @@ class TCHasZone extends Model
         'tc_id',
         'paymentzone_id',
         'vrno',
+        'is_active',
+        'deactivation_date',
     ];
 }

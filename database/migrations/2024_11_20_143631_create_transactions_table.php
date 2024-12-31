@@ -31,6 +31,8 @@ return new class extends Migration
             $table->enum('event_type', ['PAYMENT', 'DENIAL', 'DOOR-CLOSED', 'DEFERRED', 'OTHER'])->default('DEFERRED');
             $table->string('remarks', 250)->nullable();
             $table->string('auto_remarks', 250)->nullable();
+            $table->decimal('longitude', 10, 7)->nullable(); // Precision for GPS
+            $table->decimal('latitude', 10, 7)->nullable();
             $table->boolean('is_verified')->default(true); // Active status
             $table->boolean('is_cancelled')->default(true); // Cancelled status
             $table->integer('vrno');
@@ -57,6 +59,9 @@ return new class extends Migration
             $table->enum('event_type', ['PAYMENT', 'DENIAL', 'DOOR-CLOSED', 'DEFERRED', 'OTHER'])->default('DEFERRED');
             $table->string('remarks', 250)->nullable();
             $table->string('auto_remarks', 250)->nullable();
+            $table->decimal('longitude', 10, 7)->nullable(); // Precision for GPS
+            $table->decimal('latitude', 10, 7)->nullable();
+
             $table->boolean('is_verified')->default(true); // Active status
             $table->boolean('is_cancelled')->default(true); // Active status
             $table->integer('vrno');
@@ -83,6 +88,9 @@ return new class extends Migration
             $table->enum('event_type', ['PAYMENT', 'DENIAL', 'DOOR-CLOSED', 'DEFERRED', 'OTHER'])->default('DEFERRED');
             $table->string('remarks', 250)->nullable();
             $table->string('auto_remarks', 250)->nullable();
+            $table->decimal('longitude', 10, 7)->nullable(); // Precision for GPS
+            $table->decimal('latitude', 10, 7)->nullable();
+
             $table->boolean('is_verified')->default(true); // Active status
             $table->boolean('is_cancelled')->default(true); // Active status
             $table->integer('vrno');

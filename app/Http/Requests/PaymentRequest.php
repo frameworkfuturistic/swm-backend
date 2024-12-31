@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Traits\HandleApiValidation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PaymentRequest extends FormRequest
 {
+    use HandleApiValidation;
+
     public function authorize()
     {
         return true;

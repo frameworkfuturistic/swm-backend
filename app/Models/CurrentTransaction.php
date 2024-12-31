@@ -18,6 +18,8 @@ class CurrentTransaction extends Model
         'event_time',
         'event_type',
         'remarks',
+        'longitude',
+        'latitude',
         'vrno',
         'auto_remarks',
     ];

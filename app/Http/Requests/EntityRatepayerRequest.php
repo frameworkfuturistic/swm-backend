@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Traits\HandleApiValidation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class EntityRatepayerRequest extends FormRequest
 {
+    use HandleApiValidation;
+
     /**
      * Determine if the user is authorized to make this request.
      */

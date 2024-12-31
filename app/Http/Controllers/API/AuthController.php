@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
@@ -227,6 +228,115 @@ class AuthController extends Controller
         }
     }
 
+    public function changePassword(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'currentPassword' => 'required',
+                'newPassword' => 'required|min:8|confirmed',
+            ]);
+
+            if ($validator->fails()) {
+                $errorMessages = $validator->errors()->all();
+
+                return format_response(
+                    'validation error',
+                    $errorMessages,
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            $validatedData = $validator->validated();
+
+            $user = $request->user();
+
+            // Check if the current password is correct
+            if (! Hash::check($request->currentPassword, $user->password)) {
+                return format_response(
+                    'credential mismatch',
+                    null,
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            // Update the password
+            $user->password = Hash::make($request->newPassword);
+            $user->save();
+            $user->currentAccessToken()->delete();
+
+            return format_response(
+                'success',
+                null,
+                Response::HTTP_OK
+            );
+        } catch (\Exception $e) {
+            return format_response(
+                'An error occurred during data extraction',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    //Admin Changes
+    public function resetPassword(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'userId' => 'required',
+                'newPassword' => 'required|min:8|confirmed',
+            ]);
+
+            if ($validator->fails()) {
+                $errorMessages = $validator->errors()->all();
+
+                return format_response(
+                    'validation error',
+                    $errorMessages,
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            $validatedData = $validator->validated();
+
+            $validatingUser = User::find($validatedData['userId']);
+            if ($validatingUser == null) {
+                return format_response(
+                    'Check User Credentials',
+                    null,
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            $user = $request->user();
+
+            // Check if the current password is correct
+            // if (! Hash::check($request->currentPassword, $user->password)) {
+            //     return format_response(
+            //         'credential mismatch',
+            //         null,
+            //         Response::HTTP_UNPROCESSABLE_ENTITY
+            //     );
+            // }
+
+            // Update the password
+            $validatingUser->password = Hash::make($request->newPassword);
+            $validatingUser->save();
+
+            return format_response(
+                'success',
+                null,
+                Response::HTTP_OK
+            );
+        } catch (\Exception $e) {
+            return format_response(
+                'An error occurred during data extraction',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
     // Optional: Get authenticated user profile
     public function profile(Request $request)
     {
@@ -235,10 +345,50 @@ class AuthController extends Controller
         ]);
     }
 
-    public function ping(Request $request, $id)
+    public function setProfilePicture(Request $request)
     {
+        try {
+            $validator = Validator::make($request->all(), [
+                'profilePictureLocation' => 'required|string|max:255',
+            ]);
 
-        $user = User::find($id);
+            if ($validator->fails()) {
+                $errorMessages = $validator->errors()->all();
+
+                return format_response(
+                    'validation error',
+                    $errorMessages,
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            $validatedData = $validator->validated();
+
+            $user = User::find(Auth::user()->id);
+            $user->profile_picture = $validatedData['profilePictureLocation'];
+            $user->save();
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return format_response(
+                $e->getMessage(),
+                null,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        } catch (\Exception $e) {
+            return format_response(
+                'An error occurred during data extraction',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+
+    }
+
+    public function ping(Request $request)
+    {
+        $userId = Auth::user()->id;
+
+        $user = User::find($userId);
         if ($user == null) {
             return format_response(
                 'Bad User',
@@ -255,9 +405,16 @@ class AuthController extends Controller
             );
         }
 
+        $data = [
+            'profilePicture' => $user->profile_picture,
+        ];
+
+        // Encode the array to a JSON string
+        $jsonString = json_encode($data);
+
         return format_response(
             'Active',
-            null,
+            $jsonString,
             Response::HTTP_OK
         );
 

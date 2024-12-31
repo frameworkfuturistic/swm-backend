@@ -37,6 +37,7 @@ class RateListController extends Controller
                 'ulb_id' => $ulbId,
                 'rate_list' => $validatedData['rateList'],
                 'amount' => $validatedData['amount'],
+                'vrno' => 1,
             ]);
 
             return format_response(

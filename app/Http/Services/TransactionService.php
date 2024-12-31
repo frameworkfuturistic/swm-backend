@@ -9,8 +9,11 @@ use App\Models\Demand;
 use App\Models\Payment;
 use App\Models\PaymentOrder;
 use App\Models\Ratepayer;
+use App\Models\RatepayerSchedule;
 use Exception;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Service class for handling transaction-related operations
@@ -47,7 +50,8 @@ class TransactionService
      */
     public function createNewTransaction(array $validatedData): CurrentTransaction
     {
-        return CurrentTransaction::create([
+        $ratepayer = Ratepayer::find($validatedData['ratepayerId']);
+        $data = [
             'ulb_id' => $validatedData['ulbId'],
             'tc_id' => $validatedData['tcId'],
             'ratepayer_id' => $validatedData['ratepayerId'],
@@ -56,8 +60,39 @@ class TransactionService
             'event_time' => now(),
             'event_type' => $validatedData['eventType'],
             'remarks' => $validatedData['remarks'],
+            'longitude' => $validatedData['longitude'],
+            'latitude' => $validatedData['latitude'],
             'vrno' => 1,
+        ];
+
+        // Payment Mode
+        if (isset($validatedData['payment_mode'])) {
+            $data['payment_mode'] = $validatedData['paymentMode'];
+        }
+        // Payment Denial
+        if (isset($validatedData['denialReasonId'])) {
+            $data['denial_reason_id'] = $validatedData['denialReasonId'];
+        }
+
+        // Cancellation
+        if (isset($validatedData['isCancelled'])) {
+            $data['is_cancelled'] = $validatedData['isCancelled'];
+            $data['cancelledby_id'] = $validatedData['tcId'];
+            $data['cancellation_date'] = now();
+        }
+
+        // Scheduling
+        if (isset($validatedData['schedule_date'])) {
+            $data['schedule_date'] = $validatedData['schedule_date'];
+        }
+
+        // Create the record
+        $currentTransaction = CurrentTransaction::create($data);
+        $ratepayer->update([
+            'last_transaction_id' => $currentTransaction->id,
         ]);
+
+        return $currentTransaction;
     }
 
     /**
@@ -108,6 +143,7 @@ class TransactionService
         $ratepayer = Ratepayer::find($ratepayerId);
         $ratepayer->lastpayment_amt = $amount;
         $ratepayer->lastpayment_date = now();
+        $ratepayer->lastpayment_mode = $payment->payment_mode;
         $ratepayer->save();
     }
 
@@ -181,5 +217,61 @@ class TransactionService
             // Log the error here
             return false;
         }
+    }
+
+    public function updateScheduleDate($validatedData)
+    {
+        // Find the record for the given ratepayer
+        $ratepayer = Ratepayer::findOrFail($validatedData['ratepayerId']);
+
+        // Update the schedule date
+        $ratepayer->schedule_date = $validatedData['scheduleDate'];
+        $ratepayer->save();
+
+        $ratepayerSchedule = RatepayerSchedule::create([
+            'ulb_id' => $validatedData['ulbId'],
+            'tc_id' => $validatedData['tcId'],
+            'ratepayer_id' => $validatedData['ratepayerId'],
+            'schedule_date' => $validatedData['scheduleDate'],
+        ]);
+
+    }
+
+    public function recentTransactions()
+    {
+        $userId = Auth::user()->id;
+
+        return DB::table('current_transactions as c')
+            ->select([
+                DB::raw("DATE_FORMAT(c.event_time, '%d/%m/%Y %h:%i %p') as `timestamp`"),
+                'c.event_type as type',
+                'r.ratepayer_name as name',
+                'r.Consumer_no as uniqueId',
+                'r.holding_no as holdingNo',
+                'r.lastpayment_date as lastPayment',
+                'c.remarks',
+                'r.lastpayment_amt as payment',
+                'r.lastpayment_mode as paymentMode',
+            ])
+            ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
+            ->where('c.tc_id', $userId)
+            ->orderByDesc('c.event_time')
+            ->limit(100)
+            ->get();
+
+    }
+
+    public function ratepayerTransactions(int $ratepayerId)
+    {
+        return DB::table('current_transactions as c')
+            ->selectRaw("DATE_FORMAT(c.event_time, '%d/%m/%Y %h:%i %p') as event_time")
+            ->selectRaw('c.event_type')
+            ->selectRaw('p.amount as paid')
+            ->selectRaw("DATE_FORMAT(c.schedule_date, '%d/%m/%Y') as schedule_date")
+            ->selectRaw('c.remarks')
+            ->leftJoin('current_payments as p', 'p.tran_id', '=', 'c.id')
+            ->where('c.ratepayer_id', $ratepayerId)
+            ->orderByDesc('c.event_time')
+            ->get();
     }
 }
