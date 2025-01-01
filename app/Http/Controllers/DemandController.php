@@ -91,7 +91,21 @@ class DemandController extends Controller
     public function showRatepayerCurrentDemand(int $id)
     {
         try {
-            DB::enableQueryLog();
+            // DB::enableQueryLog();
+            // $ratepayers = DB::table('current_demands as c')
+            //     ->select(
+            //         'c.id',
+            //         'c.ratepayer_id',
+            //         'c.opening_demand',
+            //         DB::raw("concat(MONTHNAME(STR_TO_DATE(c.bill_month, '%m')), ',', c.bill_year) as MonthYear"),
+            //         'c.demand',
+            //         'c.total_demand',
+            //         'c.payment',
+            //         'c.last_payment_date'
+            //     )
+            //     ->whereRaw('MONTH(SYSDATE()) >= bill_month')
+            //     ->get();
+
             $ratepayers = CurrentDemand::where('ratepayer_id', $id)
                 ->whereRaw('MONTH(SYSDATE()) >= bill_month')
                 ->get();
@@ -277,6 +291,7 @@ class DemandController extends Controller
                     'r.mobile_no',
                     'r.reputation',
                     'r.lastpayment_amt',
+                    DB::raw('if(((latitude IS NOT NULL) AND (longitude IS NOT NULL) AND (latitude BETWEEN -90 AND 90) AND (longitude BETWEEN -180 AND 180)),true,false) as validCoordinates'),
                     DB::raw('DATE_FORMAT(r.lastpayment_date,"%d/%m/%Y") as lastpayment_date'),
                     DB::raw('SUM(c.total_demand) as totalDemand')
                 )
@@ -284,6 +299,7 @@ class DemandController extends Controller
                 ->whereRaw('MONTH(SYSDATE()) >= c.bill_month')  // Ensure current month is less than or equal to bill_month
                 ->where('r.paymentzone_id', $id)  // Ensure current month is less than or equal to bill_month
                 ->groupBy('c.ratepayer_id', 'r.consumer_no', 'r.ratepayer_name', 'r.ratepayer_address', 'r.mobile_no')  // Group by ratepayer_id and relevant columns
+                ->orderBy('r.ratepayer_name')
                 ->get();
 
             return format_response(

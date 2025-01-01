@@ -40,6 +40,7 @@ class PaymentZoneController extends Controller
             $userId = Auth::user()->id;
             $ulbId = $request->input('ulb_id', 1);
 
+            DB::enableQueryLog();
             $baseQuery = DB::table('payment_zones as z')
                 ->join('tc_has_zones as t', 'z.id', '=', 't.paymentzone_id')
                 ->Join('wards as w', 'z.ward_id', '=', 'w.id') // Join with wards table to get ward_name

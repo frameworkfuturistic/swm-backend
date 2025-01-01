@@ -95,7 +95,7 @@ class TCController extends Controller
     {
         try {
             $tcId = auth()->user()->id;
-
+            DB::enableQueryLog();
             $results = DB::table('tc_has_zones as t')
                 ->join('payment_zones as z', 't.paymentzone_id', '=', 'z.id')
                 ->where('t.is_active', 1)
