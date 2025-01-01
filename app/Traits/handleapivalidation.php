@@ -37,7 +37,6 @@ trait HandleApiValidation
             'required' => 'The :attribute field is required.',
             'integer' => 'The :attribute must be an integer.',
             'exists' => 'The selected :attribute is invalid.',
-            // Add more custom messages as needed
         ];
     }
 }
