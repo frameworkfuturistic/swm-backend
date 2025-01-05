@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Events\SiteVisitedEvent;
 use App\Http\Services\TransactionService;
+use App\Models\CurrentTransaction;
 use App\Models\Payment;
 use App\Models\Ratepayer;
 use App\Models\TempEntities;
@@ -383,6 +384,7 @@ class TransactionController extends Controller
         $validator = Validator::make($request->all(), [
             'ratepayerId' => 'required|integer|exists:ratepayers,id', // Ensures the ID is valid and exists in the 'ratepayers' table
             'remarks' => 'nullable|string|max:255',                  // Optional, must be a string with a max length of 255
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:1024',
             'longitude' => 'required|numeric|between:-180,180',      // Required, valid longitude
             'latitude' => 'required|numeric|between:-90,90',         // Required, valid latitude
         ]);
@@ -455,6 +457,91 @@ class TransactionController extends Controller
                 null,
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
+        }
+
+    }
+
+    public function chequeCollection(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'ratepayerId' => 'required|integer|exists:ratepayers,id',
+            'chequeNo' => 'required|string|max:50',
+            'chequeDate' => 'required|date',
+            'bankName' => 'required|string|max:50',
+            'amount' => 'required|numeric|min:0',
+            'longitude' => 'required|numeric|between:-180,180',      // Required, valid longitude
+            'latitude' => 'required|numeric|between:-90,90',         // Required, valid latitude
+        ]);
+
+        if ($validator->fails()) {
+            $errorMessages = $validator->errors()->all();
+
+            return format_response(
+                'validation error',
+                $errorMessages,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        $validatedData = $validator->validated();
+
+        $tranService = new TransactionService;
+
+        $ratepayer = Ratepayer::find($validatedData['ratepayerId']);
+        $validatedData['ulbId'] = $request->ulb_id;
+        $validatedData['tcId'] = Auth::user()->id;
+        $validatedData['entityId'] = $ratepayer->entity_id;
+        $validatedData['clusterId'] = $ratepayer->cluster_id;
+        $validatedData['eventType'] = 'CHEQUE';
+        $validatedData['remarks'] = 'Cheque collected';
+
+        DB::beginTransaction();
+        try {
+            $tranService->extractRatepayerDetails($validatedData['ratepayerId']);
+            $transaction = $tranService->createNewTransaction($validatedData);
+            $tranService->createChequeRecord($validatedData, $transaction->id);
+
+            if ($transaction != null) {
+                $responseData = [
+                    'tranId' => $transaction->id,
+                    'eventType' => 'CHEQUE',
+                    'consumerNo' => $tranService->ratepayer->consumer_no,
+                    'ratepayerName' => $tranService->ratepayer->ratepayer_name,
+                    'ratepayerAddress' => $tranService->ratepayer->ratepayer_address,
+                    'mobileNo' => $tranService->ratepayer->mobile_no,
+                    'landmark' => $tranService->ratepayer->landmark,
+                    'longitude' => $tranService->ratepayer->longitude,
+                    'latitude' => $tranService->ratepayer->latitude,
+                    'tranType' => $transaction->event_type,
+                    //   'remarks' => $validatedData['remarks'],
+                ];
+                DB::commit();
+
+                //Broadcast transaction to Dashboard
+                broadcast(new SiteVisitedEvent(
+                    $responseData,
+                ))->toOthers();
+
+                return format_response(
+                    'success',
+                    $responseData,
+                    Response::HTTP_CREATED
+                );
+            } else {
+                DB::rollBack();
+
+                return format_response(
+                    'An error occurred during insertion',
+                    null,
+                    Response::HTTP_INTERNAL_SERVER_ERROR
+                );
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create ratepayer cheque: '.$e->getMessage(),
+            ], 500);
         }
 
     }
@@ -584,6 +671,51 @@ class TransactionController extends Controller
 
             return format_response(
                 'An error occurred during insertion. '.$e->getMessage().' Demand Till Date = '.$tranService->demandTillDate,
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    public function cancellation(Request $request)
+    {
+        try {
+
+            $validator = Validator::make($request->all(), [
+                'tranId' => 'required|integer|exists:current_transactions,id',
+                'remarks' => 'nullable|string|max:255',
+            ]);
+
+            if ($validator->fails()) {
+                $errorMessages = $validator->errors()->all();
+
+                return format_response(
+                    'validation error',
+                    $errorMessages,
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+            $validatedData = $validator->validated();
+            $tcId = Auth::user()->id;
+
+            $tranId = $request->tranId;
+            $transaction = CurrentTransaction::find($tranId);
+            $transaction->is_cancelled = true;
+            $transaction->cancelledby_id = $tcId;
+            $transaction->cancellation_date = now();
+            $transaction->remarks = $validatedData['remarks'];
+            $transaction->save();
+
+            return format_response(
+                'Success',
+                null,
+                Response::HTTP_OK
+            );
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            return format_response(
+                'An error occurred during insertion. '.$e->getMessage(),
                 null,
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );

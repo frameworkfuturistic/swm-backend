@@ -21,15 +21,15 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('current_payment_refunds', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('payment_id')->nullable()->index('Index_PaymentID');
-            $table->string('razorpay_refund_id', 100)->nullable()->index('Index_razorpayrefundid');
-            $table->integer('refund_amount')->nullable();
-            $table->enum('refund_status', ['INITIATED', 'PROCESSED', 'FAILED'])->default('INITIATED')->index('Index_refundstatus');
-            $table->string('refund_reason', 255)->nullable();
-            $table->timestamps();
-        });
+        //   Schema::create('current_payment_refunds', function (Blueprint $table) {
+        //       $table->id();
+        //       $table->unsignedBigInteger('payment_id')->nullable()->index('Index_PaymentID');
+        //       $table->string('razorpay_refund_id', 100)->nullable()->index('Index_razorpayrefundid');
+        //       $table->integer('refund_amount')->nullable();
+        //       $table->enum('refund_status', ['INITIATED', 'PROCESSED', 'FAILED'])->default('INITIATED')->index('Index_refundstatus');
+        //       $table->string('refund_reason', 255)->nullable();
+        //       $table->timestamps();
+        //   });
 
     }
 

@@ -19,13 +19,13 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('current_payment_webhooks', function (Blueprint $table) {
-            $table->id();
-            $table->string('event_type', 50)->nullable()->index('Index_eventtype');
-            $table->string('razorpay_payment_id', 255)->nullable()->index('Index_razorpaypaymentid');
-            $table->text('payload')->nullable();
-            $table->timestamps();
-        });
+        //   Schema::create('current_payment_webhooks', function (Blueprint $table) {
+        //       $table->id();
+        //       $table->string('event_type', 50)->nullable()->index('Index_eventtype');
+        //       $table->string('razorpay_payment_id', 255)->nullable()->index('Index_razorpaypaymentid');
+        //       $table->text('payload')->nullable();
+        //       $table->timestamps();
+        //   });
     }
 
     /**

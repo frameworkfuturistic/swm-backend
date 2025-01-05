@@ -186,6 +186,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('transactions')
     Route::post('deferred', [TransactionController::class, 'deferred']);
     Route::post('door-closed', [TransactionController::class, 'doorClosed']);
     Route::post('denial', [TransactionController::class, 'denial']);
+    Route::post('cheque-collection', [TransactionController::class, 'chequeCollection']);
+    Route::post('cancel', [TransactionController::class, 'cancellation']);
 
     //Done
     Route::get('recent', [TransactionController::class, 'recentTransactions']);

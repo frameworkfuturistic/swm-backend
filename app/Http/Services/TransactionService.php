@@ -3,12 +3,12 @@
 namespace App\Http\Services;
 
 use App\Models\CurrentDemand;
-use App\Models\CurrentPayment;
 use App\Models\CurrentTransaction;
 use App\Models\Demand;
 use App\Models\Payment;
 use App\Models\PaymentOrder;
 use App\Models\Ratepayer;
+use App\Models\RatepayerCheque;
 use App\Models\RatepayerSchedule;
 use Exception;
 use Illuminate\Database\Eloquent\Collection;
@@ -86,8 +86,20 @@ class TransactionService
             $data['schedule_date'] = $validatedData['schedule_date'];
         }
 
+        if (isset($validatedData['image'])) {
+            $file = $validatedData['image'];
+            $fileName = time().'_'.$file->getClientOriginalName();
+            $path = $file->storeAs(
+                'uploads/images',
+                $fileName,
+                'public'
+            );
+            $data['image_path'] = $fileName;
+        }
+
         // Create the record
         $currentTransaction = CurrentTransaction::create($data);
+
         $ratepayer->update([
             'last_transaction_id' => $currentTransaction->id,
         ]);
@@ -103,7 +115,7 @@ class TransactionService
      *
      * @throws Exception
      */
-    public function createNewPayment(array $validatedData, int $tranId): CurrentPayment
+    public function createNewPayment(array $validatedData, int $tranId): Payment
     {
         // Create payment record
         $payment = $this->createPaymentRecord($validatedData, $tranId);
@@ -119,7 +131,7 @@ class TransactionService
      *
      * @throws Exception
      */
-    protected function processPendingDemands(int $ratepayerId, float $amount, CurrentPayment $payment, int $tcId): void
+    protected function processPendingDemands(int $ratepayerId, float $amount, Payment $payment, int $tcId): void
     {
         $pendingDemands = $this->getPendingDemands($ratepayerId);
         $this->demandTillDate = $pendingDemands->sum('total_demand');
@@ -132,6 +144,8 @@ class TransactionService
             if ($remainingAmount >= $outstandingAmount) {
                 $this->adjustDemand($demand, $outstandingAmount, $payment->id, $tcId);
                 $remainingAmount -= $outstandingAmount;
+                // Transfer record to `demand` table
+                $this->transferToDemandTable($demand);
             } else {
                 break; // Partial payments not allowed
             }
@@ -174,9 +188,9 @@ class TransactionService
     /**
      * Create payment record
      */
-    protected function createPaymentRecord(array $validatedData, int $tranId): CurrentPayment
+    protected function createPaymentRecord(array $validatedData, int $tranId): Payment
     {
-        return CurrentPayment::create([
+        return Payment::create([
             'ulb_id' => $validatedData['ulbId'],
             'ratepayer_id' => $validatedData['ratepayerId'],
             'tc_id' => $validatedData['tcId'],
@@ -189,6 +203,18 @@ class TransactionService
             'vrno' => 1,
             'amount' => $validatedData['amount'],
         ]);
+    }
+
+    /**
+     * Transfer a record from current_demand to demand table
+     */
+    protected function transferToDemandTable($demand): void
+    {
+        // Insert the record into `demand` table
+        Demand::create($demand->toArray());
+
+        // Delete the record from `current_demand` table
+        $demand->delete();
     }
 
     /**
@@ -240,24 +266,79 @@ class TransactionService
     public function recentTransactions()
     {
         $userId = Auth::user()->id;
+        $user = Auth::user();
 
-        return DB::table('current_transactions as c')
-            ->select([
-                DB::raw("DATE_FORMAT(c.event_time, '%d/%m/%Y %h:%i %p') as `timestamp`"),
-                'c.event_type as type',
-                'r.ratepayer_name as name',
-                'r.Consumer_no as uniqueId',
-                'r.holding_no as holdingNo',
-                'r.lastpayment_date as lastPayment',
-                'c.remarks',
-                'r.lastpayment_amt as payment',
-                'r.lastpayment_mode as paymentMode',
-            ])
-            ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
-            ->where('c.tc_id', $userId)
-            ->orderByDesc('c.event_time')
-            ->limit(100)
-            ->get();
+        $response = [
+            'tcName' => $user->name,
+            'profilePicture' => $user->profile_picture,
+            'role' => $user->role,
+            'currentMonthCollection' => DB::table('payments')
+                ->select('payment_mode', DB::raw('SUM(amount) as collection'))
+                ->whereYear('payment_date', now()->year)
+                ->whereMonth('payment_date', now()->month)
+                ->groupBy('payment_mode')
+                ->get(),
+
+            'totalRatepayers' => DB::table('ratepayers as r')
+                ->selectRaw('COUNT(r.id) as totalRatepayers')
+                ->whereIn('r.paymentzone_id', function ($query) use ($userId) {
+                    $query->select('paymentzone_id')
+                        ->from('tc_has_zones')
+                        ->where('tc_id', $userId)
+                        ->where('is_active', true);
+                })
+                ->value('totalRatepayers'),
+
+            'monthSettledDemand' => DB::table('ratepayers as r')
+                ->join('demands as c', 'c.ratepayer_id', '=', 'r.id')
+                ->selectRaw('SUM(c.total_demand) as totalDemand')
+                ->whereYear('c.bill_year', '=', DB::raw('YEAR(CURDATE())'))
+                ->whereMonth('c.bill_month', '=', DB::raw('MONTH(CURDATE())'))
+                ->whereIn('r.paymentzone_id', function ($query) use ($userId) {
+                    $query->select('paymentzone_id')
+                        ->from('tc_has_zones')
+                        ->where('tc_id', $userId)
+                        ->where('is_active', true);
+                })
+                ->value('totalDemand'),
+
+            'monthDueDemand' => DB::table('ratepayers as r')
+                ->join('current_demands as c', 'c.ratepayer_id', '=', 'r.id')
+                ->selectRaw('SUM(c.total_demand) as totalDemand')
+                ->whereColumn('c.bill_year', '<=', DB::raw('YEAR(CURDATE())'))
+                ->whereColumn('c.bill_month', '<=', DB::raw('MONTH(CURDATE())'))
+                ->whereIn('r.paymentzone_id', function ($query) use ($userId) {
+                    $query->select('paymentzone_id')
+                        ->from('tc_has_zones')
+                        ->where('tc_id', $userId)
+                        ->where('is_active', true);
+                })
+                ->value('totalDemand'),
+
+            'lastTransactions' => DB::table('current_transactions as c')
+                ->select([
+                    'c.id as tranId',
+                    DB::raw("DATE_FORMAT(c.event_time, '%d/%m/%Y %h:%i %p') as `timestamp`"),
+                    'c.event_type as type',
+                    'r.ratepayer_name as name',
+                    'r.ratepayer_address as address',
+                    'r.Consumer_no as uniqueId',
+                    'r.holding_no as holdingNo',
+                    'r.usage_type as usageType',
+                    'r.reputation',
+                    'r.lastpayment_date as lastPayment',
+                    'c.remarks',
+                    'r.lastpayment_amt as payment',
+                    'r.lastpayment_mode as paymentMode',
+                ])
+                ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
+                ->where('c.tc_id', $userId)
+                ->orderByDesc('c.event_time')
+                ->limit(100)
+                ->get(),
+        ];
+
+        return $response;
 
     }
 
@@ -273,5 +354,18 @@ class TransactionService
             ->where('c.ratepayer_id', $ratepayerId)
             ->orderByDesc('c.event_time')
             ->get();
+    }
+
+    public function createChequeRecord(array $validatedData, int $tranId)
+    {
+        return RatepayerCheque::create([
+            'ulb_id' => $validatedData['ulbId'],
+            'ratepayer_id' => $validatedData['ratepayerId'],
+            'tran_id' => $tranId,
+            'cheque_no' => $validatedData['chequeNo'],
+            'cheque_date' => $validatedData['chequeDate'],
+            'bank_name' => $validatedData['bankName'],
+            'amount' => $validatedData['amount'],
+        ]);
     }
 }

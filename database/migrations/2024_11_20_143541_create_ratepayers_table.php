@@ -38,7 +38,7 @@ return new class extends Migration
             $table->dateTime('lastpayment_date')->nullable();
             $table->string('lastpayment_mode', 20)->nullable();
             $table->date('schedule_date')->nullable();
-            $table->integer('opening_demand')->nullable(); // `opening_demand` column as int(11), nullable
+            $table->integer('current_demand')->nullable(); // `opening_demand` column as int(11), nullable
             $table->integer('monthly_demand')->nullable(); // `monthly_demand` column as int(11), nullable
             $table->boolean('is_active')->default(true); // Active status
             $table->integer('vrno');
@@ -72,7 +72,7 @@ return new class extends Migration
             $table->dateTime('lastpayment_date')->nullable();
             $table->string('lastpayment_mode', 20)->nullable();
             $table->date('schedule_date')->nullable();
-            $table->integer('opening_demand')->nullable(); // `opening_demand` column as int(11), nullable
+            $table->integer('current_demand')->nullable(); // `opening_demand` column as int(11), nullable
             $table->integer('monthly_demand')->nullable(); // `monthly_demand` column as int(11), nullable
             $table->boolean('is_active')->default(true); // Active status
             $table->integer('vrno');

@@ -42,36 +42,36 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('current_payment_orders', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
-            $table->foreignId('user_id')->constrained('users')->notNullable();
-            // $table->unsignedBigInteger('payment_id')->nullable()->index('Index_paymentid');
+        //   Schema::create('current_payment_orders', function (Blueprint $table) {
+        //       $table->id();
+        //       $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
+        //       $table->foreignId('user_id')->constrained('users')->notNullable();
+        //       // $table->unsignedBigInteger('payment_id')->nullable()->index('Index_paymentid');
 
-            // Razorpay specific fields
-            $table->string('razorpay_order_id')->nullable();
-            $table->string('razorpay_payment_id')->nullable();
-            $table->string('razorpay_signature')->nullable();
+        //       // Razorpay specific fields
+        //       $table->string('razorpay_order_id')->nullable();
+        //       $table->string('razorpay_payment_id')->nullable();
+        //       $table->string('razorpay_signature')->nullable();
 
-            // Order details
-            $table->decimal('amount', 10, 2);
-            $table->string('currency')->default('INR');
+        //       // Order details
+        //       $table->decimal('amount', 10, 2);
+        //       $table->string('currency')->default('INR');
 
-            // Status tracking
-            $table->string('status')->default('pending');
-            $table->string('payment_status')->nullable();
-            $table->string('payment_method')->nullable();
+        //       // Status tracking
+        //       $table->string('status')->default('pending');
+        //       $table->string('payment_status')->nullable();
+        //       $table->string('payment_method')->nullable();
 
-            // Failure and refund details
-            $table->text('failure_reason')->nullable();
-            $table->decimal('refund_amount', 10, 2)->nullable();
-            $table->string('refund_status')->nullable();
+        //       // Failure and refund details
+        //       $table->text('failure_reason')->nullable();
+        //       $table->decimal('refund_amount', 10, 2)->nullable();
+        //       $table->string('refund_status')->nullable();
 
-            // Additional metadata
-            $table->json('notes')->nullable();
+        //       // Additional metadata
+        //       $table->json('notes')->nullable();
 
-            $table->timestamps();
-        });
+        //       $table->timestamps();
+        //   });
     }
 
     /**

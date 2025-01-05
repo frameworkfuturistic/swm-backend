@@ -22,10 +22,10 @@ class CurrentDemand extends Model
     ];
 
     protected $hidden = [
-        'ulb_id',
-        'tc_id',
-        'vrno',
-        'payment_id',
+        //   'ulb_id',
+        //   'tc_id',
+        //   'vrno',
+        //   'payment_id',
         'created_at',
         'updated_at',
     ];

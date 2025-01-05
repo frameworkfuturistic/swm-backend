@@ -27,6 +27,8 @@ return new class extends Migration
             $table->integer('payment')->nullable();
             $table->unsignedBigInteger('payment_id')->nullable();
             $table->dateTime('last_payment_date')->nullable();
+            $table->boolean('is_active')->default(1);
+            $table->string('deactivation_reason', 250)->nullable();
             $table->integer('vrno');
             $table->timestamps();
         });
@@ -47,6 +49,8 @@ return new class extends Migration
             $table->integer('payment')->nullable();
             $table->unsignedBigInteger('payment_id')->nullable();
             $table->dateTime('last_payment_date')->nullable();
+            $table->boolean('is_active')->default(1);
+            $table->string('deactivation_reason', 250)->nullable();
             $table->integer('vrno');
             $table->timestamps();
         });
@@ -64,10 +68,11 @@ return new class extends Migration
             $table->integer('payment')->nullable();
             $table->unsignedBigInteger('payment_id')->nullable();
             $table->dateTime('last_payment_date')->nullable();
+            $table->boolean('is_active')->default(1);
+            $table->string('deactivation_reason', 250)->nullable();
             $table->integer('vrno');
             $table->timestamps();
         });
-
     }
 
     /**

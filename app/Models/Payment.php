@@ -28,5 +28,6 @@ class Payment extends Model
         'upi_id',
         'cheque_number',
         'is_canceled',
+        'vrno',
     ];
 }
