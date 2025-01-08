@@ -38,6 +38,7 @@ class Entity extends Model
         'is_verified',
         'usage_type',
         'status',
+        'vrno',
     ];
 
     protected $hidden = [

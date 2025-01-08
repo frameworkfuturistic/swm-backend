@@ -41,7 +41,7 @@ class EntityRatepayerRequest extends FormRequest
             'entity.latitude' => 'required|numeric|between:-90,90',
             'entity.inclusionDate' => 'required|date|before_or_equal:today',
             // 'entity.verificationDate' => 'nullable|date|after_or_equal:entity.inclusion_date',
-            'entity.openingDemand' => 'required|numeric|min:0',
+            // 'entity.openingDemand' => 'required|numeric|min:0',
             'entity.monthlyDemand' => 'required|numeric|min:0',
             'entity.usageType' => 'required|in:Residential,Commercial,Industrial,Institutional',
             'entity.status' => 'required|in:pending,verified,rejected',
@@ -59,7 +59,7 @@ class EntityRatepayerRequest extends FormRequest
             'ratepayer.landmark' => 'nullable|string|max:100',
             'ratepayer.whatsappNo' => 'nullable|digits:10',
             // 'ratepayer.billDate' => 'required|date|after_or_equal:entity.verification_date',
-            'ratepayer.openingDemand' => 'required|numeric|min:0',
+            // 'ratepayer.openingDemand' => 'required|numeric|min:0',
             'ratepayer.monthlyDemand' => 'required|numeric|min:0',
         ];
     }

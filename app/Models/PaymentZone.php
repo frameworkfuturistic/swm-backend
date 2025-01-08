@@ -26,4 +26,14 @@ class PaymentZone extends Model
     {
         return $this->belongsTo(Ulb::class);
     }
+
+    public function users()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'tc_has_zones',   // Pivot table
+            'paymentzone_id', // Foreign key for PaymentZone
+            'tc_id'           // Foreign key for User
+        );
+    }
 }

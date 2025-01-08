@@ -368,6 +368,12 @@ class AuthController extends Controller
             $user->profile_picture = $validatedData['profilePictureLocation'];
             $user->save();
 
+            return format_response(
+                'Successfully updated profile picture',
+                null,
+                Response::HTTP_OK
+            );
+
         } catch (\Illuminate\Validation\ValidationException $e) {
             return format_response(
                 $e->getMessage(),
@@ -410,13 +416,78 @@ class AuthController extends Controller
         ];
 
         // Encode the array to a JSON string
-        $jsonString = json_encode($data);
+        //   $jsonString = json_encode($data);
 
         return format_response(
             'Active',
-            $jsonString,
+            $data,
             Response::HTTP_OK
         );
 
+    }
+
+    public function suspendUser(Request $request, $user_id)
+    {
+        try {
+            $user = User::find($user_id);
+            if ($user->role == 'agency_admin') {
+                return format_response(
+                    'Agency Admin cannot be suspended',
+                    null,
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            $user->is_active = false;
+            $user->save();
+
+            return format_response(
+                'Successfully suspended the user',
+                null,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return format_response(
+                $e->getMessage(),
+                null,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        } catch (\Exception $e) {
+            return format_response(
+                'An error occurred during data extraction',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    public function revokeUser(Request $request, $user_id)
+    {
+        try {
+            $user = User::find($user_id);
+
+            $user->is_active = true;
+            $user->save();
+
+            return format_response(
+                'Successfully suspended the user',
+                null,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return format_response(
+                $e->getMessage(),
+                null,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        } catch (\Exception $e) {
+            return format_response(
+                'An error occurred during data extraction',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
     }
 }

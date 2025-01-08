@@ -26,6 +26,7 @@ class Cluster extends Model
         'latitude',
         'inclusion_date',
         'verification_date',
+        'vrno',
     ];
 
     protected $hidden = [

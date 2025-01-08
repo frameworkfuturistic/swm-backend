@@ -36,10 +36,52 @@ class TCController extends Controller
         try {
             $ulbId = $request->ulb_id;
 
-            $tcs = User::where('ulb_id', $ulbId)
+            $tcs = User::with('paymentZones')
+                ->where('ulb_id', $ulbId)
                 ->where('is_active', 1)
                 ->where('role', 'tax_collector')
                 ->get();
+
+            // $tcs = User::where('ulb_id', $ulbId)
+            //     ->where('is_active', 1)
+            //     ->where('role', 'tax_collector')
+            //     ->get();
+
+            return format_response(
+                'Current TCs',
+                $tcs,
+                Response::HTTP_CREATED
+            );
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return format_response(
+                $e->getMessage(),
+                null,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        } catch (\Exception $e) {
+            return format_response(
+                'An error occurred during data extraction',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+    //showAllTCs
+
+    public function showAllTCs(Request $request)
+    {
+        try {
+            $ulbId = $request->ulb_id;
+
+            $tcs = User::with('paymentZones')
+                ->where('ulb_id', $ulbId)
+                ->where('role', 'tax_collector')
+                ->get();
+
+            // $tcs = User::where('ulb_id', $ulbId)
+            //     ->where('is_active', 1)
+            //     ->where('role', 'tax_collector')
+            //     ->get();
 
             return format_response(
                 'Current TCs',
@@ -262,76 +304,6 @@ class TCController extends Controller
                 Response::HTTP_OK
             );
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return format_response(
-                $e->getMessage(),
-                null,
-                Response::HTTP_UNPROCESSABLE_ENTITY
-            );
-        } catch (\Exception $e) {
-            return format_response(
-                'An error occurred during data extraction',
-                null,
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
-    }
-
-    public function suspend(Request $request, $id)
-    {
-        try {
-            $user = User::find($id);
-            if ($user == null) {
-                return format_response(
-                    'TC not found',
-                    null,
-                    Response::HTTP_NOT_FOUND
-                );
-            }
-
-            $user->is_active = 0;
-            $user->update();
-
-            return format_response(
-                'Successfully Suspended'.$user->name,
-                null,
-                Response::HTTP_CREATED
-            );
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return format_response(
-                $e->getMessage(),
-                null,
-                Response::HTTP_UNPROCESSABLE_ENTITY
-            );
-        } catch (\Exception $e) {
-            return format_response(
-                'An error occurred during data extraction',
-                null,
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
-    }
-
-    public function revoke(Request $request, $id)
-    {
-        try {
-            $user = User::find($id);
-            if ($user == null) {
-                return format_response(
-                    'TC not found',
-                    null,
-                    Response::HTTP_NOT_FOUND
-                );
-            }
-
-            $user->is_active = 1;
-            $user->update();
-
-            return format_response(
-                'Successfully Revoked Suspension'.$user->name,
-                null,
-                Response::HTTP_CREATED
-            );
         } catch (\Illuminate\Validation\ValidationException $e) {
             return format_response(
                 $e->getMessage(),

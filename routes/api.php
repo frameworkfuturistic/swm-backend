@@ -16,68 +16,62 @@ use App\Http\Controllers\WardController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
-// Public routes
-//Done
+// Public routes ********************************************************************
+//*********************************************************************************** */
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/register', [AuthController::class, 'register']);
-//Done
+// Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
-// Route::middleware(['auth:sanctum'])->group(function () {
-//     Route::post('/logout', [AuthController::class, 'logout']);
-// });
-
-// Route::get('ping', [EntityController::class, 'test']);
-
-//Admin Masters [completed]
+//Admin Masters [completed] *************************************************************
+//*
 Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
-    // Master Entries
-    //Done
-    Route::post('rate-list', [RateListController::class, 'store']);                                //Done
-    Route::put('rate-list/{id}', [RateListController::class, 'update']);                           //Done
-
-    //Done
-    Route::post('denial-reasons', [DenialReasonController::class, 'store']);                       //Done
-    Route::put('denial-reasons/{id}', [DenialReasonController::class, 'update']);                  //Done
-
-    //Done
-    Route::post('payment-zones', [PaymentZoneController::class, 'store']);                         //Done
-    Route::put('payment-zones/{id}', [PaymentZoneController::class, 'update']);                    //Done
-    //Done
+    // API-ID: ADMIN-007 [Create Category]
     Route::post('categories', [CategoryController::class, 'store']);                               //Done
-    Route::put('categories/{id}', [CategoryController::class, 'update']);                          //Done
-
-    //Done
+    // API-ID: ADMIN-008 [Create Sub Category]
     Route::post('categories/{id}/sub-categories', [SubCategoryController::class, 'store']);                        //Done
-    Route::put('sub-categories/{id}', [SubCategoryController::class, 'update']);                   //Done
-
-    //Done
+    // API-ID: ADMIN-009 [Create Rate List]
+    Route::post('rate-list', [RateListController::class, 'store']);                                //Done
+    // API-ID: ADMIN-010 [Create Denial Reason]
+    Route::post('denial-reasons', [DenialReasonController::class, 'store']);                       //Done
+    // API-ID: ADMIN-011 [Create Ward]
     Route::post('wards', [WardController::class, 'store']);                                        //Done
+    // API-ID: ADMIN-012 [Create Payment Zone]
+    Route::post('payment-zones', [PaymentZoneController::class, 'store']);                         //Done
+    // API-ID: ADMIN-015 [Update Category]
+    Route::put('categories/{id}', [CategoryController::class, 'update']);                          //Done
+    // API-ID: ADMIN-016 [Update sub category]
+    Route::put('sub-categories/{id}', [SubCategoryController::class, 'update']);                   //Done
+    // API-ID: ADMIN-017 [Update Rate List]
+    Route::put('rate-list/{id}', [RateListController::class, 'update']);                           //Done
+    // API-ID: ADMIN-018 [Update Denial Reason]
+    Route::put('denial-reasons/{id}', [DenialReasonController::class, 'update']);                  //Done
+    // API-ID: ADMIN-019 [Update Ward]
     Route::put('wards/{id}', [WardController::class, 'update']);                                   //Done
-
+    // API-ID: ADMIN-020 [Update Ward]
+    Route::put('payment-zones/{id}', [PaymentZoneController::class, 'update']);                         //Done
 });
 
 //Masters for everyone
 Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('masters')->group(function () {
-    //Done
+    // API-ID: ADMIN-026 [List Category]
     Route::get('categories', [CategoryController::class, 'showAll']);
-    //Done
+    // API-ID: ADMIN-027 [Get Category by ID]
     Route::get('categories/{id}', [CategoryController::class, 'show'])->where('id', '[0-9]+');
-    //Done
+    // API-ID: ADMIN-028 [Get Sub Category by Category ID]
     Route::get('categories/{id}/sub-categories', [SubCategoryController::class, 'showAll'])->where('id', '[0-9]+');
-    //Done
+    // API-ID: ADMIN-029 [Get Sub Category by ID]
     Route::get('sub-categories/{id}', [SubCategoryController::class, 'show']);
-    //Done
+    // API-ID: ADMIN-030 [Get Rate List]
     Route::get('rate-list', [RateListController::class, 'showAll']);
-    //Done
+    // API-ID: ADMIN-031 [Get Rate List by ID]
     Route::get('rate-list/{id}', [RateListController::class, 'show'])->where('id', '[0-9]+');
-    //Done
+    // API-ID: ADMIN-032 [Get Denial Reasons]
     Route::get('denial-reasons', [DenialReasonController::class, 'showAll']);
-    //Done
+    // API-ID: ADMIN-033 [Get Denial Reason By ID]
     Route::get('denial-reasons/{id}', [DenialReasonController::class, 'show'])->where('id', '[0-9]+');
-    //Done
+    // API-ID: ADMIN-034 [Get Wards]
     Route::get('wards', [WardController::class, 'showAll']);
-    //Done
+    // API-ID: ADMIN-035 [Get Ward by ID]
     Route::get('wards/{id}', [WardController::class, 'show'])->where('id', '[0-9]+');
     //Done
     Route::get('payment-zones', [PaymentZoneController::class, 'showAll']);
@@ -85,113 +79,153 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('masters')->gro
     Route::get('payment-zones/{id}', [PaymentZoneController::class, 'show']);
 });
 
-//Admin
+//Admin - API-ID: ADMIN-006
 Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin')->group(function () {
-    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('auth:sanctum');
-
-    //****** Update RateID of the Ratepayer */
-    Route::put('ratepayers/update-rateid/{rateid}/{id}', [ClusterController::class, 'update']);
+    // API-ID: ADMIN-001 [Reset Password for Anyone]
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    // API-ID: ADMIN-002 [Update RateID of the Ratepayer]
+    Route::put('ratepayers/update-rateid/{ratepayer_id}', [RatepayerController::class, 'updateRateID']);
+    // API-ID: ADMIN-003 [Create new TC]
+    Route::post('tc', [AuthController::class, 'createTC']);
+    // API-ID: ADMIN-004 [Assign Zone to the TC]
+    Route::post('tc/assign-zone', [TCController::class, 'assignZone']);
+    // API-ID: ADMIN-005 [Generate Demand]
+    Route::post('demands/generate', [DemandController::class, 'generateYearlyDemand']);            //Done
+    // API-ID: ADMIN-006 [Generate Demand]
+    Route::post('tc/revoke-zone', [TCController::class, 'revokeZone']);
+    // API-ID: ADMIN-013 [List of current TCs]
+    Route::get('tc/current', [TCController::class, 'showCurrentTCs']);
+    // API-ID: ADMIN-036 [List of current TCs]
+    Route::get('tc/all', [TCController::class, 'showAllTCs']);
+    // API-ID: ADMIN-014 [List of Suspended TCs]
+    Route::get('tc/suspended', [TCController::class, 'showSuspendedTCs']);
+    // API-ID: ADMIN-023 [Suspend TC]
+    Route::put('tc/{id}/suspend', [AuthController::class, 'suspendUser']);
+    // API-ID: ADMIN-024 [Revoke Suspended TC]
+    Route::put('tc/{id}/revoke-suspension', [TCController::class, 'revoke']);
+    // API-ID: ADMIN-025 [Save Profile Picture]
+    Route::put('saveprofile-picture/{id}', [AuthController::class, 'setProfilePicture']); //Done
+    // API-ID: ADMIN-026 [Add Entity and corresponding Ratepayer]
+    Route::post('entities', [EntityController::class, 'storeWithRatePayers']);                                   //Done
+    // API-ID: ADMIN-027 [Add Entity and corresponding Ratepayer]
+    Route::post('clusters', [ClusterController::class, 'storeWithRatePayers']);                                  //Done
+    // API-ID: ADMIN-028 [Add Entity and corresponding Ratepayer]
+    Route::put('revoke-user/{user_id}', [AuthController::class, 'revokeUser']);                                  //Done
 
     //****** Modify Transaction */
     Route::put('transactions', [EntityController::class, 'transactions/{id}']);
 
     //****** Generate Demand */
-    Route::post('demands/mergeandclean', [DemandController::class, 'mergeAndCleanCurrentDemand']); //Done
-    Route::post('demands/merge', [DemandController::class, 'mergeCurrentDemand']);                 //Done
-    Route::post('demands/clean', [DemandController::class, 'cleanCurrentDemand']);                 //Done
     //Done
-    Route::post('demands/generate', [DemandController::class, 'generateYearlyDemand']);            //Done
     Route::post('demands/generate/{id}', [DemandController::class, 'generateRatepayerDemands']);
 
-    //****** See a list of all TCs */
-    //Done
-    Route::post('tc', [AuthController::class, 'createTC']);
+    //  -- Verify New Entities and Create Ratepayers
+    //  -- Modify Transaction Records
+    //  -- Verify Transactions (Comment on Transaction)
+    //  -- Deactivate/ Activate Ratepayers
 
-    //****** See a list of Active TCs */
-    //Done
-    Route::get('tc/current', [TCController::class, 'showCurrentTCs']);
-    //Done
-    Route::get('tc/suspended', [TCController::class, 'showSuspendedTCs']);
+});
 
-    //****** See a list of Suspended TCs */
-    Route::put('tc/{id}/suspend', [TCController::class, 'suspend']);
-    Route::put('tc/{id}/revoke-suspension', [TCController::class, 'revoke']);
-    //Done
-    Route::post('tc/assign-zone', [TCController::class, 'assignZone']);
-    //Done
-    Route::post('tc/revoke-zone', [TCController::class, 'revokeZone']);
+//Accounts
+Route::middleware(['auth:sanctum', 'append-ulb', 'force-json', 'api'])->prefix('accounts')->group(function () {
+    //  -- Verify Payments
+    //  -- Modify Payment Records
+    //  -- Verify Cancellations
+    //  -- Collect Cash
+    //  -- Collect Cheque
+    //  -- Cheque Verification
+    //  -- Cheque Reconciliation and update payment
+    //  -- UPI Verification and Reconciliation
+    //  -- Initiate UPI Refund
+    //  -- Waive off Demand against order
 
-    Route::put('saveprofile-picture/{id}', [AuthController::class, 'setProfilePicture']); //Done
 });
 
 //Search
 Route::middleware(['auth:sanctum', 'append-ulb', 'force-json', 'api'])->prefix('search')->group(function () {
-    //Done
+    // API-ID: SEARCH-001 [List Zones allotted to the TC]
+    Route::get('tc/zones', [TCController::class, 'showTCZones']);
+    // API-ID: SEARCH-002 [Search TC Assigned zone by id]
+    Route::get('zones/{id}', [TCController::class, 'getZoneByID']);
+    // API-ID: SEARCH-003 [Search Nearby Ratepayers]
+    Route::get('ratepayers/nearby', [RatepayerController::class, 'searchNearby']);
+    // API-ID: SEARCH-004 [Search Ratepayers against multiple parameters]
     Route::get('ratepayers', [RatepayerController::class, 'deepSearch']);
-    //Done
+    // API-ID: SEARCH-005 [Search Ratepayers by ID]
     Route::get('ratepayers/{id}', [RatepayerController::class, 'show'])->where('id', '[0-9]+');
     //Done
-    Route::get('ratepayers/nearby', [RatepayerController::class, 'searchNearby']);
 
     //Done
-    Route::get('tc/zones', [TCController::class, 'showTCZones']);
-    Route::get('zones/{id}', [TCController::class, 'getZoneByID']);
 
 });
 
 //Operations
 Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('operations')->group(function () {
-    Route::post('entities', [EntityController::class, 'storeWithRatePayers']);                                   //Done
-    Route::post('new-entities', [TransactionController::class, 'createTempEntity']);                                   //Done
-
+    // API-ID: ADMIN-021 [Update Entity with Ratepayer]
     Route::put('entities/{id}', [EntityController::class, 'update']);                                   //Done
-    Route::post('entities/map', [EntityController::class, 'mapCluster']);
-    Route::put('entities/release', [EntityController::class, 'releaseCluster']);
-    Route::put('entities/geo-location/{id}', [EntityController::class, 'updateGeoLocation']);      //Done
-
-    Route::post('clusters', [ClusterController::class, 'storeWithRatePayers']);                                  //Done
-    //Done
-    Route::get('clusters', [ClusterController::class, 'show']);                                  //Done
-
-    //Done
-    Route::get('clusters/{id}', [ClusterController::class, 'showById']);                                  //Done
+    // API-ID: OPER-001 [Update Cluster with Ratepayer]
     Route::put('clusters/{id}', [ClusterController::class, 'update']);                                  //Done
+    // API-ID: OPER-002 [Ping from TC]
+    Route::get('/ping', [AuthController::class, 'ping']);
+    // API-ID: OPER-003 [Ping from TC]
+    Route::get('clusters/{id}', [ClusterController::class, 'showById']);                                  //Done
+    // API-ID: OPER-004 [Ping from TC]
+    Route::get('clusters', [ClusterController::class, 'show']);                                  //Done
+    // API-ID: OPER-005 [Set Ratepayer geolocation]
+    Route::put('ratepayers/geo-location/{id}', [RatepayerController::class, 'updateGeoLocation']); //Done
+    // API-ID: OPER-006 [Add Temp Entity]
+    Route::post('new-entities', [TransactionController::class, 'createTempEntity']);                                   //Done
+    // API-ID: OPER-007 [Change Password]
+    Route::post('change-password', [AuthController::class, 'changePassword'])->middleware('auth:sanctum');
+    // API-ID: OPER-008 [Entity Map]
+    Route::post('entities/map', [EntityController::class, 'mapCluster']);
+    // API-ID: OPER-009 [Entity Geolocation]
+    Route::put('entities/geo-location/{id}', [EntityController::class, 'updateGeoLocation']);      //Done
+    // API-ID: OPER-010 [Cluster Geolocation]
     Route::put('clusters/geo-location/{id}', [ClusterController::class, 'updateGeoLocation']);     //Done
 
+    Route::put('entities/release', [EntityController::class, 'releaseCluster']);
+
     Route::get('payment-zones/ratepayers/search', [PaymentZoneController::class, 'showRatepayersPaginated']);                   //Done Need Modification
-    Route::put('ratepayers/geo-location/{id}', [RatepayerController::class, 'updateGeoLocation']); //Done
 
     Route::get('tc-dashboard', [TCController::class, 'tcDashboard']);                                  //Done
-    Route::post('/change-password', [AuthController::class, 'changePassword'])->middleware('auth:sanctum');
 
     //  Route::get('/ping/{id}', [AuthController::class, 'ping']);
-    Route::get('/ping', [AuthController::class, 'ping']);
 
 });
 
 //Demand
 Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('demand')->group(function () {
-    //Done
+    // API-ID: DEMAND-001 [Get pending demands of zone]
     Route::get('zone/{id}', [DemandController::class, 'zoneCurrentDemands']);
+    // API-ID: DEMAND-002 [Get pending demands of a ratepayer]
+    Route::get('current/ratepayer/{id}', [DemandController::class, 'showRatepayerCurrentDemand']);
 
     Route::get('demands/pending/{year}/{id}', [DemandController::class, 'showPendingDemands']);
     //Done
-    Route::get('current/ratepayer/{id}', [DemandController::class, 'showRatepayerCurrentDemand']);
 
 });
 
 //Transactions
 Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('transactions')->group(function () {
+    //Transactions - API-ID: TRAN-001
+    Route::get('recent', [TransactionController::class, 'recentTransactions']);
+    //Transactions - API-ID: TRAN-002
+    Route::get('ratepayer/{id}', [TransactionController::class, 'ratepayerTransactions']);
+    //Transactions - API-ID: TRAN-003
     Route::post('cash-payment', [TransactionController::class, 'cashPayment']);
-    Route::post('deferred', [TransactionController::class, 'deferred']);
-    Route::post('door-closed', [TransactionController::class, 'doorClosed']);
+    //Transactions - API-ID: TRAN-004
     Route::post('denial', [TransactionController::class, 'denial']);
+    //Transactions - API-ID: TRAN-005
+    Route::post('door-closed', [TransactionController::class, 'doorClosed']);
+    //Transactions - API-ID: TRAN-006
+    Route::post('deferred', [TransactionController::class, 'deferred']);
+    //Transactions - API-ID: TRAN-007
     Route::post('cheque-collection', [TransactionController::class, 'chequeCollection']);
+    //Transactions - API-ID: TRAN-008
     Route::post('cancel', [TransactionController::class, 'cancellation']);
 
     //Done
-    Route::get('recent', [TransactionController::class, 'recentTransactions']);
-    Route::get('ratepayer/{id}', [TransactionController::class, 'ratepayerTransactions']);
 
     //  Route::post('payments/upi-qr', [TransactionController::class, 'generateUpiQr']);
     //  Route::post('payments/verify-upi/{qrCodeId}', [TransactionController::class, 'verifyPayment']);

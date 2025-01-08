@@ -52,7 +52,7 @@ class ClusterRatepayerRequest extends FormRequest
             'ratepayer.landmark' => 'nullable|string|max:100',
             'ratepayer.whatsappNo' => 'nullable|digits:10',
             // 'ratepayer.billDate' => 'nullable|max:11',
-            'ratepayer.openingDemand' => 'required|numeric|min:0',
+            // 'ratepayer.openingDemand' => 'required|numeric|min:0',
             'ratepayer.monthlyDemand' => 'required|numeric|min:0',
         ];
     }

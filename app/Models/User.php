@@ -37,4 +37,14 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function paymentZones()
+    {
+        return $this->belongsToMany(
+            PaymentZone::class,
+            'tc_has_zones',  // Pivot table
+            'tc_id',         // Foreign key for User
+            'paymentzone_id' // Foreign key for PaymentZone
+        );
+    }
 }

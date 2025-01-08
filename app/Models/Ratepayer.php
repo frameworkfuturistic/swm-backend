@@ -28,6 +28,7 @@ class Ratepayer extends Model
         'latitude',
         'opening_demand',
         'monthly_demand',
+        'vrno',
     ];
 
     protected $hidden = [
@@ -39,6 +40,8 @@ class Ratepayer extends Model
         'is_verified',
         'is_active',
     ];
+
+    protected $guarded = ['id'];
 
     /**
      * The attributes that should be cast to native types.
@@ -88,6 +91,9 @@ class Ratepayer extends Model
         return $this->belongsTo(SubCategory::class);
     }
 
+    /**
+     * Filter Category
+     */
     public function scopeNearby($query, $longitude, $latitude, $radius = 100)
     {
         return $query->selectRaw(
@@ -100,4 +106,54 @@ class Ratepayer extends Model
             )
             ->orderBy('distance_in_meters');
     }
+
+    public function scopeUlb($query, $ulbId)
+    {
+        return $query->where('ulb_id', $ulbId);
+    }
+
+    public function scopeRateId($query, $rateId)
+    {
+        return $query->where('rate_id', $rateId);
+    }
+
+    public function scopeUsageType($query, $usageType)
+    {
+        return $query->where('usage_type', $usageType);
+    }
+
+    // Scope to get only active ratepayers
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', 1);
+    }
+
+    // Scope to get ratepayers in a specific zone
+    public function scopeInZone($query, $zoneId)
+    {
+        return $query->where('paymentzone_id', $zoneId);
+    }
+
+    /**
+     * Actions
+     */
+    // Custom method to activate a ratepayer
+    public function activate()
+    {
+        $this->update(['is_active' => 1]);
+    }
+
+    // Custom method to deactivate a ratepayer
+    public function deactivate()
+    {
+        $this->update(['is_active' => 0]);
+    }
+
+    public function setPaymentZone($paymentzoneId)
+    {
+        $this->update(['paymentzone_id' => $paymentzoneId]);
+    }
 }
+
+//Usage
+// $activeInZoneRatepayers = Ratepayer::active()->inZone($zoneId)->get();

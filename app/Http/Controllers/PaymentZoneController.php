@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * GET /payment-zones  - List all categories.
@@ -46,6 +47,7 @@ class PaymentZoneController extends Controller
                 ->Join('wards as w', 'z.ward_id', '=', 'w.id') // Join with wards table to get ward_name
                 ->select(
                     'z.id as zoneId',
+                    'z.ward_id as wardId',
                     'z.payment_zone as paymentZone',
                     'z.description',
                     'w.ward_name as wardName',
@@ -314,14 +316,48 @@ class PaymentZoneController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(PaymentZone $paymentZone)
+    public function deletePaymentZone($id) //Discarded
     {
         //   $paymentZone->delete();
         //   return response()->json(['message' => 'Payment zone deleted successfully.']);
-        return format_response(
-            'Could not Process',
-            null,
-            Response::HTTP_UNPROCESSABLE_ENTITY
-        );
+        try {
+            $paymentZone = Ratepayer::find($id);
+            if ($paymentZone == null) {
+                return format_response(
+                    'Payment Zone does not exist',
+                    null,
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            $paymentZone->delete();
+
+            $updateData = [
+                'paymentZone' => $id,
+            ];
+
+            return format_response(
+                'Payment zone deleted',
+                $updateData,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during ratepayer update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
     }
 }

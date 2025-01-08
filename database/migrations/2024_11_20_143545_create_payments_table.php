@@ -35,6 +35,7 @@ return new class extends Migration
             $table->boolean('payment_verified')->nullable()->index('Index_paymentverified');
             $table->boolean('refund_initiated')->nullable()->index('Index_refundinitiated');
             $table->boolean('refund_verified')->nullable()->index('Index_refundverified');
+            $table->unsignedBigInteger('verified_by')->nullable()->default(null);
             $table->string('card_number', 25)->nullable();
             $table->string('upi_id', 100)->nullable();
             $table->string('cheque_number', 25)->nullable();
@@ -92,6 +93,7 @@ return new class extends Migration
             $table->boolean('payment_verified')->nullable()->index('Index_paymentverified');
             $table->boolean('refund_initiated')->nullable()->index('Index_refundinitiated');
             $table->boolean('refund_verified')->nullable()->index('Index_refundverified');
+            $table->unsignedBigInteger('verified_by')->nullable()->default(null);
             $table->string('card_number', 25)->nullable();
             $table->string('upi_id', 100)->nullable();
             $table->string('cheque_number', 25)->nullable();

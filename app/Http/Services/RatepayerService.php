@@ -45,7 +45,7 @@ class RatepayerService
     //  GET /api/ratepayers/search?
     //  Multiple filter combinations
 
-    // search=john                           // Partial text search
+    // search=ravi                           // Partial text search
     // wardId=1
     // rateId=1
     // subcategoryId=1
@@ -140,7 +140,7 @@ class RatepayerService
         }
 
         // Sorting
-        $sortBy = $request->input('sort_by', 'ratepayer_name'); // Default sort column
+        $sortBy = $request->input('sortBy', 'ratepayer_name'); // Default sort column
         $sortDirection = $request->input('sortDirection', 'desc'); // Default direction
 
         // Allowed columns for sorting to prevent SQL injection

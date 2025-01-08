@@ -101,6 +101,7 @@ class ClusterController extends Controller
                 'inclusion_date' => $clusterData['inclusionDate'],
                 'is_active' => true,
                 'is_verified' => false,
+                'vrno' => 1,
             ]);
 
             // Validate and extract ratepayer data
@@ -123,9 +124,10 @@ class ClusterController extends Controller
                 'landmark' => $ratepayerData['landmark'],
                 'whatsapp_no' => $ratepayerData['whatsappNo'],
                 //  'bill_date' => $ratepayerData['billDate'],
-                'opening_demand' => $ratepayerData['openingDemand'],
+                //  'opening_demand' => $ratepayerData['openingDemand'],
                 'monthly_demand' => $ratepayerData['monthlyDemand'],
                 'is_active' => true,
+                'vrno' => 1,
             ]);
 
             // Commit transaction
@@ -229,7 +231,7 @@ class ClusterController extends Controller
                 'mobile_no' => $validatedData['ratepayer']['mobileNo'],
                 'landmark' => $validatedData['ratepayer']['landmark'],
                 'whatsapp_no' => $validatedData['ratepayer']['whatsappNo'],
-                'opening_demand' => $validatedData['ratepayer']['openingDemand'],
+                //  'opening_demand' => $validatedData['ratepayer']['openingDemand'],
                 'monthly_demand' => $validatedData['ratepayer']['monthlyDemand'],
                 'vrno' => $ratepayer->vrno + 1,
             ];

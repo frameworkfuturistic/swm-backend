@@ -9,6 +9,7 @@ use App\Models\Ratepayer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Created on 07/12/2024
@@ -347,5 +348,63 @@ class RatepayerController extends Controller
             );
         }
 
+    }
+
+    public function updateRateID(Request $request, int $ratepayer_id)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'rateId' => 'required|integer|exists:rate_list,id', // Ensures the ID is valid and exists in the 'ratepayers' table
+            ]);
+
+            if ($validator->fails()) {
+                $errorMessages = $validator->errors()->all();
+
+                return format_response(
+                    'validation error',
+                    $errorMessages,
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            $ratepayer = Ratepayer::find($ratepayer_id);
+            if ($ratepayer == null) {
+                return format_response(
+                    'Ratepayer does not exist',
+                    null,
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            $validatedData = $validator->validated();
+            $ratepayer->rate_id = $request->rateId;
+
+            $updateData = [
+                'rateID' => $ratepayer->rate_id,
+            ];
+
+            return format_response(
+                'Ratepayer Rate ID is updated',
+                $updateData,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during ratepayer update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
     }
 }
