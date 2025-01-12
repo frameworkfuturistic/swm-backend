@@ -490,4 +490,33 @@ class AuthController extends Controller
             );
         }
     }
+
+    public function getAllUsers(Request $request)
+    {
+        try {
+            $ulbId = $request->ulb_id;
+            $users = User::select('id', 'name', 'email', 'profile_picture', 'role', 'is_active')
+                ->where('ulb_id', $ulbId)
+                ->get();
+
+            return format_response(
+                'List of All Users',
+                $users,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return format_response(
+                $e->getMessage(),
+                null,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        } catch (\Exception $e) {
+            return format_response(
+                'An error occurred during data extraction',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
 }

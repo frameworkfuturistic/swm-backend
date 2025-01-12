@@ -84,6 +84,8 @@ class TransactionController extends Controller
             $tranService->extractRatepayerDetails($validatedData['ratepayerId']);
             $transaction = $tranService->createNewTransaction($validatedData);
             $payment = $tranService->createNewPayment($validatedData, $transaction->id);
+            $transaction->payment_id = $payment->id;
+            $transaction->save();
 
             if ($transaction != null) {
                 $responseData = [
@@ -546,12 +548,12 @@ class TransactionController extends Controller
 
     }
 
-    public function recentTransactions(Request $request)
+    public function tcTransactionSummary(Request $request)
     {
         try {
 
             $tranService = new TransactionService;
-            $records = $tranService->recentTransactions();
+            $records = $tranService->tcMonthTransactionSummary();
 
             return format_response(
                 'Success',

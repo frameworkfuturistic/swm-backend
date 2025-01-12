@@ -24,7 +24,7 @@ class CurrentTransaction extends Model
         'auto_remarks',
     ];
 
-    protected $hidden = ['ulb_id', 'created_at', 'updated_at'];
+    protected $hidden = ['ulb_id', 'created_at', 'updated_at', 'verifiedby_id', 'vrno'];
 
     /**
      * Relationships

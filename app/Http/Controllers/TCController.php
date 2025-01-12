@@ -86,7 +86,7 @@ class TCController extends Controller
             return format_response(
                 'Current TCs',
                 $tcs,
-                Response::HTTP_CREATED
+                Response::HTTP_OK
             );
         } catch (\Illuminate\Validation\ValidationException $e) {
             return format_response(

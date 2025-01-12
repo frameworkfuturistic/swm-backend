@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountsController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ClusterController;
@@ -14,7 +15,10 @@ use App\Http\Controllers\TCController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\WardController;
 use App\Http\Controllers\WebhookController;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
+
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 // Public routes ********************************************************************
 //*********************************************************************************** */
@@ -49,6 +53,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
     Route::put('wards/{id}', [WardController::class, 'update']);                                   //Done
     // API-ID: ADMIN-020 [Update Ward]
     Route::put('payment-zones/{id}', [PaymentZoneController::class, 'update']);                         //Done
+    // API-ID: ADMIN-038 [Update Ward]
+    Route::get('all-users', [AuthController::class, 'getAllUsers']);
 });
 
 //Masters for everyone
@@ -73,7 +79,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('masters')->gro
     Route::get('wards', [WardController::class, 'showAll']);
     // API-ID: ADMIN-035 [Get Ward by ID]
     Route::get('wards/{id}', [WardController::class, 'show'])->where('id', '[0-9]+');
-    //Done
+    // API-ID: ADMIN-037 [Get Payment Zones]
     Route::get('payment-zones', [PaymentZoneController::class, 'showAll']);
     //Done
     Route::get('payment-zones/{id}', [PaymentZoneController::class, 'show']);
@@ -128,7 +134,17 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
 
 //Accounts
 Route::middleware(['auth:sanctum', 'append-ulb', 'force-json', 'api'])->prefix('accounts')->group(function () {
-    //  -- Verify Payments
+    // API-ID: ACCOUNTS-001 [Daily Transaction by Zone]
+    Route::get('daily-transactions', [AccountsController::class, 'dailyTransactions']);
+    // API-ID: ACCOUNTS-002 [Payment Transactions by Zone]
+    Route::get('payment-transactions', [AccountsController::class, 'paymentTransactions']);
+    // API-ID: ACCOUNTS-003 [Verify Transaction]
+    Route::post('verify-transactions', [AccountsController::class, 'verifyTransactions']);
+    // API-ID: ACCOUNTS-004 [Uncleared cheques]
+    Route::get('uncleared-cheques', [AccountsController::class, 'unclearedCheques']);
+    // API-ID: ACCOUNTS-005 [ULB Demand Summary]
+    Route::get('ulb-demandsummary', [AccountsController::class, 'currentDemandSummary']);
+
     //  -- Modify Payment Records
     //  -- Verify Cancellations
     //  -- Collect Cash
@@ -209,7 +225,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('demand')->grou
 //Transactions
 Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('transactions')->group(function () {
     //Transactions - API-ID: TRAN-001
-    Route::get('recent', [TransactionController::class, 'recentTransactions']);
+    Route::get('tran-summary', [TransactionController::class, 'tcTransactionSummary']);
     //Transactions - API-ID: TRAN-002
     Route::get('ratepayer/{id}', [TransactionController::class, 'ratepayerTransactions']);
     //Transactions - API-ID: TRAN-003

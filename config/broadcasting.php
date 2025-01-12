@@ -32,19 +32,34 @@ return [
 
         'reverb' => [
             'driver' => 'reverb',
+            'app_id' => env('REVERB_APP_ID'),
             'key' => env('REVERB_APP_KEY'),
             'secret' => env('REVERB_APP_SECRET'),
-            'app_id' => env('REVERB_APP_ID'),
+            'host' => env('REVERB_HOST', 'localhost'),
+            'port' => env('REVERB_PORT', 8080),
+            'scheme' => env('REVERB_SCHEME', 'http'),
             'options' => [
-                'host' => env('REVERB_HOST'),
-                'port' => env('REVERB_PORT', 443),
-                'scheme' => env('REVERB_SCHEME', 'https'),
-                'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
-            ],
-            'client_options' => [
-                // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
+                'cluster' => env('REVERB_CLUSTER', 'mt1'),
+                'useTLS' => env('REVERB_TLS', true),
+                'encrypted' => true,
             ],
         ],
+
+        //   'reverb' => [
+        //       'driver' => 'reverb',
+        //       'key' => env('REVERB_APP_KEY'),
+        //       'secret' => env('REVERB_APP_SECRET'),
+        //       'app_id' => env('REVERB_APP_ID'),
+        //       'options' => [
+        //           'host' => env('REVERB_HOST'),
+        //           'port' => env('REVERB_PORT', 443),
+        //           'scheme' => env('REVERB_SCHEME', 'https'),
+        //           'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
+        //       ],
+        //       'client_options' => [
+        //           // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
+        //       ],
+        //   ],
 
         'pusher' => [
             'driver' => 'pusher',
@@ -77,6 +92,11 @@ return [
             'driver' => 'null',
         ],
 
+    ],
+
+    'routes' => [
+        // Define middleware for broadcast authentication routes
+        'middleware' => ['auth:sanctum'],
     ],
 
 ];

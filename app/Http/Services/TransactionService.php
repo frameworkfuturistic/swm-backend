@@ -198,6 +198,9 @@ class TransactionService
             'cluster_id' => $validatedData['clusterId'],
             'tran_id' => $tranId,
             'payment_status' => 'COMPLETED',
+            'payment_verified' => false,
+            'refund_initiated' => false,
+            'refund_verified' => false,
             'payment_date' => now(),
             'payment_mode' => $validatedData['paymentMode'],
             'vrno' => 1,
@@ -263,7 +266,7 @@ class TransactionService
 
     }
 
-    public function recentTransactions()
+    public function tcMonthTransactionSummary()
     {
         $userId = Auth::user()->id;
         $user = Auth::user();
