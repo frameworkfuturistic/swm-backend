@@ -33,8 +33,8 @@ return new class extends Migration
             $table->string('photo_path', 250)->nullable();
             $table->decimal('longitude', 10, 7)->nullable(); // Precision for GPS
             $table->decimal('latitude', 10, 7)->nullable();
-            $table->boolean('is_verified')->default(true); // Active status
-            $table->boolean('is_cancelled')->default(true); // Cancelled status
+            $table->boolean('is_verified')->default(false); // Active status
+            $table->boolean('is_cancelled')->default(false); // Cancelled status
             $table->integer('vrno');
 
             $table->timestamps();

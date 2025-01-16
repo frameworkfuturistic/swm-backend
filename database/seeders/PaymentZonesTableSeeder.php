@@ -53,21 +53,21 @@ class PaymentZonesTableSeeder extends Seeder
                 ]),
                 'description' => 'Public zone near park',
             ],
-            [
-                'payment_zone' => 'Zone 5',
-                'ward_id' => 1,
-                'coordinates' => json_encode([
-                    ['lat' => 28.7251, 'lng' => 77.1165],
-                    ['lat' => 28.7261, 'lng' => 77.1175],
-                    ['lat' => 28.7271, 'lng' => 77.1185],
-                ]),
-                'description' => 'Institutional zone in area 5',
-            ],
+            // [
+            //     'payment_zone' => 'Zone 5',
+            //     'ward_id' => 1,
+            //     'coordinates' => json_encode([
+            //         ['lat' => 28.7251, 'lng' => 77.1165],
+            //         ['lat' => 28.7261, 'lng' => 77.1175],
+            //         ['lat' => 28.7271, 'lng' => 77.1185],
+            //     ]),
+            //     'description' => 'Institutional zone in area 5',
+            // ],
         ];
 
         foreach ($paymentZones as $zone) {
             DB::table('payment_zones')->insert([
-                'ulb_id' => rand(1, 5), // Assuming there are 5 ULBs in the `ulbs` table
+                'ulb_id' => 1, // rand(1, 5), // Assuming there are 5 ULBs in the `ulbs` table
                 'ward_id' => 1,
                 'payment_zone' => $zone['payment_zone'],
                 'coordinates' => $zone['coordinates'],

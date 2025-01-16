@@ -407,4 +407,142 @@ class RatepayerController extends Controller
             );
         }
     }
+
+    public function showDeactiavtedRatepayer(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'zoneId' => 'required|integer|exists:payment_zones,id', // Ensures the ID is valid and exists in the 'ratepayers' table
+        ]);
+
+        if ($validator->fails()) {
+            $errorMessages = $validator->errors()->all();
+
+            return format_response(
+                'validation error',
+                $errorMessages,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        try {
+            $ratepayer = Ratepayer::where('is_active', false)
+                ->where('paymentzone_id', $request->zoneId)
+                ->get();
+
+            return format_response(
+                'Ratepayer Details',
+                $ratepayer,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    public function activateRatepayer(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'ratepayerId' => 'required|integer|exists:ratepayers,id', // Ensures the ID is valid and exists in the 'ratepayers' table
+        ]);
+
+        if ($validator->fails()) {
+            $errorMessages = $validator->errors()->all();
+
+            return format_response(
+                'validation error',
+                $errorMessages,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        try {
+            $ratepayer = Ratepayer::find($request->ratepayerId);
+            $ratepayer->is_active = true;
+            $ratepayer->save();
+
+            return format_response(
+                'Ratepayer Activated',
+                $ratepayer,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    public function deactiavteRatepayer(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'ratepayerId' => 'required|integer|exists:ratepayers,id', // Ensures the ID is valid and exists in the 'ratepayers' table
+        ]);
+
+        if ($validator->fails()) {
+            $errorMessages = $validator->errors()->all();
+
+            return format_response(
+                'validation error',
+                $errorMessages,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        try {
+            $ratepayer = Ratepayer::find($request->ratepayerId);
+            $ratepayer->is_active = false;
+            $ratepayer->save();
+
+            return format_response(
+                'Ratepayer Deactivated',
+                $ratepayer,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
 }

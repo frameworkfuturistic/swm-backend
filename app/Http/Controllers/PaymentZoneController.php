@@ -42,8 +42,7 @@ class PaymentZoneController extends Controller
             $ulbId = $request->input('ulb_id', 1);
 
             DB::enableQueryLog();
-            $baseQuery = DB::table('payment_zones as z')
-                ->join('tc_has_zones as t', 'z.id', '=', 't.paymentzone_id')
+            $data = DB::table('payment_zones as z')
                 ->Join('wards as w', 'z.ward_id', '=', 'w.id') // Join with wards table to get ward_name
                 ->select(
                     'z.id as zoneId',
@@ -64,13 +63,7 @@ class PaymentZoneController extends Controller
                     'z.yearly_demand as yearlyDemand'
                 )
                 ->where('z.ulb_id', $ulbId)
-                ->where('t.is_active', true);
-
-            if (Auth::user()->role == 'tax_collector') {
-                $data = $baseQuery->where('r.tc_id', $userId)->get();
-            } else {
-                $data = $baseQuery->get();
-            }
+                ->get();
 
             return format_response(
                 'success',

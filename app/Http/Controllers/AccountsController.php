@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CurrentDemand;
 use App\Models\CurrentTransaction;
+use App\Models\Demand;
 use App\Models\Payment;
 use Exception;
 use Illuminate\Http\Request;
@@ -80,7 +82,9 @@ class AccountsController extends Controller
                 ->leftJoin('users as u3', 'p.verified_by', '=', 'u3.id')
                 ->where('c.ulb_id', $ulbId)
                 ->where('r.paymentzone_id', $request->zoneId)
+                ->where('c.is_cancelled', false)
                 ->whereDate('c.created_at', $request->tranDate)
+                ->whereIn('c.event_type', ['DENIAL', 'DOOR-CLOSED', 'DEFERRED'])
                 ->get();
 
             return format_response(
@@ -157,6 +161,8 @@ class AccountsController extends Controller
                 ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
                 ->join('users as u', 'c.tc_id', '=', 'u.id')
                 ->where('p.ulb_id', $ulbId)
+                ->where('c.is_cancelled', false)
+                ->where('r.paymentzone_id', $request->zoneId)
                 ->where('r.paymentzone_id', $request->zoneId)
                 ->whereDate('p.created_at', $request->tranDate)
                 ->get();
@@ -214,6 +220,86 @@ class AccountsController extends Controller
             return format_response(
                 'Success',
                 $transaction,
+                Response::HTTP_OK
+            );
+
+        } catch (Exception $e) {
+            return format_response(
+                'An error occurred during insertion. '.$e->getMessage(),
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+
+    }
+
+    public function verifyCancellation(Request $request)
+    {
+        $userId = Auth::user()->id;
+
+        DB::beginTransaction();
+        try {
+            //Validate Input
+            $validator = Validator::make($request->all(), [
+                'tranId' => 'required|integer|exists:current_transactions,id', // Ensures the ID is valid and exists in the 'ratepayers' table
+                'remarks' => 'nullable|string|max:255',
+            ]);
+
+            if ($validator->fails()) {
+                $errorMessages = $validator->errors()->all();
+
+                return format_response(
+                    'validation error',
+                    $errorMessages,
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            //Find Current Transaction
+            $transaction = CurrentTransaction::find($request->tranId);
+            $transaction->verification_date = now();
+            $transaction->verifiedby_id = $userId;
+            $transaction->auto_remarks = $request->remarks;
+            $transaction->save();
+
+            $paymentId = $transaction->payment_id;
+            if ($paymentId == null) {
+                DB::rollBack();
+
+                return format_response(
+                    'An error occurred during insertion',
+                    null,
+                    Response::HTTP_INTERNAL_SERVER_ERROR
+                );
+            }
+
+            //Find Payment
+            $payment = Payment::find($transaction->payment_id);
+            if ($payment == null) {
+                DB::rollBack();
+
+                return format_response(
+                    'An error occurred during insertion',
+                    null,
+                    Response::HTTP_INTERNAL_SERVER_ERROR
+                );
+            }
+            $payment->is_canceled = true;
+            $payment->verified_by = $userId;
+            $payment->save();
+
+            //Rollback Demands to current_demand
+            $demands = Demand::where('payment_id', $transaction->payment_id)->get();
+            foreach ($demands as $demand) {
+                CurrentDemand::create($demand->toArray()); // Create a new record using the attributes of each demand
+                $demand->delete();
+            }
+
+            DB::commit();
+
+            return format_response(
+                'Cancelled and updated Demand',
+                $request->tranId,
                 Response::HTTP_OK
             );
 
@@ -363,5 +449,83 @@ class AccountsController extends Controller
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
+    }
+
+    public function showCancelledTransactions(Request $request)
+    {
+        $ulbId = $request->ulb_id;
+        try {
+            $validator = Validator::make($request->all(), [
+                'tranDate' => [
+                    'required',
+                    'regex:/^\d{4}-\d{2}-\d{2}$/',
+                    function ($attribute, $value, $fail) {
+                        if (! \DateTime::createFromFormat('Y-m-d', $value)) {
+                            $fail('The '.$attribute.' is not a valid date.');
+                        }
+                    },
+                ],
+                'zoneId' => 'required|numeric|between:1,100',
+            ]);
+
+            if ($validator->fails()) {
+                $errorMessages = $validator->errors()->all();
+
+                return format_response(
+                    'validation error',
+                    $errorMessages,
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            $currentTransactions = DB::table('current_transactions as c')
+                ->select(
+                    'c.id',
+                    'c.tc_id',
+                    'c.event_type as eventType',
+                    'c.event_time as eventTime',
+                    'r.ratepayer_name as ratepayerName',
+                    'u1.name as tcName',
+                    'p.payment_mode as paymentMode',
+                    'p.payment_status as paymentStatus',
+                    'u2.name as cancelledBy',
+                    'c.cancellation_date as cancellationDate',
+                    'c.schedule_date as scheduleDate',
+                    'c.remarks',
+                    'c.photo_path as photoPath',
+                    'p.payment_verified as paymentVerified',
+                    'p.refund_initiated as refundInitiated',
+                    'p.refund_verified as refundVerified',
+                    'u3.name as verifiedBy',
+                    'c.is_verified as isVerified',
+                    'c.is_cancelled as isCancelled'
+                )
+                ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
+                ->join('users as u1', 'c.tc_id', '=', 'u1.id')
+                ->leftJoin('payments as p', 'c.id', '=', 'p.tran_id')
+                ->leftJoin('users as u2', 'c.cancelledby_id', '=', 'u2.id')
+                ->leftJoin('users as u3', 'p.verified_by', '=', 'u3.id')
+                ->where('c.ulb_id', $ulbId)
+                ->where('r.paymentzone_id', $request->zoneId)
+                ->where('c.is_cancelled', true)
+                ->whereDate('c.created_at', $request->tranDate)
+                ->whereIn('c.event_type', ['DENIAL', 'DOOR-CLOSED', 'DEFERRED'])
+                ->get();
+
+            return format_response(
+                'Cancelled Transactions',
+                $currentTransactions,
+                Response::HTTP_OK
+            );
+
+        } catch (Exception $e) {
+
+            return format_response(
+                'An error occurred during insertion. '.$e->getMessage(),
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+
     }
 }

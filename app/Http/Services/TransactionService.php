@@ -167,6 +167,7 @@ class TransactionService
     protected function getPendingDemands(int $ratepayerId): Collection
     {
         return CurrentDemand::where('ratepayer_id', $ratepayerId)
+            ->where('is_active', true)
             ->whereRaw('demand > payment')
             ->orderBy('bill_year')
             ->orderBy('bill_month')
@@ -181,7 +182,7 @@ class TransactionService
         $demand->payment += $amount;
         $demand->payment_id = $paymentId;
         $demand->tc_id = $tcId;
-        $demand->last_payment_date = now();
+        //   $demand->last_payment_date = now();
         $demand->save();
     }
 
@@ -353,7 +354,7 @@ class TransactionService
             ->selectRaw('p.amount as paid')
             ->selectRaw("DATE_FORMAT(c.schedule_date, '%d/%m/%Y') as schedule_date")
             ->selectRaw('c.remarks')
-            ->leftJoin('current_payments as p', 'p.tran_id', '=', 'c.id')
+            ->leftJoin('payments as p', 'p.tran_id', '=', 'c.id')
             ->where('c.ratepayer_id', $ratepayerId)
             ->orderByDesc('c.event_time')
             ->get();

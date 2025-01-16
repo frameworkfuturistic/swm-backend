@@ -91,22 +91,8 @@ class DemandController extends Controller
     public function showRatepayerCurrentDemand(int $id)
     {
         try {
-            // DB::enableQueryLog();
-            // $ratepayers = DB::table('current_demands as c')
-            //     ->select(
-            //         'c.id',
-            //         'c.ratepayer_id',
-            //         'c.opening_demand',
-            //         DB::raw("concat(MONTHNAME(STR_TO_DATE(c.bill_month, '%m')), ',', c.bill_year) as MonthYear"),
-            //         'c.demand',
-            //         'c.total_demand',
-            //         'c.payment',
-            //         'c.last_payment_date'
-            //     )
-            //     ->whereRaw('MONTH(SYSDATE()) >= bill_month')
-            //     ->get();
-
             $ratepayers = CurrentDemand::where('ratepayer_id', $id)
+                ->where('is_active', true)
                 ->whereRaw('MONTH(SYSDATE()) >= bill_month')
                 ->get();
 

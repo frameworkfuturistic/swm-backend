@@ -15,6 +15,7 @@ use App\Http\Controllers\TCController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\WardController;
 use App\Http\Controllers\WebhookController;
+use App\Models\Ratepayer;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
@@ -30,29 +31,29 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 //*
 Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
     // API-ID: ADMIN-007 [Create Category]
-    Route::post('categories', [CategoryController::class, 'store']);                               //Done
+    Route::post('categories', [CategoryController::class, 'store']);
     // API-ID: ADMIN-008 [Create Sub Category]
-    Route::post('categories/{id}/sub-categories', [SubCategoryController::class, 'store']);                        //Done
+    Route::post('categories/{id}/sub-categories', [SubCategoryController::class, 'store']);
     // API-ID: ADMIN-009 [Create Rate List]
-    Route::post('rate-list', [RateListController::class, 'store']);                                //Done
+    Route::post('rate-list', [RateListController::class, 'store']);
     // API-ID: ADMIN-010 [Create Denial Reason]
-    Route::post('denial-reasons', [DenialReasonController::class, 'store']);                       //Done
+    Route::post('denial-reasons', [DenialReasonController::class, 'store']);
     // API-ID: ADMIN-011 [Create Ward]
-    Route::post('wards', [WardController::class, 'store']);                                        //Done
+    Route::post('wards', [WardController::class, 'store']);
     // API-ID: ADMIN-012 [Create Payment Zone]
-    Route::post('payment-zones', [PaymentZoneController::class, 'store']);                         //Done
+    Route::post('payment-zones', [PaymentZoneController::class, 'store']);
     // API-ID: ADMIN-015 [Update Category]
-    Route::put('categories/{id}', [CategoryController::class, 'update']);                          //Done
+    Route::put('categories/{id}', [CategoryController::class, 'update']);
     // API-ID: ADMIN-016 [Update sub category]
-    Route::put('sub-categories/{id}', [SubCategoryController::class, 'update']);                   //Done
+    Route::put('sub-categories/{id}', [SubCategoryController::class, 'update']);
     // API-ID: ADMIN-017 [Update Rate List]
-    Route::put('rate-list/{id}', [RateListController::class, 'update']);                           //Done
+    Route::put('rate-list/{id}', [RateListController::class, 'update']);
     // API-ID: ADMIN-018 [Update Denial Reason]
-    Route::put('denial-reasons/{id}', [DenialReasonController::class, 'update']);                  //Done
+    Route::put('denial-reasons/{id}', [DenialReasonController::class, 'update']);
     // API-ID: ADMIN-019 [Update Ward]
-    Route::put('wards/{id}', [WardController::class, 'update']);                                   //Done
+    Route::put('wards/{id}', [WardController::class, 'update']);
     // API-ID: ADMIN-020 [Update Ward]
-    Route::put('payment-zones/{id}', [PaymentZoneController::class, 'update']);                         //Done
+    Route::put('payment-zones/{id}', [PaymentZoneController::class, 'update']);
     // API-ID: ADMIN-038 [Update Ward]
     Route::get('all-users', [AuthController::class, 'getAllUsers']);
 });
@@ -111,12 +112,19 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
     Route::put('tc/{id}/revoke-suspension', [TCController::class, 'revoke']);
     // API-ID: ADMIN-025 [Save Profile Picture]
     Route::put('saveprofile-picture/{id}', [AuthController::class, 'setProfilePicture']); //Done
-    // API-ID: ADMIN-026 [Add Entity and corresponding Ratepayer]
+    // API-ID: ADMIN-039 [Add Entity and corresponding Ratepayer]
     Route::post('entities', [EntityController::class, 'storeWithRatePayers']);                                   //Done
-    // API-ID: ADMIN-027 [Add Entity and corresponding Ratepayer]
+    // API-ID: ADMIN-040 [Add Entity and corresponding Ratepayer]
     Route::post('clusters', [ClusterController::class, 'storeWithRatePayers']);                                  //Done
-    // API-ID: ADMIN-028 [Add Entity and corresponding Ratepayer]
+    // API-ID: ADMIN-041 [Add Entity and corresponding Ratepayer]
     Route::put('revoke-user/{user_id}', [AuthController::class, 'revokeUser']);                                  //Done
+
+    // API-ID: ADMIN-042 [Activate Ratepayer]
+    Route::post('activate-ratepayer', [RatepayerController::class, 'activateRatepayer']);                                  //Done
+    // API-ID: ADMIN-043 [Activate Ratepayer]
+    Route::post('deactivate-ratepayer', [RatepayerController::class, 'deactiavteRatepayer']);                                  //Done
+    // API-ID: ADMIN-044 [Activate Ratepayer]
+    Route::get('deactivated-ratepayer', [RatepayerController::class, 'showDeactiavtedRatepayer']);                                  //Done
 
     //****** Modify Transaction */
     Route::put('transactions', [EntityController::class, 'transactions/{id}']);
@@ -144,6 +152,12 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'force-json', 'api'])->prefix('
     Route::get('uncleared-cheques', [AccountsController::class, 'unclearedCheques']);
     // API-ID: ACCOUNTS-005 [ULB Demand Summary]
     Route::get('ulb-demandsummary', [AccountsController::class, 'currentDemandSummary']);
+    // API-ID: ACCOUNTS-006 [ULB Demand Summary]
+    Route::post('verify-cancellation', [AccountsController::class, 'verifyCancellation']);
+    // API-ID: ACCOUNTS-007 [ULB Demand Summary]
+    Route::get('cancelled-transactions', [AccountsController::class, 'showCancelledTransactions']);
+    // API-ID: ACCOUNTS-006 [ULB Demand Summary]
+    Route::post('cheque-realized', [AccountsController::class, 'realizeCheque']);
 
     //  -- Modify Payment Records
     //  -- Verify Cancellations
