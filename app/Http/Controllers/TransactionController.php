@@ -723,4 +723,49 @@ class TransactionController extends Controller
             );
         }
     }
+
+    public function zoneTransactionSummary(Request $request)
+    {
+        try {
+            // $data = ['id' => $id];
+            $validator = Validator::make($request->all(), [
+                'zoneId' => 'required|integer|exists:payment_zones,id', // Ensures the ID is valid and exists in the 'ratepayers' table
+            ]);
+
+            if ($validator->fails()) {
+                $errorMessages = $validator->errors()->all();
+
+                return format_response(
+                    'validation error',
+                    $errorMessages,
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            $validatedData = $validator->validated();
+
+            $tranService = new TransactionService;
+            $records = $tranService->zoneTransactionSummary($validatedData['zoneId']);
+
+            return format_response(
+                'Zone Transaction Summary',
+                $records,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return format_response(
+                $e->getMessage(),
+                null,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        } catch (\Exception $e) {
+            return format_response(
+                'An error occurred during data extraction',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+
+    }
 }

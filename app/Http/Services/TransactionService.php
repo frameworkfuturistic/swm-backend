@@ -372,4 +372,79 @@ class TransactionService
             'amount' => $validatedData['amount'],
         ]);
     }
+
+    public function zoneTransactionSummary(int $zoneId)
+    {
+        $user = Auth::user();
+
+        $result = DB::table('payments as p')
+            ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
+            ->where('r.paymentzone_id', $zoneId)
+            ->selectRaw('
+            SUM(p.amount) as totalReceipts,
+            SUM(IF(YEAR(p.created_at) = YEAR(CURRENT_DATE), p.amount, 0)) as yearReceipts,
+            SUM(IF(YEAR(p.created_at) = YEAR(CURRENT_DATE) AND MONTH(p.created_at) = MONTH(CURRENT_DATE), p.amount, 0)) as monthReceipts
+         ')
+            ->first();
+
+        $result1 = DB::table('ratepayers as r')
+            ->where('r.is_active', true)
+            ->where('r.paymentzone_id', $zoneId)
+            ->selectRaw('
+            COUNT(r.entity_id) as entityCount,
+            COUNT(r.cluster_id) as clusterCount,
+            COUNT(r.id) as totalCount,
+            SUM(IF(r.usage_type = "Residential", 1, 0)) as Residential,
+            SUM(IF(r.usage_type = "Commercial", 1, 0)) as Commercial,
+            SUM(IF(r.usage_type = "Industrial", 1, 0)) as Industrial,
+            SUM(IF(r.usage_type = "Institutional", 1, 0)) as Institutional,
+            SUM(IF(r.reputation = 4, 1, 0)) as PlatinumEntity,
+            SUM(IF(r.reputation = 3, 1, 0)) as GoldEntity,
+            SUM(IF(r.reputation = 2, 1, 0)) as SilverEntity,
+            SUM(IF(r.reputation = 1, 1, 0)) as BasicEntity
+         ')
+            ->first();
+
+        $result3 = DB::table('ratepayers as r')
+            ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+            ->join('categories as c', 's.category_id', '=', 'c.id')
+            ->where('r.is_active', true)
+            ->where('r.paymentzone_id', $zoneId)
+            ->groupBy('s.id')
+            ->select([
+                's.id',
+                'c.category as category',
+                's.sub_category as subCategory',
+                DB::raw('COUNT(r.id) as totalCount'),
+            ])
+            ->get();
+
+        $response = ['categorySummary' => $result3];
+
+        $response = array_merge(
+            [
+                'tcName' => $user->name,
+                'profilePicture' => $user->profile_picture,
+                'totalReceipts' => $result->totalReceipts,
+                'yearReceipts' => $result->yearReceipts,
+                'monthReceipts' => $result->monthReceipts,
+            ],
+            [
+                'entityCount' => $result1->entityCount,
+                'clusterCount' => $result1->clusterCount,
+                'totalCount' => $result1->totalCount,
+                'Commercial' => $result1->Commercial,
+                'Industrial' => $result1->Industrial,
+                'Institutional' => $result1->Institutional,
+                'PlatinumEntity' => $result1->PlatinumEntity,
+                'GoldEntity' => $result1->GoldEntity,
+                'SilverEntity' => $result1->SilverEntity,
+                'BasicEntity' => $result1->BasicEntity,
+            ],
+            ['categorySummary' => $result3]
+
+        );
+
+        return $response;
+    }
 }

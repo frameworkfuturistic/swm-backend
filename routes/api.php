@@ -7,6 +7,7 @@ use App\Http\Controllers\ClusterController;
 use App\Http\Controllers\DemandController;
 use App\Http\Controllers\DenialReasonController;
 use App\Http\Controllers\EntityController;
+use App\Http\Controllers\MasterController;
 use App\Http\Controllers\PaymentZoneController;
 use App\Http\Controllers\RateListController;
 use App\Http\Controllers\RatepayerController;
@@ -118,13 +119,14 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
     Route::post('clusters', [ClusterController::class, 'storeWithRatePayers']);                                  //Done
     // API-ID: ADMIN-041 [Add Entity and corresponding Ratepayer]
     Route::put('revoke-user/{user_id}', [AuthController::class, 'revokeUser']);                                  //Done
-
     // API-ID: ADMIN-042 [Activate Ratepayer]
     Route::post('activate-ratepayer', [RatepayerController::class, 'activateRatepayer']);                                  //Done
     // API-ID: ADMIN-043 [Activate Ratepayer]
     Route::post('deactivate-ratepayer', [RatepayerController::class, 'deactiavteRatepayer']);                                  //Done
     // API-ID: ADMIN-044 [Activate Ratepayer]
     Route::get('deactivated-ratepayer', [RatepayerController::class, 'showDeactiavtedRatepayer']);                                  //Done
+
+    Route::get('all-masters', [MasterController::class, 'getAllMasters']);                                  //Done
 
     //****** Modify Transaction */
     Route::put('transactions', [EntityController::class, 'transactions/{id}']);
@@ -213,6 +215,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('operations')->
     Route::put('entities/geo-location/{id}', [EntityController::class, 'updateGeoLocation']);      //Done
     // API-ID: OPER-010 [Cluster Geolocation]
     Route::put('clusters/geo-location/{id}', [ClusterController::class, 'updateGeoLocation']);     //Done
+    // API-ID: OPER-011 [Zone Transaction Summary]
+    Route::get('zone-transaction-summary', [TransactionController::class, 'zoneTransactionSummary']);     //Done
 
     Route::put('entities/release', [EntityController::class, 'releaseCluster']);
 
