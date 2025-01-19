@@ -125,7 +125,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
     Route::post('deactivate-ratepayer', [RatepayerController::class, 'deactiavteRatepayer']);                                  //Done
     // API-ID: ADMIN-044 [Activate Ratepayer]
     Route::get('deactivated-ratepayer', [RatepayerController::class, 'showDeactiavtedRatepayer']);                                  //Done
-
+    // API-ID: ADMIN-045 [All Masters]
     Route::get('all-masters', [MasterController::class, 'getAllMasters']);                                  //Done
 
     //****** Modify Transaction */

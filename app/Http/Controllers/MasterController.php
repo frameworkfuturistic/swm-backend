@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\DenialReason;
+use App\Models\PaymentZone;
 use App\Models\RateList;
 use App\Models\SubCategory;
 use App\Models\Ward;
@@ -21,6 +22,7 @@ class MasterController extends Controller
             $denialReasons = DenialReason::where('ulb_id', $ulbId)->get();
             $rateLists = RateList::where('ulb_id', $ulbId)->get();
             $wards = Ward::where('ulb_id', $ulbId)->get();
+            $paymentZone = PaymentZone::where('ulb_id', $ulbId)->get();
             DB::enableQueryLog();
             // $categories = SubCategory::join('categories', 'sub_categories.category_id', '=', 'categories.id')
             //     ->where('categories.ulb_id', $ulbId)
@@ -35,6 +37,7 @@ class MasterController extends Controller
                 'denialReasons' => $denialReasons,
                 'rateList' => $rateLists,
                 'wards' => $wards,
+                'paymentZone' => $paymentZone,
                 'categories' => $categories,
             ];
 
