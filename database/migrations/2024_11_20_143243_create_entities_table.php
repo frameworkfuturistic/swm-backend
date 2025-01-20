@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('entity_name', 255)->notNullable();
             $table->text('entity_address')->notNullable();
             $table->string('pincode', 6)->nullable();
-            $table->string('mobile_no', 15)->nullable();
+            $table->string('mobile_no', 25)->nullable();
             $table->string('landmark', 100)->nullable();
             $table->string('whatsapp_no', 12)->nullable();
 
@@ -67,7 +67,7 @@ return new class extends Migration
             $table->string('entity_name', 255)->notNullable();
             $table->text('entity_address')->notNullable();
             $table->string('pincode', 6)->nullable();
-            $table->string('mobile_no', 15)->nullable();
+            $table->string('mobile_no', 25)->nullable();
             $table->string('landmark', 100)->nullable();
             $table->string('whatsapp_no', 12)->nullable();
 

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -12,26 +13,19 @@ class WardsTableSeeder extends Seeder
      */
     public function run()
     {
-        $wards = [
-            'Ward 1',
-            'Ward 2',
-            'Ward 3',
-            'Ward 4',
-            'Ward 5',
-            'Ward 6',
-            'Ward 7',
-            'Ward 8',
-            'Ward 9',
-            'Ward 10',
-        ];
+        $currentTimestamp = Carbon::now()->format('Y-m-d H:i:s');
 
-        foreach ($wards as $index => $ward_name) {
-            DB::table('wards')->insert([
-                'ulb_id' => 1, // Assuming there are 5 ULBs in the `ulbs` table
-                'ward_name' => $ward_name,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        $wards = [];
+        for ($i = 1; $i <= 54; $i++) {
+            $wards[] = [
+                'id' => $i,
+                'ulb_id' => 21,
+                'ward_name' => (string) $i,
+                'created_at' => $currentTimestamp,
+                'updated_at' => $currentTimestamp,
+            ];
         }
+
+        DB::table('wards')->insert($wards);
     }
 }

@@ -39,6 +39,10 @@ return new class extends Migration
             $table->string('card_number', 25)->nullable();
             $table->string('upi_id', 100)->nullable();
             $table->string('cheque_number', 25)->nullable();
+            $table->string('bank_name', 25)->nullable();
+            $table->string('neft_id', 25)->nullable();
+            $table->string('neft_date', 25)->nullable();
+            $table->unsignedBigInteger('ratepayercheque_id')->nullable()->default(null);
             $table->boolean('is_canceled')->default(false); // Active status
             $table->integer('vrno');
             $table->timestamps();
@@ -97,6 +101,10 @@ return new class extends Migration
             $table->string('card_number', 25)->nullable();
             $table->string('upi_id', 100)->nullable();
             $table->string('cheque_number', 25)->nullable();
+            $table->string('bank_name', 25)->nullable();
+            $table->string('neft_id', 25)->nullable();
+            $table->string('neft_date', 25)->nullable();
+            $table->unsignedBigInteger('ratepayercheque_id')->nullable()->default(null);
             $table->boolean('is_canceled')->default(false); // Active status
             $table->integer('vrno');
             $table->timestamps();

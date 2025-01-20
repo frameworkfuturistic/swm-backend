@@ -25,14 +25,9 @@ class DatabaseSeeder extends Seeder
         $this->call(DenialReasonsTableSeeder::class);
         $this->call(UsersTableSeeder::class);
         $this->call(PaymentZonesTableSeeder::class);
-        $this->call(ClusterTableSeeder::class);
-        $this->call(EntityTableSeeder::class);
-        $this->call(RatepayerTableSeeder::class);
+        //   $this->call(ClusterTableSeeder::class);
+        //   $this->call(EntityTableSeeder::class);
+        //   $this->call(RatepayerTableSeeder::class);
         //   $this->call(TransactionTableSeeder::class);
-
-        //   User::factory()->create([
-        //       'name' => 'Test User',
-        //       'email' => 'test@example.com',
-        //   ]);
     }
 }

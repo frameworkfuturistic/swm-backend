@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('ward_id')->constrained('wards')->notNullable();
             $table->foreignId('verifiedby_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('appliedtc_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('cluster_code', 20)->notNullable(); // Cluster name cannot be null
             $table->string('cluster_name', 60)->notNullable(); // Cluster name cannot be null
             $table->string('cluster_address', 255)->nullable();
             $table->string('pincode', 6)->nullable(); // Corrected nullable, pincode can be empty
@@ -35,7 +36,7 @@ return new class extends Migration
             $table->softDeletes(); // deleted_at for soft deletes
 
             // Index and unique constraints
-            $table->unique(['cluster_name', 'ulb_id'], 'Index_cluster');
+            $table->unique(['cluster_code', 'ulb_id'], 'Index_cluster');
             $table->index('cluster_name');
             $table->index('appliedtc_id');
             $table->index('verifiedby_id');
@@ -52,6 +53,7 @@ return new class extends Migration
             $table->bigInteger('ward_id')->nullable();
             $table->bigInteger('verifiedby_id')->nullable();
             $table->bigInteger('appliedtc_id')->nullable();
+            $table->string('cluster_code', 20)->notNullable(); // Cluster name cannot be null
             $table->string('cluster_name', 60)->notNullable(); // Cluster name cannot be null
             $table->string('cluster_address', 255)->nullable();
             $table->string('pincode', 6)->nullable(); // Corrected nullable, pincode can be empty
@@ -70,7 +72,7 @@ return new class extends Migration
             $table->softDeletes(); // deleted_at for soft deletes
 
             // Index and unique constraints
-            $table->unique(['cluster_name', 'ulb_id'], 'Index_cluster');
+            $table->unique(['cluster_code', 'ulb_id'], 'Index_cluster');
             $table->index('cluster_name');
             $table->index('appliedtc_id');
             $table->index('verifiedby_id');
