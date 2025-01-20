@@ -64,23 +64,25 @@ class RatepayerService
     {
         $ulbId = $request->ulb_id;
 
+        DB::enableQueryLog();
         // Base query
         $query = DB::table('ratepayers as r')
             ->select([
                 'r.id',
-                DB::raw("IF(r.entity_id IS NOT NULL, 'Entity', 'Cluster') AS ratepayer_type"),
-                'r.consumer_no',
-                'r.ratepayer_name',
-                'r.ratepayer_address',
-                'r.holding_no',
-                'w.ward_name',
-                'r.mobile_no',
+                DB::raw("IF(r.entity_id IS NOT NULL, 'Entity', 'Cluster') AS ratepayerType"),
+                'r.consumer_no as consumerNo',
+                'r.ratepayer_name as ratepayerName',
+                'r.ratepayer_address as ratepayerAddress',
+                'r.holding_no as holdingNo',
+                'w.ward_name as wardName',
+                'r.mobile_no as mobileNo',
                 'r.landmark',
-                'z.payment_zone',
-                'r.whatsapp_no',
-                'r.usage_type',
+                'z.payment_zone as paymentZone',
+                'r.whatsapp_no as whatsAppNo',
+                'r.usage_type as usageType',
                 'r.status',
                 'r.reputation',
+                's.sub_category as subCategory',
             ])
             ->join('wards as w', 'r.ward_id', '=', 'w.id') // INNER JOIN
             ->leftJoin('payment_zones as z', 'r.paymentzone_id', '=', 'z.id') // LEFT JOIN
@@ -90,22 +92,22 @@ class RatepayerService
 
         // Conditional filters
         if ($request->filled('wardId')) {
-            $query->where('ratepayers.ward_id', $request->input('wardId'));
+            $query->where('r.ward_id', $request->input('wardId'));
         }
         if ($request->filled('clusterId')) {
-            $query->where('ratepayers.cluster_id', $request->input('clusterId'));
+            $query->where('r.cluster_id', $request->input('clusterId'));
         }
 
         if ($request->filled('rateId')) {
-            $query->where('ratepayers.rate_id', $request->input('rateId'));
+            $query->where('r.rate_id', $request->input('rateId'));
         }
 
         if ($request->filled('subcategoryId')) {
-            $query->where('ratepayers.subcategory_id', $request->input('subcategoryId'));
+            $query->where('r.subcategory_id', $request->input('subcategoryId'));
         }
 
         if ($request->filled('paymentzoneId')) {
-            $query->where('ratepayers.paymentzone_id', $request->input('paymentzoneId'));
+            $query->where('r.paymentzone_id', $request->input('paymentzoneId'));
         }
 
         // Text-based search
@@ -123,20 +125,20 @@ class RatepayerService
 
         // Boolean filter
         if ($request->has('isActive')) {
-            $query->where('ratepayers.is_active', $request->boolean('isActive'));
+            $query->where('r.is_active', $request->boolean('isActive'));
         }
 
         // Enum filters
         if ($request->filled('usageType')) {
-            $query->where('ratepayers.usage_type', $request->input('usageType'));
+            $query->where('r.usage_type', $request->input('usageType'));
         }
 
         if ($request->filled('status')) {
-            $query->where('ratepayers.status', $request->input('status'));
+            $query->where('r.status', $request->input('status'));
         }
 
         if ($request->filled('reputation')) {
-            $query->where('ratepayers.reputation', $request->input('reputation'));
+            $query->where('r.reputation', $request->input('reputation'));
         }
 
         // Sorting
