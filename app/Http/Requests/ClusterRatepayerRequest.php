@@ -34,8 +34,8 @@ class ClusterRatepayerRequest extends FormRequest
             'cluster.clusterType' => 'required|in:Apartment,Building,Govt Institution,Colony,Other,None',
             'cluster.mobileNo' => 'nullable|string|max:12',
             'cluster.whatsappNo' => 'nullable|string|max:12',
-            'cluster.longitude' => 'nullable|numeric',
-            'cluster.latitude' => 'nullable|numeric',
+            // 'cluster.longitude' => 'nullable|numeric',
+            // 'cluster.latitude' => 'nullable|numeric',
             'cluster.inclusionDate' => 'nullable|date',
             // 'cluster.verificationDate' => 'nullable|date',
 

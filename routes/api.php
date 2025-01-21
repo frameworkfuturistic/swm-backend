@@ -195,7 +195,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'force-json', 'api'])->prefix('
 Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('operations')->group(function () {
     // API-ID: ADMIN-021 [Update Entity with Ratepayer]
     Route::put('entities/{id}', [EntityController::class, 'update']);                                   //Done
-    // API-ID: OPER-001 [Update Cluster with Ratepayer]
+    // API-ID: ADMIN-022 [Update Cluster with Ratepayer]
     Route::put('clusters/{id}', [ClusterController::class, 'update']);                                  //Done
     // API-ID: OPER-002 [Ping from TC]
     Route::get('/ping', [AuthController::class, 'ping']);
