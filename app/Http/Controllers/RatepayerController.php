@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Http\Requests\EntityGeolocationRequest;
 use App\Http\Requests\RatepayerRequest;
 use App\Http\Services\RatepayerService;
+use App\Models\Cluster;
+use App\Models\Entity;
 use App\Models\Ratepayer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -188,13 +191,61 @@ class RatepayerController extends Controller
     public function show($id)
     {
         try {
-            $ratepayer = Ratepayer::with(['entity', 'cluster'])
-                ->where('id', $id)
-                ->firstOrFail();
+            $ratepayer = DB::table('ratepayers as r')
+                ->join('wards as w', 'r.ward_id', '=', 'w.id')
+                ->leftJoin('payment_zones as z', 'r.paymentzone_id', '=', 'z.id')
+                ->leftJoin('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+                ->leftJoin('categories as c', 's.category_id', '=', 'c.id')
+                ->select(
+                    'r.ward_id',
+                    'w.ward_name',
+                    'r.entity_id',
+                    'r.cluster_id',
+                    'r.paymentzone_id',
+                    'z.payment_zone',
+                    'r.last_payment_id',
+                    'r.subcategory_id',
+                    's.sub_category',
+                    's.category_id',
+                    'c.category',
+                    'r.rate_id',
+                    'r.last_transaction_id',
+                    'r.ratepayer_name',
+                    'r.ratepayer_address',
+                    'r.consumer_no',
+                    'r.holding_no',
+                    'r.longitude',
+                    'r.latitude',
+                    'r.mobile_no',
+                    'r.landmark',
+                    'r.whatsapp_no',
+                    'r.usage_type',
+                    'r.status',
+                    'r.reputation',
+                    'r.lastpayment_amt',
+                    'r.lastpayment_date',
+                    'r.lastpayment_mode',
+                    'r.schedule_date',
+                    'r.is_active'
+                )
+                ->where('r.id', $id)
+                ->first();
+            $entity = Entity::find($ratepayer->entity_id);
+            $cluster = Cluster::find($ratepayer->cluster_id);
+
+            $response = [
+                'ratepayer' => $ratepayer,
+                'entity' => $entity,
+                'cluster' => $cluster,
+            ];
+
+            // $ratepayer = Ratepayer::with(['entity', 'cluster'])
+            //     ->where('id', $id)
+            //     ->firstOrFail();
 
             return format_response(
                 'Ratepayer Details',
-                $ratepayer,
+                $response,
                 Response::HTTP_OK
             );
 
