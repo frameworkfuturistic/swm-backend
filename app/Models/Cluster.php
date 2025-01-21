@@ -31,11 +31,11 @@ class Cluster extends Model
 
     protected $hidden = [
         'ulb_id',
-        'ward_id',
+        //   'ward_id',
         'verifiedby_id',
         'appliedtc_id',
         'verification_date',
-        'is_verified',
+        //   'is_verified',
         'vrno',
         'created_at',
         'updated_at',
