@@ -15,7 +15,7 @@ class UsersTableSeeder extends Seeder
     public function run()
     {
         DB::table('users')->insert([
-            'ulb_id' => 1, // Assuming `ulbs` table has at least 5 records
+            'ulb_id' => 21, // Assuming `ulbs` table has at least 5 records
             'name' => 'agency_admin',
             'email' => 'agency_admin@example.com',
             'email_verified_at' => now(),
@@ -28,7 +28,7 @@ class UsersTableSeeder extends Seeder
         ]);
 
         DB::table('users')->insert([
-            'ulb_id' => 1, // Assuming `ulbs` table has at least 5 records
+            'ulb_id' => 21, // Assuming `ulbs` table has at least 5 records
             'name' => 'municipal_office',
             'email' => 'municipal_office@example.com',
             'email_verified_at' => now(),

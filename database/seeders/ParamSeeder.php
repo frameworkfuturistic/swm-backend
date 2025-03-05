@@ -14,7 +14,7 @@ class ParamSeeder extends Seeder
     {
         DB::table('params')->insert([
             [
-                'ulb_id' => 1,
+                'ulb_id' => 21,
                 'param_name' => 'CURRENT_YEAR',
                 'param_string' => '',
                 'param_int' => 2024,

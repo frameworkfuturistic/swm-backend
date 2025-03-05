@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountsController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ClusterController;
+use App\Http\Controllers\Dashboard\AdminDashboardController;
 use App\Http\Controllers\DemandController;
 use App\Http\Controllers\DenialReasonController;
 use App\Http\Controllers\EntityController;
@@ -353,6 +354,17 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
     // Route::get('transactions/ratepayer/{id}', DenialReasonController::class);
     // Route::get('tc/date/{id}/{date}', DenialReasonController::class);
     // Route::get('tc/date/zone/{id}/{date}/{zone-id}}', DenialReasonController::class);
+});
+
+//Admin Dashboard *************************************************************
+//*
+Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
+   // API-ID: ADASH-001 [Admin Dashboard]
+   Route::post('dashboard/admin', [AdminDashboardController::class, 'getTransactionDetails']);
+   // // API-ID: ADMIN-007 [Create Category]
+   // Route::post('dashboard/accountant', [CategoryController::class, 'store']);
+   // // API-ID: ADMIN-007 [Create Category]
+   // Route::post('dashboard/transactions', [CategoryController::class, 'store']);
 });
 
 Route::fallback(function () {
