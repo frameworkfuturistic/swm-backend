@@ -54,8 +54,12 @@ class CurrentTransaction extends Model
         return $this->belongsTo(Cluster::class);
     }
 
+    // public function payment()
+    // {
+    //     return $this->belongsTo(CurrentPayment::class);
+    // }
     public function payment()
     {
-        return $this->belongsTo(CurrentPayment::class);
+        return $this->belongsTo(CurrentPayment::class, 'payment_id', 'id');
     }
 }

@@ -64,4 +64,9 @@ class Cluster extends Model
     {
         return $this->belongsTo(User::class, 'tc_id');
     }
+
+    public function currentTransactions()
+    {
+        return $this->hasMany(CurrentTransaction::class, 'cluster_id');
+    }
 }

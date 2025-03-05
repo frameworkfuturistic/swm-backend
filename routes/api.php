@@ -294,7 +294,6 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('ratepayers')->
     Route::post('/payment-links/create', [TransactionController::class, 'createPaymentLink']);
     Route::delete('/payment-links/{paymentLinkId}', [TransactionController::class, 'cancelPaymentLink']);
     Route::get('/payment-links/{paymentLinkId}', [TransactionController::class, 'fetchPaymentLinkDetails']);
-
 });
 
 Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
@@ -358,13 +357,14 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
 
 //Admin Dashboard *************************************************************
 //*
+
 Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
-   // API-ID: ADASH-001 [Admin Dashboard]
-   Route::post('dashboard/admin', [AdminDashboardController::class, 'getTransactionDetails']);
-   // // API-ID: ADMIN-007 [Create Category]
-   // Route::post('dashboard/accountant', [CategoryController::class, 'store']);
-   // // API-ID: ADMIN-007 [Create Category]
-   // Route::post('dashboard/transactions', [CategoryController::class, 'store']);
+    // API-ID: ADASH-001 [Admin Dashboard]
+    Route::post('dashboard/admin', [AdminDashboardController::class, 'getTransactionDetails']);
+    // // API-ID: ADMIN-007 [Create Category]
+    // Route::post('dashboard/accountant', [CategoryController::class, 'store']);
+    // // API-ID: ADMIN-007 [Create Category]
+    // Route::post('dashboard/transactions', [CategoryController::class, 'store']);
 });
 
 Route::fallback(function () {
@@ -373,3 +373,4 @@ Route::fallback(function () {
         'message' => 'Route not found. Please check the URL and try again.',
     ], 404);
 });
+// Route::post('dashboard/admin', [AdminDashboardController::class, 'getTransactionDetails']);
