@@ -39,11 +39,14 @@ class CurrentTransaction extends Model
         return $this->belongsTo(User::class, 'tc_id');
     }
 
+    // public function ratepayer()
+    // {
+    //     return $this->belongsTo(Ratepayer::class);
+    // }
     public function ratepayer()
     {
-        return $this->belongsTo(Ratepayer::class);
+        return $this->belongsTo(User::class, 'ratepayer_id');
     }
-
     public function entity()
     {
         return $this->belongsTo(Entity::class);
@@ -60,6 +63,10 @@ class CurrentTransaction extends Model
     // }
     public function payment()
     {
-        return $this->belongsTo(CurrentPayment::class, 'payment_id', 'id');
+        return $this->belongsTo(Payment::class);
     }
+    // public function payment()
+    // {
+    //     return $this->belongsTo(CurrentPayment::class, 'payment_id', 'id');
+    // }
 }

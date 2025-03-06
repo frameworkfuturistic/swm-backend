@@ -4,181 +4,237 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-
 use App\Models\CurrentTransaction;
 use App\Models\Payment;
 use App\Models\Cluster;
 use App\Models\DenialReason;
 use App\Models\User;
-
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class AdminDashboardController extends Controller
 {
-
-
-
     public function getTransactionDetails(Request $request)
     {
-        // Validate input parameters
-        $validatedData = $request->validate([
-            'fromDate' => 'nullable|date',
-            'toDate' => 'nullable|date',
-            'zone' => 'nullable|string',
-            'eventType' => 'nullable|in:PAYMENT,DENIAL,DOOR-CLOSED,DEFERRED,CHEQUE,OTHER'
-        ]);
-
-        // Start building the base query
-        $query = CurrentTransaction::with([
-            'ulb',
-            'ratepayer',
-            'tc',
-            'payment',
-            'cancellationReason',
-            'verifiedBy',
-            'cluster'
-        ]);
-
-        // Apply date filters if provided
-        if (!empty($validatedData['fromDate']) && !empty($validatedData['toDate'])) {
-            $query->whereBetween('event_time', [
-                Carbon::parse($validatedData['fromDate']),
-                Carbon::parse($validatedData['toDate'])
+        try {
+            // Validate incoming data (make sure all necessary fields are provided)
+            $validatedData = $request->validate([
+                'fromDate' => 'required|date',
+                'toDate' => 'required|date',
+                'zone' => 'required|string',
+                'eventType' => 'required|string',
             ]);
+
+            // Extract data from the request
+            $fromDate = $validatedData['fromDate'];
+            $toDate = $validatedData['toDate'];
+            $zone = $validatedData['zone'];
+            $eventType = $validatedData['eventType'];
+
+            // Total Transactions and Payments (Filtered by Date and Zone)
+            $totalTransactions = DB::table('transactions')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
+                ->whereBetween('transactions.event_time', [$fromDate, $toDate])
+                ->where('clusters.cluster_name', $zone)
+                ->count();
+
+            $totalPayments = DB::table('payments')
+                ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
+                ->whereBetween('payments.created_at', [$fromDate, $toDate])
+                ->sum('payments.amount');
+
+            $completedPayments = DB::table('payments')
+                ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
+                ->where('payments.payment_status', 'completed')
+                ->whereBetween('payments.created_at', [$fromDate, $toDate])
+                ->count();
+
+            $pendingPayments = DB::table('payments')
+                ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
+                ->where('payments.payment_status', 'pending')
+                ->whereBetween('payments.created_at', [$fromDate, $toDate])
+                ->count();
+
+            // Monthly Overview (Filtered by Date and Zone)
+            $monthlyOverview = DB::table('transactions')
+                ->join('payments', 'transactions.payment_id', '=', 'payments.id')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
+                ->select(
+                    DB::raw('MONTH(transactions.event_time) as month_number'),
+                    DB::raw('MONTHNAME(transactions.event_time) as month_name'),
+                    DB::raw('COUNT(*) as transactions'),
+                    DB::raw('SUM(IFNULL(payments.amount, 0)) as amount')
+                )
+                ->whereBetween('transactions.event_time', [$fromDate, $toDate])
+                ->where('clusters.cluster_name', $zone)
+                ->groupBy(DB::raw('MONTH(transactions.event_time), MONTHNAME(transactions.event_time)'))
+                ->having(DB::raw('SUM(IFNULL(payments.amount, 0))'), '>', 0)
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'month' => date('M', mktime(0, 0, 0, $item->month_number, 1)),
+                        'transactions' => $item->transactions,
+                        'amount' => $item->amount
+                    ];
+                });
+
+            // Event Type Overview (Filtered by Event Type and Date)
+            $eventTypeOverview = DB::table('transactions')
+                ->select('event_type', DB::raw('COUNT(*) as count'))
+                ->where('event_type', $eventType)
+                ->whereBetween('event_time', [$fromDate, $toDate])
+                ->groupBy('event_type')
+                ->having(DB::raw('COUNT(*)'), '>', 0)
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'type' => $item->event_type,
+                        'count' => $item->count
+                    ];
+                });
+
+            // Payment Mode Status (Filtered by Date and Zone)
+            $paymentModeStatus = DB::table('payments')
+                ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
+                ->select(
+                    'payments.payment_mode',
+                    DB::raw('SUM(CASE WHEN payments.payment_status = "completed" THEN 1 ELSE 0 END) as completed'),
+                    DB::raw('SUM(CASE WHEN payments.payment_status = "pending" THEN 1 ELSE 0 END) as pending'),
+                    DB::raw('SUM(CASE WHEN payments.payment_status = "failed" THEN 1 ELSE 0 END) as failed'),
+                    DB::raw('SUM(CASE WHEN payments.payment_status = "refunded" THEN 1 ELSE 0 END) as refunded')
+                )
+                ->whereBetween('payments.created_at', [$fromDate, $toDate])
+                ->where('clusters.cluster_name', $zone)
+                ->groupBy('payments.payment_mode')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'type' => $item->payment_mode,
+                        'completed' => $item->completed,
+                        'pending' => $item->pending,
+                        'failed' => $item->failed,
+                        'refunded' => $item->refunded
+                    ];
+                });
+
+            // Cluster Data
+            $clusterData = $this->getClusterData();
+
+            // Fetch Transactions (Filtered by Date and Zone)
+            $transactions = DB::table('transactions')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
+                ->leftJoin('payments', 'transactions.payment_id', '=', 'payments.id')
+                ->select(
+                    'transactions.id',
+                    'transactions.ulb_id as ulb',
+                    'transactions.ratepayer_id as ratepayer',
+                    'transactions.event_time as eventTime',
+                    'transactions.event_type as eventType',
+                    'payments.id as paymentId',
+                    'payments.payment_mode as paymentMode',
+                    'payments.payment_status as paymentStatus',
+                    'payments.amount',
+                    'transactions.verification_date as verificationDate',
+                    'transactions.cancellation_date as cancellationDate'
+                )
+                ->whereBetween('transactions.event_time', [$fromDate, $toDate])
+                ->where('clusters.cluster_name', $zone)
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'ulb' => $item->ulb,
+                        'ratepayer' => $item->ratepayer,
+                        'eventTime' => $item->eventTime,
+                        'eventType' => $item->eventType,
+                        'paymentId' => $item->paymentId,
+                        'paymentMode' => $item->paymentMode,
+                        'paymentStatus' => $item->paymentStatus,
+                        'amount' => $item->amount,
+                        'verificationDate' => $item->verificationDate,
+                        'cancellationDate' => $item->cancellationDate
+                    ];
+                });
+
+            // Cancellation Data
+            $cancellationData = $this->getCancellationData();
+
+            // Denial Data
+            $denialData = $this->getDenialData();
+
+            // Collector Data
+            $collectorData = $this->getCollectorData();
+
+            // Query execution time
+            $queryRunTime = $this->responseTime();
+
+            // Capture apiid and Device Name from request
+            $apiid = $request->input('apiid', $request->header('apiid', null));
+            if (!$apiid) {
+                Log::debug('No apiid passed in the request.');
+            }
+
+            // Return the response using the format_response helper
+            return $this->format_response(
+                'Transaction Overview fetched successfully',
+                [
+                    'totalTransactions' => $totalTransactions,
+                    'totalPayments' => $totalPayments,
+                    'completedPayments' => $completedPayments,
+                    'pendingPayments' => $pendingPayments,
+                    'overview' => [
+                        'transactionsData' => $monthlyOverview,
+                        'eventType' => $eventTypeOverview,
+                        'paymentModeStatus' => $paymentModeStatus,
+                        'clusters' => $clusterData
+                    ],
+                    'transactions' => $transactions,
+                    'insights' => [
+                        'cancellationData' => $cancellationData,
+                        'denialData' => $denialData,
+                        'collectorData' => $collectorData,
+                        'alert' => [] // You can customize this part based on your alerts data.
+                    ]
+                ],
+                200, // HTTP Status code
+                [
+                    'apiid' => $apiid,
+                    'version' => '1.0',
+                    'queryRunTime' => $queryRunTime,
+                    'route' => 'getTransactionOverview',
+                    'device' => $request->header('Device-Name', 'Unknown Device')
+                ]
+            );
+        } catch (\Exception $e) {
+            // Query execution time
+            $queryRunTime = $this->responseTime();
+
+            // Capture apiid and Device Name from request
+            $apiid = $request->input('apiid', $request->header('apiid', null));
+
+            // Handle exception and return error response
+            return $this->responseMsgs(
+                'Error occurred while fetching transaction overview: ' . $e->getMessage(),
+                null,
+                500, // Internal server error status code
+                [
+                    'apiid' => $apiid,
+                    'version' => '1.0',
+                    'queryRunTime' => $queryRunTime,
+                    'route' => 'getTransactionOverview',
+                    'device' => $request->header('Device-Name', 'Unknown Device')
+                ]
+            );
         }
-
-        // Apply zone filter if provided (assuming zone is related to clusters)
-        if (!empty($validatedData['zone'])) {
-            $query->whereHas('cluster', function ($q) use ($validatedData) {
-                $q->where('cluster_name', $validatedData['zone']);
-            });
-        }
-
-        // Apply event type filter if provided
-        if (!empty($validatedData['eventType'])) {
-            $query->where('event_type', $validatedData['eventType']);
-        }
-
-        // Calculate overview statistics
-        $totalTransactions = $query->count();
-        $lastTotalTransactions = CurrentTransaction::where('event_time', '<', now()->subMonth())->count();
-
-        // Optimize sum of payments for the current period
-        $totalPayments = Payment::whereIn('current_transactions.event_type', ['PAYMENT'])
-            ->join('current_transactions', 'current_transactions.payment_id', '=', 'payments.id')
-            ->sum('payments.amount');
-
-        $lastTotalPayments = Payment::where('created_at', '<', now()->subMonth())->sum('amount');
-
-        $completedPayments = CurrentTransaction::where('event_type', 'PAYMENT')
-            ->where('is_verified', 1)
-            ->count();
-
-        $pendingPayments = CurrentTransaction::where('event_type', 'PAYMENT')
-            ->where('is_verified', 0)
-            ->count();
-
-        $lastPendingPayments = CurrentTransaction::where('event_type', 'PAYMENT')
-            ->where('is_verified', 0)
-            ->where('event_time', '<', now()->subMonth())
-            ->count();
-
-        // Prepare monthly overview data
-        $monthlyOverview = $this->getMonthlyTransactionOverview();
-
-        // Prepare event type breakdown
-        $eventTypeBreakdown = $this->getEventTypeBreakdown();
-
-        // Prepare payment mode status
-        $paymentModeStatus = $this->getPaymentModeStatus();
-
-        // Prepare cluster data
-        $clusterData = $this->getClusterData();
-
-        // Fetch paginated transactions
-        $transactions = $query->paginate(50);
-
-        // Prepare insights
-        $insights = [
-            'cancellationData' => $this->getCancellationData(),
-            'denialData' => $this->getDenialData(),
-            'collectorData' => $this->getCollectorData(),
-        ];
-
-        return response()->json([
-            'totalTransactions' => $totalTransactions,
-            'lastTotalTransactions' => $lastTotalTransactions,
-            'totalPayments' => $totalPayments,
-            'lastTotalPayments' => $lastTotalPayments,
-            'completedPayments' => $completedPayments,
-            'pendingPayments' => $pendingPayments,
-            'lastPendingPayments' => $lastPendingPayments,
-            'overview' => [
-                'transactionsData' => $monthlyOverview,
-                'eventType' => $eventTypeBreakdown,
-                'paymentModeStatus' => $paymentModeStatus,
-                'clusters' => $clusterData
-            ],
-            'transactions' => $transactions,
-            'insights' => $insights
-        ]);
     }
 
-    // Helper methods to generate specific data sections
-    private function getMonthlyTransactionOverview()
-    {
-        // We will join `payments` with `current_transactions` and sum the payment amounts.
-        return CurrentTransaction::select(
-            DB::raw('MONTH(event_time) as month'),
-            DB::raw('COUNT(*) as transactions'),
-            DB::raw('SUM(CASE WHEN event_type = "PAYMENT" THEN 1 ELSE 0 END) as payments'),
-            DB::raw('SUM(CASE WHEN event_type = "PAYMENT" THEN payments.amount ELSE 0 END) as amount') // Correctly sum payments.amount
-        )
-            ->leftJoin('payments', 'current_transactions.payment_id', '=', 'payments.id')  // Ensure correct join condition
-            ->groupBy(DB::raw('MONTH(event_time)'))
-            ->orderBy(DB::raw('MONTH(event_time)'))
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'month' => date('M', mktime(0, 0, 0, $item->month, 1)),
-                    'transactions' => $item->transactions,
-                    'payments' => $item->payments,
-                    'amount' => $item->amount
-                ];
-            });
-    }
-
-
-    private function getEventTypeBreakdown()
-    {
-        return CurrentTransaction::select('event_type', DB::raw('COUNT(*) as count'))
-            ->groupBy('event_type')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'type' => ucwords(strtolower(str_replace('-', ' ', $item->event_type))),
-                    'count' => $item->count,
-                    'color' => $this->getEventTypeColor($item->event_type)
-                ];
-            });
-    }
-
-    private function getPaymentModeStatus()
-    {
-        // This would typically involve joining with payments table
-        return Payment::select('payment_mode')
-            ->selectRaw('COUNT(CASE WHEN payment_status = "COMPLETED" THEN 1 END) as completed')
-            ->selectRaw('COUNT(CASE WHEN payment_status = "PENDING" THEN 1 END) as pending')
-            ->selectRaw('COUNT(CASE WHEN payment_status = "FAILED" THEN 1 END) as failed')
-            ->selectRaw('COUNT(CASE WHEN payment_status = "REFUNDED" THEN 1 END) as refunded')
-            ->groupBy('payment_mode')
-            ->get();
-    }
-
+    // Helper method to get cluster data
     private function getClusterData()
     {
         return Cluster::select('cluster_name as area')
@@ -188,6 +244,7 @@ class AdminDashboardController extends Controller
             ->leftJoin('current_transactions', 'clusters.id', '=', 'current_transactions.cluster_id')
             ->leftJoin('payments', 'current_transactions.payment_id', '=', 'payments.id')
             ->groupBy('clusters.id', 'clusters.cluster_name')
+            ->havingRaw('SUM(payments.amount) > 0')
             ->get()
             ->map(function ($item) {
                 return [
@@ -200,46 +257,41 @@ class AdminDashboardController extends Controller
             });
     }
 
-
-
+    // Helper method to get cancellation data
     private function getCancellationData()
     {
-        // Implement cancellation reason breakdown
-        return DenialReason::select('reason as type')  // Renamed from 'type' to 'reason'
+        return DenialReason::select('reason as type')
             ->selectRaw('COUNT(*) as value')
-            ->where('reason', 'CANCELLATION')  // Filter by 'reason', not 'type'
-            ->groupBy('reason')  // Group by 'reason'
+            ->where('reason', 'CANCELLATION')
+            ->groupBy('reason')
             ->get()
             ->map(function ($item) {
                 return [
-                    'type' => $item->type,  // This is still named 'type' in the returned data
+                    'type' => $item->type,
                     'value' => $item->value,
                     'color' => $this->getCancellationColor($item->type)
                 ];
             });
     }
 
-
-
+    // Helper method to get denial data
     private function getDenialData()
     {
-        // Implement denial reason breakdown
-        return DenialReason::select('reason as type')  // Renamed from 'type' to 'reason'
+        return DenialReason::select('reason as type')
             ->selectRaw('COUNT(*) as value')
-            ->where('reason', 'DENIAL')  // Filter by 'reason', not 'type'
-            ->groupBy('reason')  // Group by 'reason'
+            ->where('reason', 'DENIAL')
+            ->groupBy('reason')
             ->get()
             ->map(function ($item) {
                 return [
-                    'type' => $item->type,  // This is still named 'type' in the returned data
+                    'type' => $item->type,
                     'value' => $item->value,
                     'color' => $this->getDenialColor($item->type)
                 ];
             });
     }
 
-
-
+    // Helper method to get collector data
     private function getCollectorData()
     {
         return User::select('name as type')
@@ -253,8 +305,7 @@ class AdminDashboardController extends Controller
             ->get();
     }
 
-
-    // Utility color mapping methods
+    // Utility method for color mapping
     private function getEventTypeColor($eventType)
     {
         $colors = [
@@ -305,5 +356,33 @@ class AdminDashboardController extends Controller
         ];
 
         return $colors[$reason] ?? '#607D8B';
+    }
+
+    // Helper function to calculate the response time
+    private function responseTime()
+    {
+        return microtime(true) - LARAVEL_START;
+    }
+
+    // Helper function to format the response
+    private function format_response($message, $data = null, $status_code = 200, $extra = [])
+    {
+        return response()->json([
+            'status' => $status_code,
+            'message' => $message,
+            'data' => $data,
+            'extra' => $extra
+        ]);
+    }
+
+    // Helper function to format error messages
+    private function responseMsgs($message, $data = null, $status_code = 500, $extra = [])
+    {
+        return response()->json([
+            'status' => $status_code,
+            'message' => $message,
+            'data' => $data,
+            'extra' => $extra
+        ]);
     }
 }

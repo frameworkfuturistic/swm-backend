@@ -109,7 +109,6 @@ return new class extends Migration
             $table->integer('vrno');
             $table->timestamps();
         });
-
     }
 
     /**

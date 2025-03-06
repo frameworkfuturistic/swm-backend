@@ -26,7 +26,7 @@ Broadcast::routes(['middleware' => ['auth:sanctum']]);
 // Public routes ********************************************************************
 //*********************************************************************************** */
 Route::post('/login', [AuthController::class, 'login']);
-// Route::post('/register', [AuthController::class, 'register']);
+Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
 //Admin Masters [completed] *************************************************************
@@ -360,7 +360,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
 
 Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
     // API-ID: ADASH-001 [Admin Dashboard]
-    Route::post('dashboard/admin', [AdminDashboardController::class, 'getTransactionDetails']);
+    // Route::post('dashboard/admin', [AdminDashboardController::class, 'getTransactionDetails']);
+    Route::post('/dashboard/admin', [AdminDashboardController::class, 'getTransactionDetails']);
     // // API-ID: ADMIN-007 [Create Category]
     // Route::post('dashboard/accountant', [CategoryController::class, 'store']);
     // // API-ID: ADMIN-007 [Create Category]
@@ -373,4 +374,3 @@ Route::fallback(function () {
         'message' => 'Route not found. Please check the URL and try again.',
     ], 404);
 });
-// Route::post('dashboard/admin', [AdminDashboardController::class, 'getTransactionDetails']);

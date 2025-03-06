@@ -1,5 +1,7 @@
 <?php
 
+
+
 // run after adding any function composer dump-autoload
 
 // // Using class-based helpers
@@ -236,12 +238,12 @@ if (! function_exists('generate_unique_filename')) {
         $uniqueName = $filename;
         $counter = 1;
 
-        while (file_exists(($path ? $path.'/' : '').$uniqueName.'.'.$extension)) {
-            $uniqueName = $filename.'_'.$counter;
+        while (file_exists(($path ? $path . '/' : '') . $uniqueName . '.' . $extension)) {
+            $uniqueName = $filename . '_' . $counter;
             $counter++;
         }
 
-        return $uniqueName.'.'.$extension;
+        return $uniqueName . '.' . $extension;
     }
 }
 
@@ -267,7 +269,7 @@ if (! function_exists('human_filesize')) {
         $pow = min($pow, count($units) - 1);
         $bytes /= pow(1024, $pow);
 
-        return round($bytes, $precision).' '.$units[$pow];
+        return round($bytes, $precision) . ' ' . $units[$pow];
     }
 }
 
@@ -286,10 +288,10 @@ if (! function_exists('mask_email')) {
         $domain = $parts[1];
 
         $masked_username = strlen($username) > 3
-            ? substr($username, 0, 2).str_repeat('*', max(0, strlen($username) - 2))
+            ? substr($username, 0, 2) . str_repeat('*', max(0, strlen($username) - 2))
             : $username;
 
-        return $masked_username.'@'.$domain;
+        return $masked_username . '@' . $domain;
     }
 }
 
@@ -356,7 +358,7 @@ if (! function_exists('array_to_csv')) {
         foreach ($array as $line) {
             $line_array = [];
             foreach ($line as $value) {
-                $line_array[] = $enclosure.str_replace($enclosure, $enclosure.$enclosure, $value).$enclosure;
+                $line_array[] = $enclosure . str_replace($enclosure, $enclosure . $enclosure, $value) . $enclosure;
             }
             $output[] = implode($delimiter, $line_array);
         }

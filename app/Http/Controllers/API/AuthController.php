@@ -84,7 +84,6 @@ class AuthController extends Controller
                 201,
                 ['token' => $token->plainTextToken]
             );
-
         } catch (ValidationException $e) {
             return format_response(
                 'Validation Failed',
@@ -126,7 +125,6 @@ class AuthController extends Controller
                 201,
                 ['token' => $token->plainTextToken]
             );
-
         } catch (ValidationException $e) {
             return format_response(
                 'Validation Failed',
@@ -186,7 +184,6 @@ class AuthController extends Controller
                 'token' => $token->plainTextToken,
                 'user' => $user,
             ]);
-
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Invalid credentials',
@@ -198,7 +195,6 @@ class AuthController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
-
     }
 
     /**
@@ -373,7 +369,6 @@ class AuthController extends Controller
                 null,
                 Response::HTTP_OK
             );
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return format_response(
                 $e->getMessage(),
@@ -387,7 +382,6 @@ class AuthController extends Controller
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
-
     }
 
     public function ping(Request $request)
@@ -423,7 +417,6 @@ class AuthController extends Controller
             $data,
             Response::HTTP_OK
         );
-
     }
 
     public function suspendUser(Request $request, $user_id)
@@ -446,7 +439,6 @@ class AuthController extends Controller
                 null,
                 Response::HTTP_OK
             );
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return format_response(
                 $e->getMessage(),
@@ -475,7 +467,6 @@ class AuthController extends Controller
                 null,
                 Response::HTTP_OK
             );
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return format_response(
                 $e->getMessage(),
@@ -504,7 +495,6 @@ class AuthController extends Controller
                 $users,
                 Response::HTTP_OK
             );
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return format_response(
                 $e->getMessage(),
