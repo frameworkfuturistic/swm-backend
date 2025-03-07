@@ -4,11 +4,10 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\CurrentTransaction;
-use App\Models\Payment;
 use App\Models\Cluster;
 use App\Models\DenialReason;
 use App\Models\User;
+use App\Models\Alert;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +20,6 @@ class AdminDashboardController extends Controller
     public function getTransactionDetails(Request $request)
     {
         try {
-            // Validate incoming data (make sure all necessary fields are provided)
             $validatedData = $request->validate([
                 'fromDate' => 'required|date',
                 'toDate' => 'required|date',
@@ -29,36 +27,65 @@ class AdminDashboardController extends Controller
                 'eventType' => 'required|string',
             ]);
 
-            // Extract data from the request
+            // Input data to the request the request
             $fromDate = $validatedData['fromDate'];
             $toDate = $validatedData['toDate'];
             $zone = $validatedData['zone'];
             $eventType = $validatedData['eventType'];
 
-            // Total Transactions and Payments (Filtered by Date and Zone)
+            // Calculate last month's date range
+            $lastMonthFromDate = Carbon::parse($fromDate)->subMonth()->startOfMonth()->toDateString();
+            $lastMonthToDate = Carbon::parse($toDate)->subMonth()->endOfMonth()->toDateString();
+
+            // Total Transactions  (Filtered by Date and Zone)
             $totalTransactions = DB::table('transactions')
                 ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
                 ->whereBetween('transactions.event_time', [$fromDate, $toDate])
                 ->where('clusters.cluster_name', $zone)
                 ->count();
 
+            // Total Payments  (Filtered by Date and Zone)
             $totalPayments = DB::table('payments')
                 ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
                 ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
                 ->whereBetween('payments.created_at', [$fromDate, $toDate])
                 ->sum('payments.amount');
 
+            // Completed Payments  (Filtered by Date and Zone)
             $completedPayments = DB::table('payments')
                 ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
                 ->where('payments.payment_status', 'completed')
                 ->whereBetween('payments.created_at', [$fromDate, $toDate])
                 ->count();
 
+            // Pending Payments  (Filtered by Date and Zone)
             $pendingPayments = DB::table('payments')
                 ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
                 ->where('payments.payment_status', 'pending')
                 ->whereBetween('payments.created_at', [$fromDate, $toDate])
                 ->count();
+
+            // Last MonthTotalTransactions (Filtered by Date and Zone)
+            $lastTotalTransactions = DB::table('transactions')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
+                ->whereBetween('transactions.event_time', [$lastMonthFromDate, $lastMonthToDate])
+                ->where('clusters.cluster_name', $zone)
+                ->count();
+
+            // Last TotalPayments (Filtered by Date and Zone)
+            $lastTotalPayments = DB::table('payments')
+                ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
+                ->whereBetween('payments.created_at', [$lastMonthFromDate, $lastMonthToDate])
+                ->sum('payments.amount');
+
+            // Last PendingPayments (Filtered by Date and Zone)
+            $lastPendingPayments = DB::table('payments')
+                ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
+                ->where('payments.payment_status', 'pending')
+                ->whereBetween('payments.created_at', [$lastMonthFromDate, $lastMonthToDate])
+                ->count();
+
 
             // Monthly Overview (Filtered by Date and Zone)
             $monthlyOverview = DB::table('transactions')
@@ -83,6 +110,7 @@ class AdminDashboardController extends Controller
                     ];
                 });
 
+
             // Event Type Overview (Filtered by Event Type and Date)
             $eventTypeOverview = DB::table('transactions')
                 ->select('event_type', DB::raw('COUNT(*) as count'))
@@ -93,8 +121,9 @@ class AdminDashboardController extends Controller
                 ->get()
                 ->map(function ($item) {
                     return [
-                        'type' => $item->event_type,
-                        'count' => $item->count
+                        'type' => ucwords(strtolower(str_replace('-', ' ', $item->event_type))),
+                        'count' => $item->count,
+                        'color' => $this->getEventTypeColor($item->event_type)
                     ];
                 });
 
@@ -123,8 +152,6 @@ class AdminDashboardController extends Controller
                     ];
                 });
 
-            // Cluster Data
-            $clusterData = $this->getClusterData();
 
             // Fetch Transactions (Filtered by Date and Zone)
             $transactions = DB::table('transactions')
@@ -162,6 +189,14 @@ class AdminDashboardController extends Controller
                     ];
                 });
 
+
+            // // Alert Data
+            // $alertData = $this->getAlertData();
+
+
+            // Cluster Data
+            $clusterData = $this->getClusterData();
+
             // Cancellation Data
             $cancellationData = $this->getCancellationData();
 
@@ -185,9 +220,12 @@ class AdminDashboardController extends Controller
                 'Transaction Overview fetched successfully',
                 [
                     'totalTransactions' => $totalTransactions,
+                    'lastTotalTransactions' => $lastTotalTransactions,
                     'totalPayments' => $totalPayments,
+                    'lastTotalPayments' => $lastTotalPayments,
                     'completedPayments' => $completedPayments,
                     'pendingPayments' => $pendingPayments,
+                    'lastPendingPayments' => $lastPendingPayments,
                     'overview' => [
                         'transactionsData' => $monthlyOverview,
                         'eventType' => $eventTypeOverview,
@@ -199,10 +237,10 @@ class AdminDashboardController extends Controller
                         'cancellationData' => $cancellationData,
                         'denialData' => $denialData,
                         'collectorData' => $collectorData,
-                        'alert' => [] // You can customize this part based on your alerts data.
+                        // 'alert' => []
                     ]
                 ],
-                200, // HTTP Status code
+                true,
                 [
                     'apiid' => $apiid,
                     'version' => '1.0',
@@ -212,17 +250,12 @@ class AdminDashboardController extends Controller
                 ]
             );
         } catch (\Exception $e) {
-            // Query execution time
             $queryRunTime = $this->responseTime();
-
-            // Capture apiid and Device Name from request
             $apiid = $request->input('apiid', $request->header('apiid', null));
-
-            // Handle exception and return error response
             return $this->responseMsgs(
                 'Error occurred while fetching transaction overview: ' . $e->getMessage(),
                 null,
-                500, // Internal server error status code
+                false,
                 [
                     'apiid' => $apiid,
                     'version' => '1.0',
@@ -234,35 +267,59 @@ class AdminDashboardController extends Controller
         }
     }
 
-    // Helper method to get cluster data
+
+
+
     private function getClusterData()
     {
-        return Cluster::select('cluster_name as area')
-            ->selectRaw('COUNT(current_transactions.id) as transactions')
-            ->selectRaw('SUM(CASE WHEN current_transactions.event_type = "PAYMENT" THEN 1 ELSE 0 END) as payments')
-            ->selectRaw('SUM(payments.amount) as amount')
+        // Using Eloquent models to ensure proper joins and data retrieval
+        $clusterData = Cluster::select(
+            'clusters.id as cluster_id',
+            'clusters.cluster_name as zone',
+            DB::raw('COUNT(current_transactions.id) as transactions'),
+            DB::raw('SUM(CASE WHEN current_transactions.event_type = "PAYMENT" THEN 1 ELSE 0 END) as payments'),
+            DB::raw('SUM(CASE WHEN payments.amount IS NOT NULL THEN payments.amount ELSE 0 END) as amount'),
+            DB::raw('CASE
+            WHEN clusters.cluster_name = "North Cluster" THEN "#4CAF50"
+            WHEN clusters.cluster_name = "South Cluster" THEN "#2196F3"
+            WHEN clusters.cluster_name = "East Cluster" THEN "#FF9800"
+            WHEN clusters.cluster_name = "West Cluster" THEN "#9C27B0"
+            ELSE "#000000" END as color')
+        )
             ->leftJoin('current_transactions', 'clusters.id', '=', 'current_transactions.cluster_id')
-            ->leftJoin('payments', 'current_transactions.payment_id', '=', 'payments.id')
+            ->leftJoin('payments', 'payments.id', '=', 'current_transactions.payment_id')
             ->groupBy('clusters.id', 'clusters.cluster_name')
-            ->havingRaw('SUM(payments.amount) > 0')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'area' => $item->area,
-                    'transactions' => $item->transactions,
-                    'payments' => $item->payments,
-                    'amount' => $item->amount,
-                    'color' => $this->getClusterColor($item->area)
-                ];
-            });
+            ->get();
+
+        // Check if we received any data
+        if ($clusterData->isEmpty()) {
+            Log::debug('No cluster data found.');
+        }
+
+        // Return the data in the format you want
+        return $clusterData->map(function ($item) {
+            return [
+                'zone' => $item->zone,
+                'transactions' => $item->transactions,
+                'payments' => $item->payments,
+                'amount' => $item->amount,
+                'color' => $item->color,
+            ];
+        });
     }
+
+
+
+
+
+
+
+
 
     // Helper method to get cancellation data
     private function getCancellationData()
     {
-        return DenialReason::select('reason as type')
-            ->selectRaw('COUNT(*) as value')
-            ->where('reason', 'CANCELLATION')
+        return DenialReason::select('reason as type', DB::raw('COUNT(*) as value'))
             ->groupBy('reason')
             ->get()
             ->map(function ($item) {
@@ -274,12 +331,13 @@ class AdminDashboardController extends Controller
             });
     }
 
+
+
     // Helper method to get denial data
     private function getDenialData()
     {
         return DenialReason::select('reason as type')
             ->selectRaw('COUNT(*) as value')
-            ->where('reason', 'DENIAL')
             ->groupBy('reason')
             ->get()
             ->map(function ($item) {
@@ -291,21 +349,46 @@ class AdminDashboardController extends Controller
             });
     }
 
+
+
     // Helper method to get collector data
     private function getCollectorData()
     {
-        return User::select('name as type')
+        return User::select(DB::raw('"Tax Collector" as type'), 'users.name as collector_name')
             ->selectRaw('COUNT(current_transactions.id) as transactions')
             ->selectRaw('SUM(CASE WHEN current_transactions.event_type = "PAYMENT" THEN 1 ELSE 0 END) as payments')
             ->selectRaw('SUM(payments.amount) as amount')
             ->leftJoin('current_transactions', 'users.id', '=', 'current_transactions.tc_id')
             ->leftJoin('payments', 'current_transactions.payment_id', '=', 'payments.id')
-            ->where('users.role', 'COLLECTOR')
+            ->where('users.role', 'TAX_COLLECTOR')
             ->groupBy('users.id', 'users.name')
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'type' => $item->type . ' ' . $item->collector_name,
+                    'transactions' => $item->transactions,
+                    'payments' => $item->payments,
+                    'amount' => $item->amount
+                ];
+            });
     }
 
+
+    // // Helper method to get alert data
+    // private function getAlertData()
+    // {
+    //     // Assuming you have an Alert model with title, message, and dateTime fields
+    //     return Alert::select('title', 'message', 'date_time as dateTime')
+    //         ->get()
+    //         ->toArray();
+    // }
+
+
+
+
     // Utility method for color mapping
+
+    //EventType
     private function getEventTypeColor($eventType)
     {
         $colors = [
@@ -320,6 +403,9 @@ class AdminDashboardController extends Controller
         return $colors[$eventType] ?? '#607D8B';
     }
 
+
+
+    //Cluster
     private function getClusterColor($clusterName)
     {
         $colors = [
@@ -332,6 +418,9 @@ class AdminDashboardController extends Controller
         return $colors[$clusterName] ?? '#607D8B';
     }
 
+
+
+    //Cancellation
     private function getCancellationColor($reason)
     {
         $colors = [
@@ -345,6 +434,9 @@ class AdminDashboardController extends Controller
         return $colors[$reason] ?? '#607D8B';
     }
 
+
+
+    //Denial
     private function getDenialColor($reason)
     {
         $colors = [
@@ -357,6 +449,8 @@ class AdminDashboardController extends Controller
 
         return $colors[$reason] ?? '#607D8B';
     }
+
+
 
     // Helper function to calculate the response time
     private function responseTime()

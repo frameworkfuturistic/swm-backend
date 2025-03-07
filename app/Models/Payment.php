@@ -30,4 +30,17 @@ class Payment extends Model
         'is_canceled',
         'vrno',
     ];
+    public function cluster()
+    {
+        return $this->belongsTo(Cluster::class);
+    }
+
+    public function currentTransactions()
+    {
+        return $this->hasMany(CurrentTransaction::class, 'payment_id');
+    }
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'payment_id');
+    }
 }

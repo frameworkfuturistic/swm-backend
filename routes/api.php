@@ -374,3 +374,4 @@ Route::fallback(function () {
         'message' => 'Route not found. Please check the URL and try again.',
     ], 404);
 });
+// Route::get('/welcome', [AdminDashboardController::class, 'welcome']);
