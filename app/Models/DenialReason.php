@@ -28,4 +28,9 @@ class DenialReason extends Model
     {
         return $this->belongsTo(Ulb::class);
     }
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'denial_reasons_id');
+    }
 }

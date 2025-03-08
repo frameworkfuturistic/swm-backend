@@ -190,8 +190,8 @@ class AdminDashboardController extends Controller
                 });
 
 
-            // // Alert Data
-            // $alertData = $this->getAlertData();
+            // Alert Data
+            $alertData = $this->getAlertData($request);
 
 
             // Cluster Data
@@ -237,7 +237,7 @@ class AdminDashboardController extends Controller
                         'cancellationData' => $cancellationData,
                         'denialData' => $denialData,
                         'collectorData' => $collectorData,
-                        // 'alert' => []
+                        'alert' => $alertData
                     ]
                 ],
                 true,
@@ -309,13 +309,6 @@ class AdminDashboardController extends Controller
     }
 
 
-
-
-
-
-
-
-
     // Helper method to get cancellation data
     private function getCancellationData()
     {
@@ -374,14 +367,29 @@ class AdminDashboardController extends Controller
     }
 
 
-    // // Helper method to get alert data
-    // private function getAlertData()
-    // {
-    //     // Assuming you have an Alert model with title, message, and dateTime fields
-    //     return Alert::select('title', 'message', 'date_time as dateTime')
-    //         ->get()
-    //         ->toArray();
-    // }
+    // Helper method to get alert data
+    private function getAlertData(Request $request)
+    {
+        // Log the incoming request data (optional for debugging)
+        Log::info('Alert Data:', $request->all());
+
+        // Create the alert array using data from the request
+        $alert = [
+            'title' => $request->input('title', ''), // Default value is '' if 'title' is not present
+            'message' => $request->input('message', ''), // Default value is '' if 'message' is not present
+            'dateTime' => $request->input('dateTime', now()->toDateTimeString()), // Default to current dateTime if not provided
+            'priority' => $request->input('priority', 'Medium'), // Default priority is 'Medium'
+            'category' => $request->input('category', 'Unverified'), // Default category is 'Unverified'
+        ];
+
+        // Log the final alert data (optional for debugging)
+        Log::info('Final Alert Data:', $alert);
+
+        // Return the alert data
+        return $alert;
+    }
+
+
 
 
 

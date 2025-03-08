@@ -5,6 +5,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ClusterController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
+use App\Http\Controllers\Dashboard\ManageTransactionController;
 use App\Http\Controllers\DemandController;
 use App\Http\Controllers\DenialReasonController;
 use App\Http\Controllers\EntityController;
@@ -362,12 +363,20 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
     // API-ID: ADASH-001 [Admin Dashboard]
     // Route::post('dashboard/admin', [AdminDashboardController::class, 'getTransactionDetails']);
     Route::post('/dashboard/admin', [AdminDashboardController::class, 'getTransactionDetails']);
+    Route::post('/dashboard/admin/denial', [AdminDashboardController::class, 'getTransactionData']);
     // // API-ID: ADMIN-007 [Create Category]
     // Route::post('dashboard/accountant', [CategoryController::class, 'store']);
     // // API-ID: ADMIN-007 [Create Category]
     // Route::post('dashboard/transactions', [CategoryController::class, 'store']);
 });
 
+
+
+
+Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
+    // API-ID: MDASH-001 [Manager Dashboard]
+    Route::post('/dashboard/admin/denial', [ManageTransactionController::class, 'getTransactionData']);
+});
 Route::fallback(function () {
     return response()->json([
         'success' => false,

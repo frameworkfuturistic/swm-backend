@@ -54,4 +54,9 @@ class Transaction extends Model
     {
         return $this->belongsTo(Payment::class);
     }
+
+    public function denial()
+    {
+        return $this->belongsTo(DenialReason::class);
+    }
 }
