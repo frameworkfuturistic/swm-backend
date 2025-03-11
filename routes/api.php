@@ -382,7 +382,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
 
 
 Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
-    // API-ID: ADASH-001 [Account Dashboard]
+    // API-ID: ACDASH-001 [Account Dashboard]
     Route::get('/account/admin', [AccountController::class, 'getPaymentSummary']);
 });
 

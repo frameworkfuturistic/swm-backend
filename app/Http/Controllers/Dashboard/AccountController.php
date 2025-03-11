@@ -13,6 +13,12 @@ class AccountController extends Controller
     public function getPaymentSummary(Request $request)
     {
         try {
+            $apiid = $request->input('apiid', $request->header('apiid', 'ACDASH - 001'));
+            if (!$apiid) {
+                Log::debug('No apiid passed in the request.');
+            } else {
+                Log::debug('apiid received: ' . $apiid);
+            }
             // Fetch payment collection summary
             $paymentCollectionSummary = DB::table('paymenttable')
                 ->selectRaw('
@@ -143,7 +149,10 @@ class AccountController extends Controller
                 ->get();
 
             // Prepare the response
-            $response = [
+            return response()->json([
+                'apiid' => $apiid,
+                'success' => true,
+                'message' => 'Transaction data fetched successfully',
                 'data' => [
                     'paymentCollectionSummary' => [
                         [
@@ -170,14 +179,21 @@ class AccountController extends Controller
                         'monthlyData' => $monthlyData->toArray(),
                         'tcData' => $tcData->toArray(),
                     ]
+                ],
+                'meta' => [
+                    'epoch' => now()->timestamp,
+                    'queryTime' => round(microtime(true) - LARAVEL_START, 4),
+                    'server' => request()->server('SERVER_NAME')
                 ]
-            ];
-
+            ]);
             return response()->json($response);
         } catch (\Exception $e) {
+            // Log and return error response if exception occurs
+            Log::error('Error while fetching transaction data: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error occurred: ' . $e->getMessage(),
+                'apiid' => $apiid
             ], 500);
         }
     }

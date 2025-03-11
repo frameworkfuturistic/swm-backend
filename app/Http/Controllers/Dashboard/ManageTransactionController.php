@@ -12,7 +12,7 @@ class ManageTransactionController extends Controller
     public function getTransactionData(Request $request)
     {
         try {
-            $apiid = $request->input('apiid', $request->header('apiid', null));
+            $apiid = $request->input('apiid', $request->header('apiid', 'MDASH-001'));
             if (!$apiid) {
                 Log::debug('No apiid passed in the request.');
             } else {
