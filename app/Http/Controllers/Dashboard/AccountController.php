@@ -39,9 +39,11 @@ class AccountController extends Controller
                 ->leftJoin('ratepayers', 'payments.ratepayer_id', '=', 'ratepayers.id')
                 ->leftJoin('users', 'payments.tc_id', '=', 'users.id')
                 ->select(
-                    'payments.id',
+                    DB::raw("CONCAT('PMT-2000', payments.id) AS id"),
+                    DB::raw("CONCAT('Ratepayer 100', ratepayer_id) AS ratepayer_id"),
+                    // 'payments.id',
                     'payments.vrno',
-                    'payments.ratepayer_id',
+                    // 'payments.ratepayer_id',
                     'ratepayers.ratepayer_name',
                     'payments.tc_id',
                     'users.name',
@@ -57,9 +59,11 @@ class AccountController extends Controller
                 ->leftJoin('ratepayers', 'payments.ratepayer_id', '=', 'ratepayers.id')
                 ->leftJoin('users', 'payments.tc_id', '=', 'users.id')
                 ->select(
-                    'payments.id',
+                    DB::raw("CONCAT('PMT-2000', payments.id) AS id"),
+                    DB::raw("CONCAT('Ratepayer 100', ratepayer_id) AS ratepayer_id"),
+                    // 'payments.id',
                     'payments.vrno',
-                    'payments.ratepayer_id',
+                    // 'payments.ratepayer_id',
                     'ratepayers.ratepayer_name',
                     'payments.tc_id',
                     'users.name',
@@ -78,9 +82,11 @@ class AccountController extends Controller
                 ->leftJoin('ratepayers', 'payments.ratepayer_id', '=', 'ratepayers.id')
                 ->leftJoin('users', 'payments.tc_id', '=', 'users.id')
                 ->select(
-                    'payments.id',
+                    DB::raw("CONCAT('PMT-2000', payments.id) AS id"),
+                    DB::raw("CONCAT('Ratepayer 100', ratepayer_id) AS ratepayer_id"),
+                    // 'payments.id',
                     'payments.vrno',
-                    'payments.ratepayer_id',
+                    // 'payments.ratepayer_id',
                     'ratepayers.ratepayer_name',
                     'payments.tc_id',
                     'users.name',
@@ -108,12 +114,14 @@ class AccountController extends Controller
                 ->where('payment_mode', 'CHEQUE')
                 ->leftJoin('ratepayers', 'payments.ratepayer_id', '=', 'ratepayers.id')
                 ->select(
-                    'payments.id',
+                    DB::raw("CONCAT('PMT-2000', payments.id) AS id"),
+                    DB::raw("CONCAT('Ratepayer 100', ratepayer_id) AS ratepayer_id"),
+                    // 'payments.id',
                     'payments.cheque_number',
                     // 'paymenttable.cheque_date',
                     'payments.bank_name',
                     'payments.amount',
-                    'payments.ratepayer_id',
+                    // 'payments.ratepayer_id',
                     'ratepayers.ratepayer_name',
                     // 'paymenttable.payment_id',
                     'payments.vrno',
