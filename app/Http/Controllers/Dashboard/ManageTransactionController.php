@@ -24,73 +24,79 @@ class ManageTransactionController extends Controller
             $fromDate = $request->input('fromDate', null);
             $toDate = $request->input('toDate', null);
 
-            $query = DB::table('transactionstable')
-                ->join('paymenttable', 'transactionstable.payment_id', '=', 'paymenttable.id')
-                ->join('ratepayerstable', 'transactionstable.ratepayer_id', '=', 'ratepayerstable.id')
+            $query = DB::table('transactions')
+                ->join('payments', 'transactions.payment_id', '=', 'payments.id')
+                ->join('ratepayers', 'transactions.ratepayer_id', '=', 'ratepayers.id')
                 ->select(
-                    'transactionstable.id',
-                    'transactionstable.ulb_id',
-                    'transactionstable.ratepayer_id',
-                    'ratepayerstable.ratepayer_name',
-                    'transactionstable.tc_id',
-                    'paymenttable.payment_date',
-                    'paymenttable.payment_mode',
-                    'paymenttable.payment_status',
-                    'paymenttable.amount',
-                    'paymenttable.is_canceled',
-                    'transactionstable.cancellationdate'
+                    DB::raw("CONCAT('TRX1000', transactions.id) AS id"),
+                    DB::raw("CONCAT('ULB-', transactions.ulb_id) AS ulb_id"),
+                    DB::raw("CONCAT('RATEPAYER100', transactions.ratepayer_id) AS ratepayer_id"),
+                    // 'transactions.id',
+                    // 'transactions.ulb_id',
+                    // 'transactions.ratepayer_id',
+                    'ratepayers.ratepayer_name',
+                    'transactions.tc_id',
+                    'payments.payment_date',
+                    'payments.payment_mode',
+                    'payments.payment_status',
+                    'payments.amount',
+                    'payments.is_canceled',
+                    'transactions.cancellation_date'
                 );
 
             if ($vrNo) {
-                $query->where('transactionstable.vrno', $vrNo);
+                $query->where('transactions.vrno', $vrNo);
             }
             if ($ratepayerId) {
-                $query->where('transactionstable.ratepayer_id', $ratepayerId);
+                $query->where('transactions.ratepayer_id', $ratepayerId);
             }
             if ($paymentId) {
-                $query->where('transactionstable.payment_id', $paymentId);
+                $query->where('transactions.payment_id', $paymentId);
             }
             if ($fromDate && $toDate) {
-                $query->whereBetween('transactionstable.event_time', [$fromDate, $toDate]);
+                $query->whereBetween('transactions.event_time', [$fromDate, $toDate]);
             }
 
-            $activeTransactions = $query->whereNull('transactionstable.cancellationdate')->get();
+            $activeTransactions = $query->whereNull('transactions.cancellation_date')->get();
 
             Log::info('Active Transactions Query:', [
                 'query' => $query->toSql(),
                 'bindings' => $query->getBindings()
             ]);
 
-            $cancelledTransactionsQuery = DB::table('transactionstable')
-                ->join('paymenttable', 'transactionstable.payment_id', '=', 'paymenttable.id')
-                ->join('ratepayerstable', 'transactionstable.ratepayer_id', '=', 'ratepayerstable.id')
+            $cancelledTransactionsQuery = DB::table('transactions')
+                ->join('payments', 'transactions.payment_id', '=', 'payments.id')
+                ->join('ratepayers', 'transactions.ratepayer_id', '=', 'ratepayers.id')
                 ->select(
-                    'transactionstable.id',
-                    'transactionstable.ulb_id',
-                    'transactionstable.ratepayer_id',
-                    'ratepayerstable.ratepayer_name',
-                    'transactionstable.tc_id',
-                    'paymenttable.payment_date',
-                    'paymenttable.payment_mode',
-                    'paymenttable.payment_status',
-                    'paymenttable.amount',
-                    'paymenttable.is_canceled',
-                    'transactionstable.cancellationdate'
+                    DB::raw("CONCAT('TRX1000', transactions.id) AS id"),
+                    DB::raw("CONCAT('ULB-', transactions.ulb_id) AS ulb_id"),
+                    DB::raw("CONCAT('RATEPAYER100', transactions.ratepayer_id) AS ratepayer_id"),
+                    // 'transactions.id',
+                    // 'transactions.ulb_id',
+                    // 'transactions.ratepayer_id',
+                    'ratepayers.ratepayer_name',
+                    'transactions.tc_id',
+                    'payments.payment_date',
+                    'payments.payment_mode',
+                    'payments.payment_status',
+                    'payments.amount',
+                    'payments.is_canceled',
+                    'transactions.cancellation_date'
                 );
 
             if ($vrNo) {
-                $cancelledTransactionsQuery->where('transactionstable.vrno', $vrNo);
+                $cancelledTransactionsQuery->where('transactions.vrno', $vrNo);
             }
             if ($ratepayerId) {
-                $cancelledTransactionsQuery->where('transactionstable.ratepayer_id', $ratepayerId);
+                $cancelledTransactionsQuery->where('transactions.ratepayer_id', $ratepayerId);
             }
             if ($paymentId) {
-                $cancelledTransactionsQuery->where('transactionstable.payment_id', $paymentId);
+                $cancelledTransactionsQuery->where('transactions.payment_id', $paymentId);
             }
             if ($fromDate && $toDate) {
-                $cancelledTransactionsQuery->whereBetween('transactionstable.event_time', [$fromDate, $toDate]);
+                $cancelledTransactionsQuery->whereBetween('transactions.event_time', [$fromDate, $toDate]);
             }
-            $cancelledTransactionsQuery->whereNotNull('transactionstable.cancellationdate');
+            $cancelledTransactionsQuery->whereNotNull('transactions.cancellation_date');
 
             $cancelledTransactions = $cancelledTransactionsQuery->get();
 
@@ -104,11 +110,11 @@ class ManageTransactionController extends Controller
 
             if ($vrNo && $ratepayerId && $paymentId) {
 
-                $cancelPayload = DB::table('transactionstable')
-                    ->join('denial_reasons', 'transactionstable.denial_resons_id', '=', 'denial_reasons.id')
-                    ->where('transactionstable.vrno', $vrNo)
-                    ->where('transactionstable.ratepayer_id', $ratepayerId)
-                    ->where('transactionstable.payment_id', $paymentId)
+                $cancelPayload = DB::table('transactions')
+                    ->join('denial_reasons', 'transactions.denial_reason_id', '=', 'denial_reasons.id')
+                    ->where('transactions.vrno', $vrNo)
+                    ->where('transactions.ratepayer_id', $ratepayerId)
+                    ->where('transactions.payment_id', $paymentId)
                     ->select('denial_reasons.ulb_id', 'denial_reasons.reason')
                     ->first();
             } else {

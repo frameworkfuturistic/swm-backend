@@ -39,10 +39,10 @@ class AdminDashboardController extends Controller
 
 
             // Total Transactions (Filtered by Date and Zone)
-            $totalTransactions = DB::table('transactionstable')
-                ->join('clusters', 'transactionstable.cluster_id', '=', 'clusters.id')
+            $totalTransactions = DB::table('transactions')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
                 ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween('transactionstable.event_time', [$fromDate, $toDate]);
+                    return $query->whereBetween('transactions.event_time', [$fromDate, $toDate]);
                 })
                 ->when($zone !== 'All Zones', function ($query) use ($zone) {
                     return $query->where('clusters.cluster_name', $zone);
@@ -54,16 +54,16 @@ class AdminDashboardController extends Controller
 
 
             // Total Payments (Filtered by Date and Zone)
-            $totalPayments = DB::table('paymenttable')
-                ->join('transactionstable', 'transactionstable.payment_id', '=', 'paymenttable.id')
-                ->join('clusters', 'transactionstable.cluster_id', '=', 'clusters.id')
+            $totalPayments = DB::table('payments')
+                ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
                 ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween('paymenttable.created_at', [$fromDate, $toDate]);
+                    return $query->whereBetween('payments.created_at', [$fromDate, $toDate]);
                 })
                 ->when($zone !== 'All Zones', function ($query) use ($zone) {
                     return $query->where('clusters.cluster_name', $zone);
                 })
-                ->sum('paymenttable.amount');
+                ->sum('payments.amount');
 
 
 
@@ -71,11 +71,11 @@ class AdminDashboardController extends Controller
 
 
             // Completed Payments (Filtered by Date and Zone)
-            $completedPayments = DB::table('paymenttable')
-                ->join('transactionstable', 'transactionstable.payment_id', '=', 'paymenttable.id')
-                ->where('paymenttable.payment_status', 'completed')
+            $completedPayments = DB::table('payments')
+                ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
+                ->where('payments.payment_status', 'completed')
                 ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween('paymenttable.created_at', [$fromDate, $toDate]);
+                    return $query->whereBetween('payments.created_at', [$fromDate, $toDate]);
                 })
                 ->count();
 
@@ -84,11 +84,11 @@ class AdminDashboardController extends Controller
 
 
             // Pending Payments (Filtered by Date and Zone)
-            $pendingPayments = DB::table('paymenttable')
-                ->join('transactionstable', 'transactionstable.payment_id', '=', 'paymenttable.id')
-                ->where('paymenttable.payment_status', 'pending')
+            $pendingPayments = DB::table('payments')
+                ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
+                ->where('payments.payment_status', 'pending')
                 ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween('paymenttable.created_at', [$fromDate, $toDate]);
+                    return $query->whereBetween('payments.created_at', [$fromDate, $toDate]);
                 })
                 ->count();
 
@@ -98,15 +98,15 @@ class AdminDashboardController extends Controller
 
             // lastTotalTransactions (Filtered by Date and Zone)
 
-            $lastTotalTransactions = DB::table('transactionstable')
-                ->join('clusters', 'transactionstable.cluster_id', '=', 'clusters.id')
+            $lastTotalTransactions = DB::table('transactions')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
                 ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween('transactionstable.event_time', [$fromDate, $toDate]);
+                    return $query->whereBetween('transactions.event_time', [$fromDate, $toDate]);
                 })
                 ->when($zone && $zone !== 'All Zones', function ($query) use ($zone) {
                     return $query->where('clusters.cluster_name', $zone);
                 })
-                ->where('transactionstable.paymentStatus', 'completed')
+                ->where('transactions.paymentStatus', 'completed')
                 ->count();
 
 
@@ -115,32 +115,32 @@ class AdminDashboardController extends Controller
 
             // lastTotalPayments (Filtered by Date and Zone)
 
-            $lastTotalPayments = DB::table('paymenttable')
-                ->join('transactionstable', 'transactionstable.payment_id', '=', 'paymenttable.id')
-                ->join('clusters', 'transactionstable.cluster_id', '=', 'clusters.id')
+            $lastTotalPayments = DB::table('payments')
+                ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
                 ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween('paymenttable.created_at', [$fromDate, $toDate]);
+                    return $query->whereBetween('payments.created_at', [$fromDate, $toDate]);
                 })
                 ->when($zone && $zone !== 'All Zones', function ($query) use ($zone) {
                     return $query->where('clusters.cluster_name', $zone);
                 })
-                ->sum('paymenttable.amount');
+                ->sum('payments.amount');
 
 
 
 
             // lastPendingPayments (Filtered by Date and Zone)
 
-            $lastPendingPayments = DB::table('paymenttable')
-                ->join('transactionstable', 'transactionstable.payment_id', '=', 'paymenttable.id')
-                ->join('clusters', 'transactionstable.cluster_id', '=', 'clusters.id')
+            $lastPendingPayments = DB::table('payments')
+                ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
                 ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween('paymenttable.created_at', [$fromDate, $toDate]);
+                    return $query->whereBetween('payments.created_at', [$fromDate, $toDate]);
                 })
                 ->when($zone && $zone !== 'All Zones', function ($query) use ($zone) {
                     return $query->where('clusters.cluster_name', $zone);
                 })
-                ->where('paymenttable.payment_status', 'pending')
+                ->where('payments.payment_status', 'pending')
                 ->count();
 
 
@@ -148,31 +148,31 @@ class AdminDashboardController extends Controller
 
 
             // Monthly Overview (Filtered by Date and Zone)
-            $monthlyOverview = DB::table('transactionstable')
-                ->join('paymenttable', 'transactionstable.payment_id', '=', 'paymenttable.id')
-                ->join('clusters', 'transactionstable.cluster_id', '=', 'clusters.id')
+            $monthlyOverview = DB::table('transactions')
+                ->join('payments', 'transactions.payment_id', '=', 'payments.id')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
                 ->select(
-                    DB::raw('MONTH(transactionstable.event_time) as month_number'),
-                    DB::raw('MONTHNAME(transactionstable.event_time) as month_name'),
-                    DB::raw('COUNT(*) as transactionstable'),
-                    DB::raw('SUM(IFNULL(paymenttable.amount, 0)) as amount'),
-                    DB::raw('SUM(CASE WHEN paymenttable.payment_status = "completed" THEN IFNULL(paymenttable.amount, 0) ELSE 0 END) as total_collected_payments') // Total payments where status is 'completed'
+                    DB::raw('MONTH(transactions.event_time) as month_number'),
+                    DB::raw('MONTHNAME(transactions.event_time) as month_name'),
+                    DB::raw('COUNT(*) as transactions'),
+                    DB::raw('SUM(IFNULL(payments.amount, 0)) as amount'),
+                    DB::raw('SUM(CASE WHEN payments.payment_status = "completed" THEN IFNULL(payments.amount, 0) ELSE 0 END) as total_collected_payments') // Total payments where status is 'completed'
                 )
                 ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween('transactionstable.event_time', [$fromDate, $toDate]);
+                    return $query->whereBetween('transactions.event_time', [$fromDate, $toDate]);
                 })
                 ->when($zone !== 'All Zones', function ($query) use ($zone) {
                     return $query->where('clusters.cluster_name', $zone);
                 })
-                ->groupBy(DB::raw('MONTH(transactionstable.event_time), MONTHNAME(transactionstable.event_time)'))
-                ->having(DB::raw('SUM(IFNULL(paymenttable.amount, 0))'), '>', 0)
+                ->groupBy(DB::raw('MONTH(transactions.event_time), MONTHNAME(transactions.event_time)'))
+                ->having(DB::raw('SUM(IFNULL(payments.amount, 0))'), '>', 0)
                 ->get()
                 ->map(function ($item) {
                     return [
                         'month' => date('M', mktime(0, 0, 0, $item->month_number, 1)),
-                        'transactions' => $item->transactionstable,
+                        'transactions' => $item->transactions,
                         'amount' => $item->amount,
-                        'Payments' => $item->total_collected_payments
+                        'payments' => $item->total_collected_payments
                     ];
                 });
 
@@ -180,7 +180,7 @@ class AdminDashboardController extends Controller
 
 
             // Event Type Overview (Filtered by Event Type and Date)
-            $eventTypeOverview = DB::table('transactionstable')
+            $eventTypeOverview = DB::table('transactions')
                 ->select('event_type', DB::raw('COUNT(*) as count'))
                 ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
                     return $query->whereBetween('event_time', [$fromDate, $toDate]);
@@ -204,23 +204,23 @@ class AdminDashboardController extends Controller
 
 
             // Payment Mode Status (Filtered by Date and Zone)
-            $paymentModeStatus = DB::table('paymenttable')
-                ->join('transactionstable', 'transactionstable.payment_id', '=', 'paymenttable.id')
-                ->join('clusters', 'transactionstable.cluster_id', '=', 'clusters.id')
+            $paymentModeStatus = DB::table('payments')
+                ->join('transactions', 'transactions.payment_id', '=', 'payments.id')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
                 ->select(
-                    'paymenttable.payment_mode',
-                    DB::raw('SUM(CASE WHEN paymenttable.payment_status = "completed" THEN 1 ELSE 0 END) as completed'),
-                    DB::raw('SUM(CASE WHEN paymenttable.payment_status = "pending" THEN 1 ELSE 0 END) as pending'),
-                    DB::raw('SUM(CASE WHEN paymenttable.payment_status = "failed" THEN 1 ELSE 0 END) as failed'),
-                    DB::raw('SUM(CASE WHEN paymenttable.payment_status = "refunded" THEN 1 ELSE 0 END) as refunded')
+                    'payments.payment_mode',
+                    DB::raw('SUM(CASE WHEN payments.payment_status = "completed" THEN 1 ELSE 0 END) as completed'),
+                    DB::raw('SUM(CASE WHEN payments.payment_status = "pending" THEN 1 ELSE 0 END) as pending'),
+                    DB::raw('SUM(CASE WHEN payments.payment_status = "failed" THEN 1 ELSE 0 END) as failed'),
+                    DB::raw('SUM(CASE WHEN payments.payment_status = "refunded" THEN 1 ELSE 0 END) as refunded')
                 )
                 ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween('paymenttable.created_at', [$fromDate, $toDate]);
+                    return $query->whereBetween('payments.created_at', [$fromDate, $toDate]);
                 })
                 ->when($zone !== 'All Zones', function ($query) use ($zone) {
                     return $query->where('clusters.cluster_name', $zone);
                 })
-                ->groupBy('paymenttable.payment_mode')
+                ->groupBy('payments.payment_mode')
                 ->get()
                 ->map(function ($item) {
                     return [
@@ -237,25 +237,25 @@ class AdminDashboardController extends Controller
 
 
             // Fetch Transactions (Filtered by Date and Zone)
-            $transactions = DB::table('transactionstable')
-                ->join('clusters', 'transactionstable.cluster_id', '=', 'clusters.id')
-                ->leftJoin('paymenttable', 'transactionstable.payment_id', '=', 'paymenttable.id')
+            $transactions = DB::table('transactions')
+                ->join('clusters', 'transactions.cluster_id', '=', 'clusters.id')
+                ->leftJoin('payments', 'transactions.payment_id', '=', 'payments.id')
                 ->select(
-                    'transactionstable.id',
-                    'transactionstable.ulb_id as ulb',
-                    'transactionstable.ratepayer_id as ratepayer',
-                    'transactionstable.event_time as eventTime',
-                    'transactionstable.event_type as eventType',
-                    'paymenttable.id as paymentId',
-                    'paymenttable.payment_mode as paymentMode',
-                    'paymenttable.payment_status as paymentStatus',
-                    'paymenttable.amount',
-                    'transactionstable.verificationdate as verificationDate',
-                    'transactionstable.cancellationdate as cancellationDate'
+                    DB::raw("CONCAT('TRX1000', transactions.id) AS id"),
+                    DB::raw("CONCAT('ULB-', transactions.ulb_id) AS ulb"),
+                    DB::raw("CONCAT('RATEPAYER100', transactions.ratepayer_id) AS ratepayer"),
+                    DB::raw("CONCAT('PMT-2000', payments.id) AS paymentId"),
+                    'transactions.event_time as eventTime',
+                    'transactions.event_type as eventType',
+                    'payments.payment_mode as paymentMode',
+                    'payments.payment_status as paymentStatus',
+                    'payments.amount',
+                    'transactions.verification_date as verificationDate',
+                    'transactions.cancellation_date as cancellationDate'
                 )
                 // Only apply date filters if both dates are provided
                 ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween('transactionstable.event_time', [$fromDate, $toDate]);
+                    return $query->whereBetween('transactions.event_time', [$fromDate, $toDate]);
                 })
                 // Ensure the 'zone' filter works properly, even if it's not provided
                 ->when($zone !== 'All Zones', function ($query) use ($zone) {
@@ -264,7 +264,7 @@ class AdminDashboardController extends Controller
                 ->get()
                 ->map(function ($item) {
                     return [
-                        'id' => $item->id,
+                        'id' => $item->id, // This will be in the format 'TRX1000-{id}'
                         'ulb' => $item->ulb,
                         'ratepayer' => $item->ratepayer,
                         'eventTime' => $item->eventTime,
@@ -277,6 +277,7 @@ class AdminDashboardController extends Controller
                         'cancellationDate' => $item->cancellationDate
                     ];
                 });
+
 
 
 
@@ -299,7 +300,7 @@ class AdminDashboardController extends Controller
             $queryRunTime = $this->responseTime();
 
             // Capture apiid and Device Name from request
-            $apiid = $request->input('apiid', $request->header('apiid', null));
+            $apiid = $request->input('apiid', $request->header('apiid', 'ADASH-001'));
             if (!$apiid) {
                 Log::debug('No apiid passed in the request.');
             }
@@ -436,11 +437,11 @@ class AdminDashboardController extends Controller
     private function getCollectorData()
     {
         return User::select(DB::raw('"Tax Collector" as type'), 'users.name as collector_name')
-            ->selectRaw('COUNT(transactionstable.id) as transactions')
-            ->selectRaw('SUM(CASE WHEN transactionstable.event_type = "PAYMENT" THEN 1 ELSE 0 END) as payments')
-            ->selectRaw('SUM(paymenttable.amount) as amount')
-            ->leftJoin('transactionstable', 'users.id', '=', 'transactionstable.tc_id')
-            ->leftJoin('paymenttable', 'transactionstable.payment_id', '=', 'paymenttable.id')
+            ->selectRaw('COUNT(transactions.id) as transactions')
+            ->selectRaw('SUM(CASE WHEN transactions.event_type = "PAYMENT" THEN 1 ELSE 0 END) as payments')
+            ->selectRaw('SUM(payments.amount) as amount')
+            ->leftJoin('transactions', 'users.id', '=', 'transactions.tc_id')
+            ->leftJoin('payments', 'transactions.payment_id', '=', 'payments.id')
             ->where('users.role', 'TAX_COLLECTOR')
             ->groupBy('users.id', 'users.name')
             ->get()

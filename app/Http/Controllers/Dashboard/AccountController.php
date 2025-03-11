@@ -20,7 +20,7 @@ class AccountController extends Controller
                 Log::debug('apiid received: ' . $apiid);
             }
             // Fetch payment collection summary
-            $paymentCollectionSummary = DB::table('paymenttable')
+            $paymentCollectionSummary = DB::table('payments')
                 ->selectRaw('
                 SUM(CASE WHEN payment_mode = "CASH" THEN amount ELSE 0 END) as cash_collected,
                 SUM(CASE WHEN payment_mode = "CASH" AND payment_verified IS NOT NULL THEN amount ELSE 0 END) as cash_verified,
@@ -34,67 +34,67 @@ class AccountController extends Controller
                 ->first();
 
             // Fetch cash verification details
-            $cashVerification = DB::table('paymenttable')
+            $cashVerification = DB::table('payments')
                 ->where('payment_mode', 'CASH')
-                ->leftJoin('ratepayerstable', 'paymenttable.ratepayer_id', '=', 'ratepayerstable.id')
-                ->leftJoin('users', 'paymenttable.tc_id', '=', 'users.id')
+                ->leftJoin('ratepayers', 'payments.ratepayer_id', '=', 'ratepayers.id')
+                ->leftJoin('users', 'payments.tc_id', '=', 'users.id')
                 ->select(
-                    'paymenttable.id',
-                    'paymenttable.vrno',
-                    'paymenttable.ratepayer_id',
-                    'ratepayerstable.ratepayer_name',
-                    'paymenttable.tc_id',
+                    'payments.id',
+                    'payments.vrno',
+                    'payments.ratepayer_id',
+                    'ratepayers.ratepayer_name',
+                    'payments.tc_id',
                     'users.name',
-                    'paymenttable.payment_date',
-                    'paymenttable.amount',
-                    'paymenttable.payment_verified'
+                    'payments.payment_date',
+                    'payments.amount',
+                    'payments.payment_verified'
                 )
                 ->get();
 
             // Fetch cheque verification details
-            $chequeVerification = DB::table('paymenttable')
+            $chequeVerification = DB::table('payments')
                 ->where('payment_mode', 'CHEQUE')
-                ->leftJoin('ratepayerstable', 'paymenttable.ratepayer_id', '=', 'ratepayerstable.id')
-                ->leftJoin('users', 'paymenttable.tc_id', '=', 'users.id')
+                ->leftJoin('ratepayers', 'payments.ratepayer_id', '=', 'ratepayers.id')
+                ->leftJoin('users', 'payments.tc_id', '=', 'users.id')
                 ->select(
-                    'paymenttable.id',
-                    'paymenttable.vrno',
-                    'paymenttable.ratepayer_id',
-                    'ratepayerstable.ratepayer_name',
-                    'paymenttable.tc_id',
+                    'payments.id',
+                    'payments.vrno',
+                    'payments.ratepayer_id',
+                    'ratepayers.ratepayer_name',
+                    'payments.tc_id',
                     'users.name',
-                    'paymenttable.payment_date',
-                    'paymenttable.amount',
-                    'paymenttable.payment_verified',
-                    'paymenttable.cheque_number',
-                    'paymenttable.bank_name',
-                    'paymenttable.ratepayercheque_id'
+                    'payments.payment_date',
+                    'payments.amount',
+                    'payments.payment_verified',
+                    'payments.cheque_number',
+                    'payments.bank_name',
+                    'payments.ratepayercheque_id'
                 )
                 ->get();
 
             // Fetch other payments details
-            $otherPayments = DB::table('paymenttable')
+            $otherPayments = DB::table('payments')
                 ->whereNotIn('payment_mode', ['CASH', 'CHEQUE'])
-                ->leftJoin('ratepayerstable', 'paymenttable.ratepayer_id', '=', 'ratepayerstable.id')
-                ->leftJoin('users', 'paymenttable.tc_id', '=', 'users.id')
+                ->leftJoin('ratepayers', 'payments.ratepayer_id', '=', 'ratepayers.id')
+                ->leftJoin('users', 'payments.tc_id', '=', 'users.id')
                 ->select(
-                    'paymenttable.id',
-                    'paymenttable.vrno',
-                    'paymenttable.ratepayer_id',
-                    'ratepayerstable.ratepayer_name',
-                    'paymenttable.tc_id',
+                    'payments.id',
+                    'payments.vrno',
+                    'payments.ratepayer_id',
+                    'ratepayers.ratepayer_name',
+                    'payments.tc_id',
                     'users.name',
-                    'paymenttable.payment_date',
-                    'paymenttable.amount',
-                    'paymenttable.payment_verified',
-                    'paymenttable.payment_mode',
+                    'payments.payment_date',
+                    'payments.amount',
+                    'payments.payment_verified',
+                    'payments.payment_mode',
                     // 'paymenttable.payment_details',
-                    'paymenttable.payment_status'
+                    'payments.payment_status'
                 )
                 ->get();
 
             // Fetch cheque reconciliation details
-            $chequeReconciliation = DB::table('paymenttable')
+            $chequeReconciliation = DB::table('payments')
                 ->where('payment_mode', 'CHEQUE')
                 ->selectRaw('
                 SUM(CASE WHEN payment_status = "COMPLETED" THEN 1 ELSE 0 END) as clear,
@@ -104,28 +104,28 @@ class AccountController extends Controller
                 ->first();
 
             // Fetch cheque list
-            $chequeList = DB::table('paymenttable')
+            $chequeList = DB::table('payments')
                 ->where('payment_mode', 'CHEQUE')
-                ->leftJoin('ratepayerstable', 'paymenttable.ratepayer_id', '=', 'ratepayerstable.id')
+                ->leftJoin('ratepayers', 'payments.ratepayer_id', '=', 'ratepayers.id')
                 ->select(
-                    'paymenttable.id',
-                    'paymenttable.cheque_number',
+                    'payments.id',
+                    'payments.cheque_number',
                     // 'paymenttable.cheque_date',
-                    'paymenttable.bank_name',
-                    'paymenttable.amount',
-                    'paymenttable.ratepayer_id',
-                    'ratepayerstable.ratepayer_name',
+                    'payments.bank_name',
+                    'payments.amount',
+                    'payments.ratepayer_id',
+                    'ratepayers.ratepayer_name',
                     // 'paymenttable.payment_id',
-                    'paymenttable.vrno',
-                    'paymenttable.payment_verified as is_verified',
-                    'paymenttable.payment_status as is_returned',
+                    'payments.vrno',
+                    'payments.payment_verified as is_verified',
+                    'payments.payment_status as is_returned',
                     // 'paymenttable.realization_date',
                     // 'paymenttable.return_reason'
                 )
                 ->get();
 
             // Fetch monthly cheque data
-            $monthlyData = DB::table('paymenttable')
+            $monthlyData = DB::table('payments')
                 ->where('payment_mode', 'CHEQUE')
                 ->selectRaw("
                 DATE_FORMAT(created_at, '%b') as month,
@@ -137,7 +137,7 @@ class AccountController extends Controller
                 ->get();
 
             // Fetch tax collector data
-            $tcData = DB::table('paymenttable')
+            $tcData = DB::table('payments')
                 ->where('payment_mode', 'CHEQUE')
                 ->selectRaw("
                 tc_id,
