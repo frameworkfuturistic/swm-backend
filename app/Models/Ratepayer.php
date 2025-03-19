@@ -91,6 +91,12 @@ class Ratepayer extends Model
         return $this->belongsTo(SubCategory::class);
     }
 
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'ratepayers_id');
+    }
+
     /**
      * Filter Category
      */
@@ -152,6 +158,11 @@ class Ratepayer extends Model
     public function setPaymentZone($paymentzoneId)
     {
         $this->update(['paymentzone_id' => $paymentzoneId]);
+    }
+
+    public function currentDemands()
+    {
+        return $this->hasMany(CurrentDemand::class, 'ratepayer_id');
     }
 }
 

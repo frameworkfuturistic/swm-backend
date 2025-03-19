@@ -73,4 +73,9 @@ class Cluster extends Model
     {
         return $this->hasMany(Payment::class, 'cluster_id');
     }
+
+    public function ratepayers()
+    {
+        return $this->hasMany(Ratepayer::class, 'cluster_id');
+    }
 }

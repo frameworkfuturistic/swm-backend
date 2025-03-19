@@ -99,4 +99,9 @@ class Entity extends Model
     {
         return $this->belongsTo(User::class, 'apply_tc_id');
     }
+
+    public function ratepayers()
+    {
+        return $this->hasMany(Ratepayer::class, 'entity_id');
+    }
 }

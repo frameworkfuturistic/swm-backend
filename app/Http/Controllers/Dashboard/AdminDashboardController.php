@@ -473,7 +473,7 @@ class AdminDashboardController extends Controller
                 'message' => 'A new user has registered in the system.',
                 'dateTime' => now()->toDateTimeString(),
                 'priority' => 'Low',
-                'category' => 'Unverified ',
+                'category' => 'Unverified',
             ],
             [
                 'title' => 'Payment Received',

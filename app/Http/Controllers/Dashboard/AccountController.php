@@ -146,17 +146,20 @@ class AccountController extends Controller
 
             // Fetch tax collector data
             $tcData = DB::table('payments')
-                ->where('payment_mode', 'CHEQUE')
+                ->join('users', 'payments.tc_id', '=', 'users.id')
+                ->where('payments.payment_mode', 'CHEQUE')
                 ->selectRaw("
-                tc_id,
+                payments.tc_id,
+                users.name as collector_name,  
                 COUNT(*) as collected,
-                SUM(CASE WHEN payment_status = 'RELEASED' THEN 1 ELSE 0 END) as realized,
-                SUM(CASE WHEN payment_status = 'REFUNDED' THEN 1 ELSE 0 END) as returned
+                SUM(CASE WHEN payments.payment_status = 'RELEASED' THEN 1 ELSE 0 END) as realized,
+                SUM(CASE WHEN payments.payment_status = 'REFUNDED' THEN 1 ELSE 0 END) as returned
             ")
-                ->groupBy('tc_id')
+                ->groupBy('payments.tc_id', 'users.name')
                 ->get();
 
-            // Prepare the response
+
+            // Response prepared
             return response()->json([
                 'apiid' => $apiid,
                 'success' => true,
