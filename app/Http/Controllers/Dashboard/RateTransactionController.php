@@ -9,192 +9,88 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Ratepayer;
+use App\Events\SiteVisitedEvent;
+use App\Http\Services\TransactionService;
+use Illuminate\Support\Facades\Auth;
+use Exception;
 
 class RateTransactionController extends Controller
 {
-    // public function getBillAmount(Request $request)
-    // {
-    //     try {
-    //         $apiid = $request->input('apiid', $request->header('apiid', 'MDASH-001'));
-
-    //         $consumerNumber = $request->input('consumer_no', null);
-    //         $phoneNumber = $request->input('mobile_no', null);
-
-    //         if (!$consumerNumber && !$phoneNumber) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'message' => 'consumer_no or mobile_no is required.'
-    //             ], 400);
-    //         }
-
-    //         $ratepayer = DB::table('ratepayers')
-    //             ->select('id', 'consumer_no', 'mobile_no', 'lastpayment_amt', 'lastpayment_date', 'current_demand', 'status')
-    //             ->where(function ($query) use ($consumerNumber, $phoneNumber) {
-    //                 if ($consumerNumber) {
-    //                     $query->where('consumer_no', $consumerNumber);
-    //                 }
-    //                 if ($phoneNumber) {
-    //                     $query->orWhere('mobile_no', $phoneNumber);
-    //                 }
-    //             })
-    //             ->first();
-
-    //         if (!$ratepayer) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'message' => 'Consumer not found.'
-    //             ], 404);
-    //         }
-
-    //         $lastPaymentAmount = $ratepayer->lastpayment_amt ?? 0;
-    //         $lastPaymentDate = $ratepayer->lastpayment_date ?? 'N/A';
-    //         $currentDemand = $ratepayer->current_demand ?? 0;
-    //         $consumerStatus = $ratepayer->status ?? 'UNKNOWN';  // Fetch status from the ratepayer
-
-    //         $pendingAmount = $currentDemand - $lastPaymentAmount;
-
-    //         if ($pendingAmount > 0) {
-    //             // Consumer has pending demand
-    //             $status = 'PENDING';
-    //             $pendingDetails = [
-    //                 'transaction_id' => 'Pending',
-    //                 'amount' => $pendingAmount,
-    //                 'payment_status' => $status
-    //             ];
-    //         } else {
-    //             // No pending, latest payment is the last transaction
-    //             $status = 'COMPLETED';
-    //             $pendingDetails = [
-    //                 'transaction_id' => 'Last Payment',
-    //                 'amount' => $lastPaymentAmount,
-    //                 'payment_status' => $status
-    //             ];
-    //         }
-
-    //         return response()->json([
-    //             'apiid' => $apiid,
-    //             'success' => true,
-    //             'message' => 'Bill details fetched successfully',
-    //             'data' => [
-    //                 'consumer_no' => $ratepayer->consumer_no,
-    //                 'mobile_no' => $ratepayer->mobile_no,
-    //                 'last_payment_amount' => $lastPaymentAmount,
-    //                 'lastpayment_date' => $lastPaymentDate,
-    //                 'current_demand' => $currentDemand,
-    //                 'pending_amount' => $pendingAmount,
-    //                 'consumer_status' => $consumerStatus, // Added consumer status field
-    //                 'transaction' => $pendingDetails
-    //             ],
-    //             'meta' => [
-    //                 'epoch' => now()->timestamp,
-    //                 'queryTime' => round(microtime(true) - LARAVEL_START, 4),
-    //                 'server' => request()->server('SERVER_NAME')
-    //             ]
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Error occurred: ' . $e->getMessage(),
-    //             'apiid' => $apiid
-    //         ], 500);
-    //     }
-    // }
-
 
     // API-ID: RTRANS-001 [RateTransaction]
 
-    public function getBillAmount(Request $request)
+    public function getBillAmountModified(Request $request)
     {
         try {
-            $validated = $request->validate([
-                'consumer_no' => 'required_without:mobile_no',
-                'mobile_no' => 'required_without:consumer_no',
+
+            $authKey = $request->header('AUTH_KEY');
+
+            if (!$authKey || $authKey !== config('app.auth_key')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized client.'
+                ], Response::HTTP_UNAUTHORIZED);
+            }
+
+            $request->validate([
+                'ulb_id' => 'required|exists:ulbs,id',
+                'consumer_no' => 'nullable|string',
+                'mobile_no' => 'nullable|string',
             ]);
 
-            $consumerNumber = $validated['consumer_no'] ?? null;
-            $phoneNumber = $validated['mobile_no'] ?? null;
-
-            if (!$consumerNumber && !$phoneNumber) {
+            if (!$request->consumer_no && !$request->mobile_no) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Either consumer_no or mobile_no is required.',
-                ], 400);
+                ], Response::HTTP_FORBIDDEN);
             }
 
-            $ratepayers = DB::table('ratepayers')
-                ->select(
-                    'ratepayers.id',
-                    'ratepayers.consumer_no',
-                    'ratepayers.mobile_no',
-                    'ratepayers.updated_at',
-                    'ratepayers.cluster_id'
-                )
-                ->where('consumer_no', $consumerNumber)
-                ->orWhere('mobile_no', $phoneNumber)
-                ->get();
+            $ratepayer = Ratepayer::where('ulb_id', $request->ulb_id)
+                ->where('is_active', 1)
+                ->where(function ($query) use ($request) {
+                    if ($request->consumer_no) {
+                        $query->where('consumer_no', $request->consumer_no);
+                    }
+                    if ($request->mobile_no) {
+                        $query->orWhere('mobile_no', $request->mobile_no);
+                    }
+                })->first();
 
-            if ($ratepayers->isEmpty()) {
+            if (!$ratepayer) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Consumer not found.',
-                ], 404);
+                    'message' => 'Ratepayer not found.',
+                ], Response::HTTP_NOT_FOUND);
             }
 
-            foreach ($ratepayers as $ratepayer) {
-                $lastPayment = DB::table('ratepayers')
-                    ->join('demands', 'ratepayers.id', '=', 'demands.ratepayer_id')
-                    ->where('ratepayers.id', $ratepayer->id)
-                    ->orderBy('demands.created_at', 'desc')
-                    ->select(
-                        'demands.demand',
-                        'demands.updated_at as last_payment_date',
-                        'demands.bill_month as last_payment_bill_month'
-                    )
-                    ->first();
+            $currentDemand = DB::table('current_demands')
+                ->where([
+                    ['ulb_id', $request->ulb_id],
+                    ['ratepayer_id', $ratepayer->id],
+                    ['is_active', 1],
+                ])
+                ->whereNotNull('payment_id')
+                ->sum('total_demand');
 
-                $lastPaymentAmount = $lastPayment->demand ?? 0;
-                $lastPaymentDate = $lastPayment->last_payment_date ?? null;
-                $lastPaymentBillMonth = $lastPayment->last_payment_bill_month ?? null;
-
-                $currentDemands = DB::table('ratepayers')
-                    ->join('current_demands', 'ratepayers.id', '=', 'current_demands.ratepayer_id')
-                    ->where('ratepayers.id', $ratepayer->id)
-                    ->select(
-                        'current_demands.demand',
-                        'current_demands.ulb_id',
-                        'current_demands.bill_month',
-                        'current_demands.bill_year',
-                        'current_demands.vrno'
-                    )
-                    ->get();
-
-                $clusterName = null;
-                if ($ratepayer->cluster_id) {
-                    $cluster = DB::table('clusters')
-                        ->select('cluster_name')
-                        ->where('id', $ratepayer->cluster_id)
-                        ->first();
-
-                    if ($cluster) {
-                        $clusterName = $cluster->cluster_name;
-                    }
-                }
-
-                $billDetails[] = [
-                    'consumer_no' => $ratepayer->consumer_no,
-                    'mobile_no' => $ratepayer->mobile_no,
-                    'last_payment_amount' => $lastPaymentAmount,
-                    'last_payment_date' => $lastPaymentDate,
-                    'last_payment_bill_month' => $lastPaymentBillMonth,
-                    'cluster_name' => $clusterName,
-                    'current_demands' => $currentDemands,
-                ];
+            if ($currentDemand === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No active demand found for this ratepayer.',
+                ], Response::HTTP_NOT_FOUND);
             }
+
+            $data = [
+                'consumer_no'          => $ratepayer->consumer_no,
+                'last_payment_amount'  => $ratepayer->lastpayment_amt,
+                'last_payment_date'    => $ratepayer->lastpayment_date,
+                'last_payment_mode'    => $ratepayer->lastpayment_mode,
+                'total_demand'         => $currentDemand, // Fixed: No need to use $currentDemand->total_demand
+            ];
 
             return response()->json([
                 'success' => true,
                 'message' => 'Bill details fetched successfully',
-                'data' => $billDetails,
+                'data' => $data,
                 'meta' => [
                     'epoch' => now()->timestamp,
                     'queryTime' => round(microtime(true) - LARAVEL_START, 4),
@@ -211,256 +107,167 @@ class RateTransactionController extends Controller
 
 
 
+
     // API-ID: RTRANS-002 [RateTransaction]
 
     public function postPaymentTransaction(Request $request)
     {
+        Log::info('Request parameters: ' . json_encode($request->all()));
+        $request->merge([
+            'consumer_no' => $request->has('consumer_no') ? trim((string)$request->consumer_no) : null,
+            'mobile_no' => $request->has('mobile_no') ? trim((string)$request->mobile_no) : null,
+        ]);
+
+        Log::info('Cleaned request parameters: ' . json_encode($request->all()));
+
+        $validator = Validator::make($request->all(), [
+            'consumer_no' => 'nullable|string|exists:ratepayers,consumer_no',
+            'mobile_no' => 'nullable|string|exists:ratepayers,mobile_no',
+            'remarks' => 'nullable|string|max:255',
+            'amount' => 'required|numeric|between:0,50000',
+            'scheduleDate' => 'nullable|date|date_format:Y-m-d|after_or_equal:today',
+            'longitude' => 'required|numeric|between:-180,180',      // Required, valid longitude
+            'latitude' => 'required|numeric|between:-90,90',         // Required, valid latitude
+        ]);
+
+        if (!$request->consumer_no && !$request->mobile_no) {
+            return format_response(
+                'validation error',
+                ['Either consumer_no or mobile_no is required.'],
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        if ($validator->fails()) {
+            $errorMessages = $validator->errors()->all();
+
+            return format_response(
+                'validation error',
+                $errorMessages,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        $validatedData = $validator->validated();
+
+        $tranService = new TransactionService;
+
+        $ratepayers = Ratepayer::where(function ($query) use ($validatedData) {
+            if ($validatedData['consumer_no']) {
+                $query->where('consumer_no', $validatedData['consumer_no']);
+            }
+            if ($validatedData['mobile_no']) {
+                $query->orWhere('mobile_no', $validatedData['mobile_no']);
+            }
+        })->get();
+
+        if ($ratepayers->isEmpty()) {
+            return format_response(
+                'Ratepayer not found',
+                null,
+                Response::HTTP_NOT_FOUND
+            );
+        }
+
+        // Check if multiple ratepayers are found for the given mobile_no
+        if ($validatedData['mobile_no'] && $ratepayers->count() > 1) {
+            return format_response(
+                'Multiple ratepayers found for the given mobile number. Please provide a consumer number.',
+                null,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        $ratepayer = $ratepayers->first();
+
+        $validatedData['ratepayerId'] = $ratepayer->id;
+
+        // Check for pending demands
+        $pendingDemands = DB::table('current_demands')
+            ->where('ulb_id', $ratepayer->ulb_id)
+            ->where('ratepayer_id', $ratepayer->id)
+            ->where('is_active', 1)
+            ->whereNotNull('payment_id')
+            ->sum('total_demand');
+
+        if ($pendingDemands === 0) {
+            return format_response(
+                'No pending demands found for this ratepayer.',
+                null,
+                Response::HTTP_NOT_FOUND
+            );
+        }
+
+        if ($validatedData['amount'] < $pendingDemands) {
+            return format_response(
+                'Payment amount must fully cover one or more pending demands. Demand Till Date = ' . $pendingDemands,
+                null,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        $validatedData['ulbId'] = $request->ulb_id;
+        $validatedData['tcId'] = Auth::user()->id;
+        $validatedData['entityId'] = $ratepayer->entity_id;
+        $validatedData['clusterId'] = $ratepayer->cluster_id;
+        $validatedData['eventType'] = 'PAYMENT';
+        $validatedData['paymentMode'] = 'WHATSAPP';
+
+        // Start a transaction to ensure data integrity
+        DB::beginTransaction();
         try {
-            $validated = $request->validate([
-                'consumer_no' => 'nullable|string',
-                'mobile_no' => 'nullable|string',
-                'payment_amount' => 'required',
-                'remarks' => 'nullable|string',
-            ]);
+            // Log the ratepayerId for debugging
+            Log::info('Ratepayer ID: ' . $validatedData['ratepayerId']);
 
-            $consumerNumber = $validated['consumer_no'] ?? null;
-            $phoneNumber = $validated['mobile_no'] ?? null;
-            $paymentAmount = $validated['payment_amount'];
-            $remarks = $validated['remarks'] ?? null;
+            $tranService->extractRatepayerDetails($validatedData['ratepayerId']);
+            $transaction = $tranService->createNewTransaction($validatedData);
+            $payment = $tranService->createNewPayment($validatedData, $transaction->id);
+            $transaction->payment_id = $payment->id;
+            $transaction->save();
 
-            if (!$consumerNumber && !$phoneNumber) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Either consumer_no or mobile_no is required.',
-                ], 400);
-            }
+            if ($transaction != null) {
+                $responseData = [
+                    'tranId' => $transaction->id,
+                    'consumerNo' => $tranService->ratepayer->consumer_no,
+                    'ratepayerName' => $tranService->ratepayer->ratepayer_name,
+                    'ratepayerAddress' => $tranService->ratepayer->ratepayer_address,
+                    'mobileNo' => $tranService->ratepayer->mobile_no,
+                    'landmark' => $tranService->ratepayer->landmark,
+                    'longitude' => $validatedData['longitude'],
+                    'latitude' => $validatedData['latitude'],
+                    'tranType' => $transaction->event_type,
+                    'pmtMode' => $validatedData['paymentMode'],
+                    'pmtAmount' => $validatedData['amount'],
+                ];
+                DB::commit();
 
-            $ratepayers = DB::table('ratepayers')
-                ->leftJoin('current_demands', 'ratepayers.id', '=', 'current_demands.ratepayer_id')
-                ->select(
-                    'ratepayers.id',
-                    'ratepayers.consumer_no',
-                    'ratepayers.mobile_no',
-                    'ratepayers.current_demand',
-                    'ratepayers.status',
-                    'ratepayers.entity_id',
-                    'ratepayers.ulb_id',
-                    'ratepayers.cluster_id',
-                    'current_demands.demand as current_demand_amount'
-                )
-                ->where('ratepayers.consumer_no', $consumerNumber)
-                ->orWhere('ratepayers.mobile_no', $phoneNumber)
-                ->get();
+                // Broadcast transaction to Dashboard
+                broadcast(new SiteVisitedEvent(
+                    $responseData,
+                ))->toOthers();
 
-            if ($ratepayers->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Consumer not found.',
-                ], 404);
-            }
-
-            if ($ratepayers->count() > 1 && $phoneNumber) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Multiple consumers found with the same mobile number. Please provide the consumer number.',
-                ], 400);
-            }
-
-            $ratepayer = $ratepayers->first();
-
-            if ($ratepayer->current_demand <= 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No pending amount to be paid.',
-                ], 400);
-            }
-
-            if ($paymentAmount > $ratepayer->current_demand) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Payment amount exceeds the current demand.',
-                ], 400);
-            }
-
-            DB::beginTransaction();
-
-            $originalCurrentDemand = $ratepayer->current_demand;
-            $newCurrentDemand = $ratepayer->current_demand - $paymentAmount;
-
-            $transactionData = [
-                'ulb_id' => $ratepayer->ulb_id,
-                'cluster_id' => $ratepayer->cluster_id,
-                'ratepayer_id' => $ratepayer->id,
-                'entity_id' => $ratepayer->entity_id,
-                'payment_id' => null,
-                'event_time' => now(),
-                'event_type' => 'PAYMENT',
-                'remarks' => $remarks,
-                'paymentStatus' => $newCurrentDemand <= 0 ? 'COMPLETED' : 'PENDING',
-                'tc_id' => null,
-            ];
-
-            $transactionId = DB::table('transactions')->insertGetId($transactionData);
-
-            DB::table('ratepayers')
-                ->where('id', $ratepayer->id)
-                ->update([
-                    'current_demand' => $newCurrentDemand,
-                    'last_payment_id' => $transactionId,
-                    'lastpayment_amt' => $paymentAmount,
-                    'lastpayment_date' => now(),
-                    'status' => $newCurrentDemand <= 0 ? 'verified' : $ratepayer->status,
-                ]);
-
-            if ($newCurrentDemand == 0) {
-                DB::table('demands')
-                    ->where('ratepayer_id', $ratepayer->id)
-                    ->update([
-                        'demand' => $originalCurrentDemand,
-                        'total_demand' => $originalCurrentDemand,
-                    ]);
-
-                DB::table('current_demands')
-                    ->where('ratepayer_id', $ratepayer->id)
-                    ->delete();
+                return format_response(
+                    'success',
+                    $responseData,
+                    Response::HTTP_CREATED
+                );
             } else {
-                DB::table('current_demands')
-                    ->where('ratepayer_id', $ratepayer->id)
-                    ->update([
-                        'demand' => $newCurrentDemand,
-                    ]);
+                DB::rollBack();
+
+                return format_response(
+                    'An error occurred during insertion',
+                    null,
+                    Response::HTTP_INTERNAL_SERVER_ERROR
+                );
             }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment transaction recorded and ratepayer updated successfully.',
-                'data' => [
-                    'consumer_no' => $ratepayer->consumer_no,
-                    'mobile_no' => $ratepayer->mobile_no,
-                    'payment_amount' => $paymentAmount,
-                    'paymentStatus' => $newCurrentDemand <= 0 ? 'COMPLETED' : 'PENDING',
-                    'remarks' => $remarks,
-                ],
-                'meta' => [
-                    'epoch' => now()->timestamp,
-                    'queryTime' => round(microtime(true) - LARAVEL_START, 4),
-                    'server' => request()->server('SERVER_NAME')
-                ]
-            ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error occurred while processing payment transaction: ' . $e->getMessage());
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Error occurred while posting payment: ' . $e->getMessage(),
-            ], 500);
+            return format_response(
+                'An error occurred during insertion. ' . $e->getMessage() . ' Demand Till Date = ' . $tranService->demandTillDate,
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
         }
     }
 }
-
-
-
-// public function postPaymentTransaction(Request $request)
-    // {
-    //     try {
-    //         $apiid = $request->input('apiid', $request->header('apiid', 'MDASH-001'));
-    //         $consumerNumber = $request->input('consumer_no', null);
-    //         $phoneNumber = $request->input('mobile_no', null);
-    //         $paymentAmount = $request->input('payment_amount', 0);
-    //         $remarks = $request->input('remarks', null);
-    //         $ulbId = $request->input('ulb_id', 1);
-    //         $tcId = $request->input('tc_id', 1);
-
-    //         if (!$consumerNumber && !$phoneNumber) {
-    //             return response()->json(['success' => false, 'message' => 'consumer_no or mobile_no is required.'], 400);
-    //         }
-
-
-    //         $ratepayer = DB::table('ratepayers')
-    //             ->join('transactions', 'ratepayers.id', '=', 'transactions.ratepayer_id')
-    //             ->select(
-    //                 'ratepayers.id',
-    //                 'ratepayers.consumer_no',
-    //                 'ratepayers.mobile_no',
-    //                 'ratepayers.current_demand',
-    //                 'ratepayers.status',
-    //                 'ratepayers.entity_id'
-    //             )
-    //             ->where(function ($query) use ($consumerNumber, $phoneNumber) {
-    //                 if ($consumerNumber) {
-    //                     $query->where('ratepayers.consumer_no', $consumerNumber);
-    //                 }
-    //                 if ($phoneNumber) {
-    //                     $query->orWhere('ratepayers.mobile_no', $phoneNumber);
-    //                 }
-    //             })
-    //             ->first();
-
-    //         if (!$ratepayer) {
-    //             return response()->json(['success' => false, 'message' => 'Consumer not found.'], 404);
-    //         }
-
-    //         // Calculate pending amount and payment status
-    //         $pendingAmount = $ratepayer->current_demand - $paymentAmount;
-    //         $paymentStatus = $pendingAmount <= 0 ? 'COMPLETED' : 'PENDING';
-
-    //         // Insert into transactions table and get the inserted id
-    //         $transactionData = [
-    //             'ulb_id' => $ulbId,
-    //             'tc_id' => $tcId,
-    //             'ratepayer_id' => $ratepayer->id,
-    //             'entity_id' => $ratepayer->entity_id,
-    //             'payment_id' => null,
-    //             'event_time' => now(),
-    //             'event_type' => 'PAYMENT',
-    //             'remarks' => $remarks,
-    //             'paymentStatus' => $paymentStatus,
-    //             'created_at' => now(),
-    //             'updated_at' => now()
-    //         ];
-
-    //         $transactionId = DB::table('transactions')->insertGetId($transactionData);
-
-    //         $newCurrentDemand = max($pendingAmount, 0);
-
-    //         // Updating the ratepayer record
-    //         $ratepayerUpdateData = [
-    //             'current_demand' => $newCurrentDemand,
-    //             'last_payment_id' => $transactionId,
-    //             'lastpayment_amt' => $paymentAmount,
-    //             'lastpayment_date' => now(),
-    //             'status' => $paymentStatus === 'COMPLETED' ? 'verified' : $ratepayer->status,
-    //             'updated_at' => now()
-    //         ];
-
-    //         $updateStatus = DB::table('ratepayers')->where('id', $ratepayer->id)->update($ratepayerUpdateData);
-
-    //         if ($updateStatus) {
-    //             return response()->json([
-    //                 'apiid' => $apiid,
-    //                 'success' => true,
-    //                 'message' => 'Payment transaction recorded and ratepayer updated successfully.',
-    //                 'data' => [
-    //                     'consumer_no' => $ratepayer->consumer_no,
-    //                     'mobile_no' => $ratepayer->mobile_no,
-    //                     'payment_amount' => $paymentAmount,
-    //                     'payment_status' => $paymentStatus,
-    //                     'remarks' => $remarks,
-    //                 ],
-    //                 'meta' => [
-    //                     'epoch' => now()->timestamp,
-    //                     'queryTime' => round(microtime(true) - LARAVEL_START, 4),
-    //                     'server' => request()->server('SERVER_NAME')
-    //                 ]
-    //             ]);
-    //         } else {
-    //             return response()->json(['success' => false, 'message' => 'Failed to update ratepayer record.', 'apiid' => $apiid], 500);
-    //         }
-    //     } catch (\Exception $e) {
-    //         return response()->json(['success' => false, 'message' => 'Error occurred while posting payment: ' .
-    //             $e->getMessage(), 'apiid' => $apiid], 500);
-    //     }
-    // }

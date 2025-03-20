@@ -12,7 +12,7 @@ return [
     | other UI elements where an application name needs to be displayed.
     |
     */
-
+    'auth_key' => env('AUTH_KEY'),
     'name' => env('APP_NAME', 'Laravel'),
 
     /*

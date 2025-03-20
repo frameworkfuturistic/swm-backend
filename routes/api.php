@@ -378,6 +378,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
 Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
     // API-ID: MDASH-001 [Manager Dashboard]
     Route::get('/dashboard/admin/denial', [ManageTransactionController::class, 'getTransactionData']);
+    Route::post('/transaction/toggle', [ManageTransactionController::class, 'toggleTransactionStatus']);
 });
 
 
@@ -395,8 +396,6 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
 
 
 Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
-    // API-ID: RTRANS-001 [RateTransaction]
-    Route::post('/bill/admin', [RateTransactionController::class, 'getBillAmount']);
 
     // API-ID: RTRANS-002 [RateTransaction]
     Route::post('/bill/admin/post', [RateTransactionController::class, 'postPaymentTransaction']);
@@ -412,3 +411,8 @@ Route::fallback(function () {
     ], 404);
 });
 // Route::get('/welcome', [AdminDashboardController::class, 'welcome']);
+
+
+
+// API-ID: RTRANS-001 [RateTransaction]
+Route::post('/bill/admin', [RateTransactionController::class, 'getBillAmountModified']);
