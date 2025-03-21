@@ -10,6 +10,7 @@ use App\Models\SubCategory;
 use App\Models\Ward;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 
 class MasterController extends Controller
 {
@@ -19,6 +20,7 @@ class MasterController extends Controller
             $ulbId = $request->ulb_id;
 
             $denialReasons = DenialReason::where('ulb_id', $ulbId)->get();
+
             $rateLists = RateList::where('ulb_id', $ulbId)->get();
             $wards = Ward::where('ulb_id', $ulbId)->get();
             $paymentZone = PaymentZone::where('ulb_id', $ulbId)->get();
@@ -26,6 +28,7 @@ class MasterController extends Controller
             //     ->where('categories.ulb_id', $ulbId)
             //     ->select('sub_categories.*', 'categories.category as category_name')
             //     ->get();
+
 
             $categories = Category::with('subCategories')
                 ->where('ulb_id', 1)
@@ -47,7 +50,6 @@ class MasterController extends Controller
                 $response,
                 Response::HTTP_OK
             );
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return format_response(
                 $e->getMessage(),

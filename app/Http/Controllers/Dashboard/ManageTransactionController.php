@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Response;
+use App\Models\DenialReason;
 
 class ManageTransactionController extends Controller
 {
@@ -244,6 +246,114 @@ class ManageTransactionController extends Controller
                 'message' => 'Error occurred: ' . $e->getMessage(),
                 'apiid' => $apiid
             ], 500);
+        }
+    }
+
+
+
+
+
+    public function toggleTransactionStatus(Request $request)
+    {
+        try {
+            $apiid = $request->input('apiid', $request->header('apiid', 'MDASH-002'));
+
+            if (!$apiid) {
+                Log::debug('No apiid passed in the request.');
+            } else {
+                Log::debug('apiid received: ' . $apiid);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'transaction_id' => 'nullable|exists:transactions,id',
+                'is_cancelled' => 'required|boolean'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid data',
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $transactionId = $request->input('transaction_id');
+            $isCancelled = $request->input('is_cancelled');
+
+            Log::debug('Received toggleTransactionStatus request: ', $request->all());
+
+            $transaction = DB::table('transactions')
+                ->where('id', $transactionId)
+                ->first();
+
+            if (!$transaction) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaction not found',
+                ], Response::HTTP_NOT_FOUND);
+            }
+
+            DB::transaction(function () use ($transactionId, $isCancelled) {
+                DB::table('transactions')->where('id', $transactionId)->update([
+                    'is_cancelled' => $isCancelled,
+                    'cancellation_date' => $isCancelled ? now() : null
+                ]);
+            });
+
+            $message = $isCancelled ? 'Transaction cancelled successfully' : 'Transaction reactivated successfully';
+
+            return response()->json([
+                'apiid' => $apiid,
+                'success' => true,
+                'message' => $message,
+                'data' => ['transaction_id' => $transactionId],
+                'meta' => [
+                    'epoch' => now()->timestamp,
+                    'queryTime' => round(microtime(true) - LARAVEL_START, 4),
+                    'server' => request()->server('SERVER_NAME')
+                ]
+            ], Response::HTTP_OK);
+        } catch (\Exception $e) {
+            Log::error('Error while toggling transaction status: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error occurred: ' . $e->getMessage(),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+
+
+    public function getDenialReasons(Request $request)
+    {
+        try {
+            $ulbId = $request->ulb_id;
+
+            // Fetch denial reasons
+            $denialReasons = DenialReason::where('ulb_id', $ulbId)->get();
+
+            $response = [
+                'ReasonsType' => $denialReasons,
+            ];
+
+            return format_response(
+                'Denial Reasons',
+                $response,
+                Response::HTTP_OK
+            );
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return format_response(
+                $e->getMessage(),
+                null,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        } catch (\Exception $e) {
+            return format_response(
+                'An error occurred during data extraction',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
         }
     }
 }
