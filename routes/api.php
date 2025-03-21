@@ -391,15 +391,10 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
     Route::get('/account/admin', [AccountController::class, 'getPaymentSummary']);
 });
 
-
-
-
-
-Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
-
+    // API-ID: RTRANS-001 [RateTransaction]
+    Route::get('/tp/demand', [RateTransactionController::class, 'getCurrentBill']);
     // API-ID: RTRANS-002 [RateTransaction]
-    Route::post('/bill/admin/post', [RateTransactionController::class, 'postPaymentTransaction']);
-});
+    Route::post('/tp/payment', [RateTransactionController::class, 'postPayment']);
 
 
 
@@ -414,5 +409,4 @@ Route::fallback(function () {
 
 
 
-// API-ID: RTRANS-001 [RateTransaction]
-Route::post('/bill/admin', [RateTransactionController::class, 'getBillAmountModified']);
+
