@@ -149,15 +149,15 @@ class AdminDashboardController extends Controller
             return $this->format_response(
                 'Transaction Overview fetched successfully',
                 [
-                    [
-                        'totalTransactions' => $totalTransactions,
-                        'lastTotalTransactions' => $lastTotalTransactions,
-                        'totalPayments' => $totalPayments,
-                        'lastTotalPayments' => $lastTotalPayments,
-                        'completedPayments' => $completedPayments,
-                        'pendingPayments' => $pendingPayments,
-                        'lastPendingPayments' => $lastPendingPayments,
-                    ]
+
+                    'totalTransactions' => $totalTransactions,
+                    'lastTotalTransactions' => $lastTotalTransactions,
+                    'totalPayments' => $totalPayments,
+                    'lastTotalPayments' => $lastTotalPayments,
+                    'completedPayments' => $completedPayments,
+                    'pendingPayments' => $pendingPayments,
+                    'lastPendingPayments' => $lastPendingPayments,
+
 
                 ],
                 true,
@@ -216,13 +216,6 @@ class AdminDashboardController extends Controller
             $paymentModeStatus = $this->getPaymentModeStatus($fromDate, $toDate, $zone);
             $clusterData = $this->getClusterData();
 
-            // Prepare the overview data structure
-            $overview = [
-                'transactionsData' => $monthlyOverview,
-                'eventType' => $eventTypeOverview,
-                'paymentModeStatus' => $paymentModeStatus,
-                'clusters' => $clusterData
-            ];
 
             // Capture apiid and Device Name from request
             $apiid = $request->input('apiid', $request->header('apiid', 'ADASH-002'));
@@ -237,9 +230,12 @@ class AdminDashboardController extends Controller
             return $this->format_response(
                 'Overview details fetched successfully',
                 [
-                    [
-                        'overview' => $overview
-                    ]
+
+                    'transactionsData' => $monthlyOverview,
+                    'eventType' => $eventTypeOverview,
+                    'paymentModeStatus' => $paymentModeStatus,
+                    'clusters' => $clusterData
+
                 ],
                 true,
                 [
@@ -267,6 +263,8 @@ class AdminDashboardController extends Controller
             );
         }
     }
+
+
 
 
     private function getMonthlyOverview($fromDate, $toDate, $zone)
@@ -417,11 +415,12 @@ class AdminDashboardController extends Controller
     public function fetchTransactions(Request $request)
     {
         try {
-            // Extract input parameters
-            $fromDate = $request->input('fromDate', null);
-            $toDate = $request->input('toDate', null);
-            $zone = $request->input('zone', 'All Zones');
-            $eventType = $request->input('eventType', 'All Events');
+
+            // Extract input parameters from query string
+            $fromDate = $request->query('fromDate', null);
+            $toDate = $request->query('toDate', null);
+            $zone = $request->query('zone', 'All Zones');
+            $eventType = $request->query('eventType', 'All Events');
 
             // Log the input values for debugging
             Log::info('Input Values:', [
@@ -460,7 +459,7 @@ class AdminDashboardController extends Controller
                 ->get()
                 ->map(function ($item) {
                     return [
-                        'id' => $item->id, // This will be in the format 'TRX1000-{id}'
+                        'id' => $item->id,
                         'ulb' => $item->ulb,
                         'ratepayer' => $item->ratepayer,
                         'eventTime' => $item->eventTime,
@@ -475,7 +474,7 @@ class AdminDashboardController extends Controller
                 });
 
             // Capture apiid and Device Name from request
-            $apiid = $request->input('apiid', $request->header('apiid', 'ADASH-003'));
+            $apiid = $request->query('apiid', $request->header('apiid', 'ADASH-003'));
             if (!$apiid) {
                 Log::debug('No apiid passed in the request.');
             }
@@ -484,39 +483,36 @@ class AdminDashboardController extends Controller
             $queryRunTime = $this->responseTime();
 
             // Return the response using the format_response helper
-            return $this->format_response(
-                'Transactions fetched successfully',
-                [
-                    [
-                        'transactions' => $transactions
-                    ]
-                ],
-                true,
-                [
+            return response()->json([
+                'status' => true,
+                'message' => 'Transactions fetched successfully',
+                'data' => $transactions->toArray(),  // Returning transactions as an array
+                'extra' => [
                     'apiid' => $apiid,
                     'version' => '1.0',
                     'queryRunTime' => $queryRunTime,
                     'route' => 'fetchTransactions',
                     'device' => $request->header('Device-Name', 'Unknown Device')
                 ]
-            );
+            ]);
         } catch (\Exception $e) {
             $queryRunTime = $this->responseTime();
-            $apiid = $request->input('apiid', $request->header('apiid', null));
-            return $this->responseMsgs(
-                'Error occurred while fetching transactions: ' . $e->getMessage(),
-                null,
-                false,
-                [
+            $apiid = $request->query('apiid', $request->header('apiid', null));
+            return response()->json([
+                'status' => false,
+                'message' => 'Error occurred while fetching transactions: ' . $e->getMessage(),
+                'data' => null,
+                'extra' => [
                     'apiid' => $apiid,
                     'version' => '1.0',
                     'queryRunTime' => $queryRunTime,
                     'route' => 'fetchTransactions',
                     'device' => $request->header('Device-Name', 'Unknown Device')
                 ]
-            );
+            ]);
         }
     }
+
 
 
 
@@ -544,13 +540,8 @@ class AdminDashboardController extends Controller
             $denialData = $this->getDenialData();
             $collectorData = $this->getCollectorData();
 
-            // Prepare the insights data structure
-            $insights = [
-                'cancellationData' => $cancellationData,
-                'denialData' => $denialData,
-                'collectorData' => $collectorData,
-                'alert' => $alertData
-            ];
+
+
 
             // Capture apiid and Device Name from request
             $apiid = $request->input('apiid', $request->header('apiid', 'ADASH-004'));
@@ -565,9 +556,12 @@ class AdminDashboardController extends Controller
             return $this->format_response(
                 'Insights fetched successfully',
                 [
-                    [
-                        'insights' => $insights
-                    ]
+
+                    'cancellationData' => $cancellationData,
+                    'denialData' => $denialData,
+                    'collectorData' => $collectorData,
+                    'alert' => $alertData
+
                 ],
                 true,
                 [

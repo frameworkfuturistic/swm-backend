@@ -148,7 +148,6 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
 
 
 
-
 //Accounts
 Route::middleware(['auth:sanctum', 'append-ulb', 'force-json', 'api'])->prefix('accounts')->group(function () {
     // API-ID: ACCOUNTS-001 [Daily Transaction by Zone]
@@ -365,15 +364,15 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
 //*
 
 Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
+
     // API-ID: ADASH-001 [Admin Dashboard]
-    // Route::post('dashboard/admin', [AdminDashboardController::class, 'getTransactionDetails']);
     Route::post('/dashboard/admin', [AdminDashboardController::class, 'getTransactionDetails']);
 
     // API-ID: ADASH-002 [Admin Dashboard]
     Route::post('/overview-details', [AdminDashboardController::class, 'getOverviewDetails']);
 
     // API-ID: ADASH-003 [Admin Dashboard]
-    Route::post('/fetch-transactions', [AdminDashboardController::class, 'fetchTransactions']);
+    Route::get('/fetch-transactions', [AdminDashboardController::class, 'fetchTransactions']);
 
     // API-ID: ADASH-004 [Admin Dashboard]
     Route::post('/fetch-insights', [AdminDashboardController::class, 'fetchInsights']);
@@ -391,8 +390,10 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
 
 
 Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
+
     // API-ID: MDASH-001 [Manager Dashboard]
     Route::get('/dashboard/admin/denial', [ManageTransactionController::class, 'getTransactionData']);
+
     // API-ID: MDASH-002 [Active and Deactive Transaction]
     Route::post('/transaction/toggle', [ManageTransactionController::class, 'toggleTransactionStatus']);
 });
@@ -404,8 +405,12 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
 
 
 Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
+
     // API-ID: ACDASH-001 [Account Dashboard]
-    Route::get('/account/admin', [AccountController::class, 'getPaymentSummary']);
+    Route::get('/account', [AccountController::class, 'getPaymentSummary']);
+
+    // API-ID: ACDASH-002 [Account Dashboard]
+    Route::get('/paymentSummary', [AccountController::class, 'getAccountSummary']);
 });
 
 

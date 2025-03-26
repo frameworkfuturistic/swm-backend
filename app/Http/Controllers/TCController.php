@@ -228,7 +228,6 @@ class TCController extends Controller
                 null,
                 Response::HTTP_CREATED
             );
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return format_response(
                 $e->getMessage(),
@@ -303,7 +302,6 @@ class TCController extends Controller
                 null,
                 Response::HTTP_OK
             );
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return format_response(
                 $e->getMessage(),
