@@ -143,15 +143,16 @@ class AccountController extends Controller
                 }
 
                 if ($payment_status === '0') {
-                    $cashVerificationQuery->where('payments.payment_verified', '=', 0);
+                    $cashVerificationQuery->where('payments.payment_verified', '=', 0); //Unverfied
                     Log::debug('Applying payment_verified filter: 0');
                 } elseif ($payment_status === '1') {
-                    $cashVerificationQuery->where('payments.payment_verified', '=', 1);
+                    $cashVerificationQuery->where('payments.payment_verified', '=', 1); //Verfied
                     Log::debug('Applying payment_verified filter: 1');
                 }
                 Log::debug($cashVerificationQuery->toSql());
                 $cashVerification = $cashVerificationQuery->get();
             }
+
 
 
 
@@ -202,10 +203,10 @@ class AccountController extends Controller
                 }
 
                 if ($payment_status === '0') {
-                    $chequeVerification->where('payments.payment_verified', '=', 0);
+                    $chequeVerification->where('payments.payment_verified', '=', 0); //Unverifed
                     Log::debug('Applying payment_verified filter: 0');
                 } elseif ($payment_status === '1') {
-                    $chequeVerification->where('payments.payment_verified', '=', 1);
+                    $chequeVerification->where('payments.payment_verified', '=', 1); //Verifed
                     Log::debug('Applying payment_verified filter: 1');
                 }
                 Log::debug($chequeVerification->toSql());
@@ -325,10 +326,10 @@ class AccountController extends Controller
                 }
 
                 if ($payment_status === '0') {
-                    $otherPayments->where('payments.payment_verified', '=', 0);
+                    $otherPayments->where('payments.payment_verified', '=', 0); //Unverfied
                     Log::debug('Applying payment_verified filter: 0');
                 } elseif ($payment_status === '1') {
-                    $otherPayments->where('payments.payment_verified', '=', 1);
+                    $otherPayments->where('payments.payment_verified', '=', 1); //Verfied
                     Log::debug('Applying payment_verified filter: 1');
                 }
                 Log::debug($otherPayments->toSql());
