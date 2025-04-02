@@ -428,6 +428,11 @@ Route::middleware(['auth:sanctum', 'api', 'admin'])->prefix('admin/masters')->gr
     Route::post('/bill/admin', [RateTransactionController::class, 'getBillAmountModified']);
 });
 
+// API-ID: RTRANS-001 [RateTransaction]
+Route::get('/tp/demand', [RateTransactionController::class, 'getCurrentBill']);
+// API-ID: RTRANS-002 [RateTransaction]
+Route::post('/tp/payment', [RateTransactionController::class, 'postPayment']);
+
 Route::get('/debug-headers', function (Request $request) {
    return [
        'all_headers' => getallheaders(),
