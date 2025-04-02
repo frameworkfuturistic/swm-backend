@@ -21,6 +21,7 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\WardController;
 use App\Http\Controllers\WebhookController;
 use App\Models\Ratepayer;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
@@ -427,6 +428,15 @@ Route::middleware(['auth:sanctum', 'api', 'admin'])->prefix('admin/masters')->gr
     Route::post('/bill/admin', [RateTransactionController::class, 'getBillAmountModified']);
 });
 
+Route::get('/debug-headers', function (Request $request) {
+   return [
+       'all_headers' => getallheaders(),
+       'auth_key_direct' => $request->header('AUTH_KEY'),
+       'server_vars' => array_filter($_SERVER, function($key) {
+           return strpos($key, 'HTTP_') === 0;
+       }, ARRAY_FILTER_USE_KEY)
+   ];
+});
 
 Route::fallback(function () {
     return response()->json([
@@ -434,4 +444,6 @@ Route::fallback(function () {
         'message' => 'Route not found. Please check the URL and try again.',
     ], 404);
 });
+
+
 // Route::get('/welcome', [AdminDashboardController::class, 'welcome']);
