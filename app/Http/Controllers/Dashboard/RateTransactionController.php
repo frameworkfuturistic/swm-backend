@@ -134,6 +134,7 @@ class RateTransactionController extends Controller
       $validator = Validator::make($request->all(), [
          'ratepayer_id' => 'required|exists:ratepayers,id',
          'amount' => 'required|numeric|min:3', 
+         'transaction_id' => 'required|string|min:5|max:50',
      ]);
      
       if ($validator->fails()) {
