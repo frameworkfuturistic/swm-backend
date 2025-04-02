@@ -23,7 +23,9 @@ class RateTransactionController extends Controller
     {
       try {
 
-         $authKey = $request->header('AUTH_KEY');
+         // $authKey = $request->header('AUTH_KEY');
+         $authKey = $request->header('AUTH_KEY') ?? $request->header('Auth-Key') ?? $request->header('auth_key');
+
 
          if (!$authKey || $authKey !== config('app.auth_key')) {
              return response()->json([
