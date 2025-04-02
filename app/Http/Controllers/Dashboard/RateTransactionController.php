@@ -23,16 +23,15 @@ class RateTransactionController extends Controller
     {
       try {
 
-         // $authKey = $request->header('AUTH_KEY');
          $authKey = $request->header('AUTH_KEY') ?? $request->header('Auth_Key') ?? $request->header('auth_key');
 
 
-         // if (!$authKey || $authKey !== config('app.auth_key')) {
-         //     return response()->json([
-         //         'success' => false,
-         //         'message' => 'Unauthorized client. !'
-         //     ], Response::HTTP_UNAUTHORIZED);
-         // }
+         if (!$authKey || $authKey !== config('app.auth_key')) {
+             return response()->json([
+                 'success' => false,
+                 'message' => 'Unauthorized client. !'
+             ], Response::HTTP_UNAUTHORIZED);
+         }
 
          $request->validate([
              'ulb_id' => 'required|exists:ulbs,id',
@@ -43,8 +42,6 @@ class RateTransactionController extends Controller
          if (!$request->consumer_no && !$request->mobile_no) {
              return response()->json([
                  'success' => false,
-                 'suppliedkey' => $authKey,
-                 'auth_key' => config('app.auth_key'),
                  'message' => 'Either consumer_no or mobile_no is required.',
              ], Response::HTTP_FORBIDDEN);
          }
