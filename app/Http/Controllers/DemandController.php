@@ -141,8 +141,8 @@ class DemandController extends Controller
     {
         try {
             $zone = PaymentZone::find($id);
-
-            $results = DB::table('current_demands as c')
+            DB::enableQueryLog();
+            $query = DB::table('current_demands as c')
                 ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
                 ->select(
                     'c.ratepayer_id',
@@ -159,9 +159,11 @@ class DemandController extends Controller
                 ->whereRaw('c.total_demand - c.payment > 0')  // Ensure unpaid demand exists
                 ->whereRaw('MONTH(SYSDATE()) >= c.bill_month')  // Ensure current month is less than or equal to bill_month
                 ->where('r.paymentzone_id', $id)  // Ensure current month is less than or equal to bill_month
+                ->whereRaw('cluster_id IS NULL')
                 ->groupBy('c.ratepayer_id', 'r.consumer_no', 'r.ratepayer_name', 'r.ratepayer_address', 'r.mobile_no')  // Group by ratepayer_id and relevant columns
-                ->orderBy('r.ratepayer_name')
-                ->get();
+                ->orderBy('r.ratepayer_name');
+
+            $results = $query->get();
 
             return format_response(
                 'Show Pending Demands from '.$zone->payment_zone,
@@ -187,4 +189,155 @@ class DemandController extends Controller
             );
         }
     }
+
+    //
+    public function zoneCurrentClusterDemands($id)
+    {
+        try {
+
+            $zone = PaymentZone::find($id);
+
+            DB::enableQueryLog();
+
+            $results = DB::table('entities as e')
+            ->join('ratepayers as rp', 'rp.entity_id', '=', 'e.id')
+            ->join('current_demands as cd', 'cd.ratepayer_id', '=', 'rp.id')
+            ->select(
+                'e.cluster_id as cluster_id',
+                DB::raw('ANY_VALUE(rp.consumer_no) as consumer_no'),
+                DB::raw('ANY_VALUE(rp.ratepayer_name) as ratepayer_name'),
+                DB::raw('ANY_VALUE(rp.ratepayer_address) as ratepayer_address'),
+                DB::raw('SUM(cd.demand) as clusterDemand')
+            )
+            ->where('rp.paymentzone_id', $id)
+            ->whereNotNull('e.cluster_id')
+            ->whereRaw('(cd.bill_month + (cd.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
+            ->groupBy('e.cluster_id')
+            ->get();
+            
+
+            // $results = DB::table('current_demands as c')
+            //     ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
+            //     ->select(
+            //         'c.ratepayer_id',
+            //         'r.consumer_no',
+            //         'r.ratepayer_name',
+            //         'r.ratepayer_address',
+            //         'r.mobile_no',
+            //         'r.reputation',
+            //         'r.lastpayment_amt',
+            //         DB::raw('if(((latitude IS NOT NULL) AND (longitude IS NOT NULL) AND (latitude BETWEEN -90 AND 90) AND (longitude BETWEEN -180 AND 180)),true,false) as validCoordinates'),
+            //         DB::raw('DATE_FORMAT(r.lastpayment_date,"%d/%m/%Y") as lastpayment_date'),
+            //         DB::raw('SUM(c.total_demand) as totalDemand')
+            //     )
+            //     ->whereRaw('c.total_demand - c.payment > 0')  // Ensure unpaid demand exists
+            //     ->whereRaw('MONTH(SYSDATE()) >= c.bill_month')  // Ensure current month is less than or equal to bill_month
+            //     ->where('r.paymentzone_id', $id)  // Ensure current month is less than or equal to bill_month
+            //     ->whereRaw('cluster_id IS NOT NULL')  // Ensure current month is less than or equal to bill_month
+            //     ->groupBy('c.ratepayer_id', 'r.consumer_no', 'r.ratepayer_name', 'r.ratepayer_address', 'r.mobile_no')  // Group by ratepayer_id and relevant columns
+            //     ->orderBy('r.ratepayer_name')
+            //     ->get();
+
+            return format_response(
+                'Show Pending Demands from '.$zone->payment_zone,
+                $results,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+
+    public function clusterDemands($id)
+    {
+        try {
+            $zone = PaymentZone::find($id);
+
+            $query = DB::table('ratepayers as r')
+            ->join('entities as e', 'e.id', '=', 'r.entity_id')
+            ->join('current_demands as c', 'r.id', '=', 'c.ratepayer_id')
+            ->select(
+                'c.ratepayer_id',
+                'r.consumer_no',
+                'r.ratepayer_name',
+                'r.ratepayer_address',
+                'r.mobile_no',
+                'r.reputation',
+                'r.lastpayment_amt',
+                DB::raw('IF((r.latitude IS NOT NULL AND r.longitude IS NOT NULL AND r.latitude BETWEEN -90 AND 90 AND r.longitude BETWEEN -180 AND 180), TRUE, FALSE) as validCoordinates'),
+                DB::raw('DATE_FORMAT(r.lastpayment_date, "%d/%m/%Y") as lastpayment_date'),
+                DB::raw('SUM(c.total_demand) as totalDemand')
+            )
+            ->whereRaw('(c.total_demand - c.payment) > 0')
+            ->whereRaw('(c.bill_month + (c.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
+            // ->where('r.paymentzone_id', 2)
+            ->where('e.cluster_id', $id)
+            ->groupBy('c.ratepayer_id');
+
+            $results = $query->get();
+
+
+            // $results = DB::table('current_demands as c')
+            //     ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
+            //     ->select(
+            //         'c.ratepayer_id',
+            //         'r.consumer_no',
+            //         'r.ratepayer_name',
+            //         'r.ratepayer_address',
+            //         'r.mobile_no',
+            //         'r.reputation',
+            //         'r.lastpayment_amt',
+            //         DB::raw('if(((latitude IS NOT NULL) AND (longitude IS NOT NULL) AND (latitude BETWEEN -90 AND 90) AND (longitude BETWEEN -180 AND 180)),true,false) as validCoordinates'),
+            //         DB::raw('DATE_FORMAT(r.lastpayment_date,"%d/%m/%Y") as lastpayment_date'),
+            //         DB::raw('SUM(c.total_demand) as totalDemand')
+            //     )
+            //     ->whereRaw('c.total_demand - c.payment > 0')  // Ensure unpaid demand exists
+            //     ->whereRaw('MONTH(SYSDATE()) >= c.bill_month')  // Ensure current month is less than or equal to bill_month
+            //     ->where('r.paymentzone_id', $id)  // Ensure current month is less than or equal to bill_month
+            //     ->whereRaw('cluster_id IS NOT NULL')  // Ensure current month is less than or equal to bill_month
+            //     ->groupBy('c.ratepayer_id', 'r.consumer_no', 'r.ratepayer_name', 'r.ratepayer_address', 'r.mobile_no')  // Group by ratepayer_id and relevant columns
+            //     ->orderBy('r.ratepayer_name')
+            //     ->get();
+
+            return format_response(
+                'Show Pending Cluster Demands from '.$zone->payment_zone,
+                $results,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
 }

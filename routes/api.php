@@ -239,8 +239,19 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('operations')->
 Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('demand')->group(function () {
     // API-ID: DEMAND-001 [Get pending demands of zone]
     Route::get('zone/{id}', [DemandController::class, 'zoneCurrentDemands']);
+
+    // API-ID: DEMAND-003 [Get pending cluster demands of zone]
+    Route::get('zone/cluster/{id}', [DemandController::class, 'zoneCurrentClusterDemands']);
+
     // API-ID: DEMAND-002 [Get pending demands of a ratepayer]
     Route::get('current/ratepayer/{id}', [DemandController::class, 'showRatepayerCurrentDemand']);
+
+
+   // API-ID: DEMAND-004 [Get pending demands of a cluster where summary of all pending entity ratepayers is listed]
+   Route::get('current/cluster/{id}', [DemandController::class, 'clusterDemands']);
+
+
+
 
     Route::get('demands/pending/{year}/{id}', [DemandController::class, 'showPendingDemands']);
     //Done

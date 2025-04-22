@@ -20,7 +20,7 @@ class RatepayerTableSeeder extends Seeder
                 'ulb_id' => 1, // Assuming 50 ULBs
                 'ward_id' => $faker->numberBetween(1, 10), // Assuming 200 Wards
                 'entity_id' => $faker->boolean(50) ? $faker->numberBetween(1, 400) : null, // 50% chance of being null
-                'cluster_id' => $faker->boolean(50) ? null : $faker->numberBetween(1, 20), // Mutually exclusive with entity_id
+               //  'cluster_id' => $faker->boolean(50) ? null : $faker->numberBetween(1, 20), // Mutually exclusive with entity_id
                 'paymentzone_id' => $faker->numberBetween(1, 4),
                 //  'paymentzone_id' => $faker->optional()->numberBetween(1, 5),
                 'subcategory_id' => $faker->numberBetween(1, 5),

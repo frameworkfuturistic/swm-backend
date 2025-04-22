@@ -66,14 +66,21 @@ class DemandService
     protected function generateCurrentDemands(int $year): void
     {
       DB::enableQueryLog();
-      $rp = Ratepayer::where('is_active', true)->get();
+      // $rp = Ratepayer::where('is_active', true)->get();
+      $rp=Ratepayer::where('is_active', true)
+      ->where('ulb_id', $this->ulbId)
+      ->whereNull('cluster_id')
+      ->whereNotNull('entity_id')->get();
+      
         Ratepayer::where('is_active', true)
             ->where('ulb_id', $this->ulbId)
+            ->whereNull('cluster_id')
+            ->whereNotNull('entity_id')
             ->chunk(100, function ($ratepayers) use ($year) {
                 foreach ($ratepayers as $ratepayer) {
                     $this->processRatepayerDemand($ratepayer, $year);
                 }
-            });
+         });
     }
 
     /** Method 1.1.1

@@ -11,11 +11,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Ratepayer;
+use App\Services\ReceiptService;
 use Exception;
 use Illuminate\Support\Facades\Auth;
 
 class RateTransactionController extends Controller
 {
+
+   // protected $emailService;
 
     // API-ID: RTRANS-001 [RateTransaction]
 
@@ -122,6 +125,7 @@ class RateTransactionController extends Controller
 
     public function postPayment(Request $request)
     {
+      $receiptService= new ReceiptService();
       $authKey = $request->header('AUTH_KEY');
 
       if (!$authKey || $authKey !== config('app.auth_key')) {
@@ -185,7 +189,7 @@ class RateTransactionController extends Controller
       $validatedData['remarks'] = 'Whats app Bot payment';
       $validatedData['longitude'] = '0.0';
       $validatedData['latitude'] = '0.0';
-      $validatedData['paymentMode'] = 'ONLINE';
+      $validatedData['paymentMode'] = 'WHATSAPP';
 
       // Start a transaction to ensure data integrity
       DB::beginTransaction();
@@ -212,9 +216,40 @@ class RateTransactionController extends Controller
               ];
               DB::commit();
 
+              /**
+               * New Changes Start Here
+               */
+
+               // Prepare payment data
+               $paymentData = [
+                  'name' => $tranService->ratepayer->ratepayer_name ?? '',
+                  'mobile' => $tranService->ratepayer->mobile_no ?? '',
+                  'address' => $tranService->ratepayer->ratepayer_address ?? '',
+                  'transaction_no' => $request->transaction_id ?? '',
+                  'consumer_no' => $tranService->ratepayer->consumer_no ?? '',
+                  'category' => $tranService->ratepayer->usage_type,
+                  'ward_no' => 'WARD 1' ?? '',
+                  'holding_no' => $tranService->ratepayer->holding_no??'',
+                  //'type' => $paymentData['type'] ?? '',
+                  'from_date' => now(),
+                  'to_date' => now(),
+                  'rate_per_month' => $tranService->ratepayer->monthly_demand,
+                  'amount' => $validatedData['amount'] ?? 0,
+                  'total' => $validatedData['amount'] ?? 0,
+                  'payment_mode' => 'Whatsapp',
+                  'gst_no' =>  '',
+                  'pan_no' =>  '',
+                  'customer_remarks' => '',
+                  'mobile' => $tranService->ratepayer->mobile_no ?? '',
+               ];
+
+               // Generate PDF receipt
+               $receiptData = $receiptService->generateReceipt($paymentData);
+               $encodedPdf = base64_encode($receiptData['content']);
               return format_response(
                   'success',
-                  $responseData,
+                  $encodedPdf,
+                  // $receiptData['content'],
                   Response::HTTP_CREATED
               );
           } else {
