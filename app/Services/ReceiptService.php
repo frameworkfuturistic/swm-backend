@@ -60,7 +60,7 @@ class ReceiptService
          'gst_no' => '123123123123',
          'pan_no' => '123123123123',
          'account_name' => 'Ranchi Municipal Corporation',
-         'bank_name' => 'Indian Bank (Karachi, Ranchi)',
+         'bank_name' => 'Indian Bank (Ranchi, Branch)',
          'account_no' => '5343434343',
          'ifsc_code' => 'IBKL0001234',
      
