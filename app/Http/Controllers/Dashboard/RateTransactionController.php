@@ -18,261 +18,263 @@ use Illuminate\Support\Facades\Auth;
 class RateTransactionController extends Controller
 {
 
-   // protected $emailService;
+    // protected $emailService;
 
     // API-ID: RTRANS-001 [RateTransaction]
 
     public function getCurrentBill(Request $request)
     {
-      try {
+        try {
 
-         $authKey = $request->header('AUTH-KEY') ?? $request->header('Auth-Key') ?? $request->header('auth-key');
+            $authKey = $request->header('AUTH-KEY') ?? $request->header('Auth-Key') ?? $request->header('auth-key');
 
 
-         if (!$authKey || $authKey !== config('app.auth_key')) {
-             return response()->json([
-                 'success' => false,
-                 'message' => 'Unauthorized client. !'
-             ], Response::HTTP_UNAUTHORIZED);
-         }
+            if (!$authKey || $authKey !== config('app.auth_key')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized client. !'
+                ], Response::HTTP_UNAUTHORIZED);
+            }
 
-         $request->validate([
-             'ulb_id' => 'required|exists:ulbs,id',
-             'consumer_no' => 'nullable|string',
-             'mobile_no' => 'nullable|string',
-         ]);
+            $request->validate([
+                'ulb_id' => 'required|exists:ulbs,id',
+                'consumer_no' => 'nullable|string',
+                'mobile_no' => 'nullable|string',
+            ]);
 
-         if (!$request->consumer_no && !$request->mobile_no) {
-             return response()->json([
-                 'success' => false,
-                 'message' => 'Either consumer_no or mobile_no is required.',
-             ], Response::HTTP_FORBIDDEN);
-         }
+            if (!$request->consumer_no && !$request->mobile_no) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Either consumer_no or mobile_no is required.',
+                ], Response::HTTP_FORBIDDEN);
+            }
 
-         $ratepayer = Ratepayer::where('ulb_id', $request->ulb_id)
-             ->where('is_active', 1)
-             ->where(function ($query) use ($request) {
-                 if ($request->consumer_no) {
-                     $query->where('consumer_no', $request->consumer_no);
-                 }
-                 if ($request->mobile_no) {
-                     $query->orWhere('mobile_no', $request->mobile_no);
-                 }
-             })->first();
+            $ratepayer = Ratepayer::where('ulb_id', $request->ulb_id)
+                ->where('is_active', 1)
+                ->where(function ($query) use ($request) {
+                    if ($request->consumer_no) {
+                        $query->where('consumer_no', $request->consumer_no);
+                    }
+                    if ($request->mobile_no) {
+                        $query->orWhere('mobile_no', $request->mobile_no);
+                    }
+                })->first();
 
-         if (!$ratepayer) {
-             return response()->json([
-                 'success' => false,
-                 'message' => 'Ratepayer not found.',
-             ], Response::HTTP_NOT_FOUND);
-         }
+            if (!$ratepayer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ratepayer not found.',
+                ], Response::HTTP_NOT_FOUND);
+            }
 
-         $currentDemand = DB::table('current_demands')
-               ->where([
-                  ['ulb_id', $request->ulb_id],
-                  ['ratepayer_id', $ratepayer->id],
-                  ['is_active', 1],
-               ])
-               ->whereNull('payment_id')
-               ->selectRaw("
+            $currentDemand = DB::table('current_demands')
+                ->where([
+                    ['ulb_id', $request->ulb_id],
+                    ['ratepayer_id', $ratepayer->id],
+                    ['is_active', 1],
+                ])
+                ->whereNull('payment_id')
+                ->selectRaw("
                   SUM(total_demand) as total_sum, 
                   COUNT(*) as total_count, 
                   GROUP_CONCAT(DISTINCT CONCAT(MONTHNAME(STR_TO_DATE(bill_month, '%m')), ' ', bill_year) ORDER BY bill_year, bill_month SEPARATOR ', ') as bill_periods
                ")
-               ->first();
-         
-         $totalSum = $currentDemand->total_sum;
-         $totalCount = $currentDemand->total_count;
-         $billPeriods = $currentDemand->bill_periods;
+                ->first();
 
-         if ($totalSum === 0) {
-             return response()->json([
-                 'success' => false,
-                 'message' => 'No active demand found for this ratepayer.',
-             ], Response::HTTP_NOT_FOUND);
-         }
+            $totalSum = $currentDemand->total_sum;
+            $totalCount = $currentDemand->total_count;
+            $billPeriods = $currentDemand->bill_periods;
 
-         $data = [
-             'consumer_no'          => $ratepayer->consumer_no,
-             'ratepayer_id'         => $ratepayer->id,
-             'last_payment_amount'  => $ratepayer->lastpayment_amt,
-             'last_payment_date'    => $ratepayer->lastpayment_date,
-             'last_payment_mode'    => $ratepayer->lastpayment_mode,
-             'month_count'          => $totalCount,
-             'bill_period'          => $billPeriods,
-             'total_demand'         => $totalSum, 
-         ];
+            if ($totalSum === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No active demand found for this ratepayer.',
+                ], Response::HTTP_NOT_FOUND);
+            }
 
-         return response()->json([
-             'success' => true,
-             'message' => 'Bill details fetched successfully',
-             'data' => $data,
-             'meta' => [
-                 'epoch' => now()->timestamp,
-                 'queryTime' => round(microtime(true) - LARAVEL_START, 4),
-                 'server' => request()->server('SERVER_NAME')
-             ]
-         ]);
-     } catch (\Exception $e) {
-         return response()->json([
-             'success' => false,
-             'message' => 'Error occurred: ' . $e->getMessage(),
-         ], 500);
-     }
-}
+            $data = [
+                'consumer_no'          => $ratepayer->consumer_no,
+                'ratepayer_id'         => $ratepayer->id,
+                'last_payment_amount'  => $ratepayer->lastpayment_amt,
+                'last_payment_date'    => $ratepayer->lastpayment_date,
+                'last_payment_mode'    => $ratepayer->lastpayment_mode,
+                'month_count'          => $totalCount,
+                'bill_period'          => $billPeriods,
+                'total_demand'         => $totalSum,
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bill details fetched successfully',
+                'data' => $data,
+                'meta' => [
+                    'epoch' => now()->timestamp,
+                    'queryTime' => round(microtime(true) - LARAVEL_START, 4),
+                    'server' => request()->server('SERVER_NAME')
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error occurred: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 
     // API-ID: RTRANS-002 [RateTransaction]
 
     public function postPayment(Request $request)
     {
-      $receiptService= new ReceiptService();
-      $authKey = $request->header('AUTH_KEY');
+        $receiptService = new ReceiptService();
+        $authKey = $request->header('AUTH_KEY');
 
-      if (!$authKey || $authKey !== config('app.auth_key')) {
-          return response()->json([
-              'success' => false,
-              'message' => 'Unauthorized client.'
-          ], Response::HTTP_UNAUTHORIZED);
-      }
+        if (!$authKey || $authKey !== config('app.auth_key')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized client.'
+            ], Response::HTTP_UNAUTHORIZED);
+        }
 
-      $validator = Validator::make($request->all(), [
-         'ratepayer_id' => 'required|exists:ratepayers,id',
-         'amount' => 'required|numeric|min:3', 
-         'transaction_id' => 'required|string|min:5|max:50',
-     ]);
-     
-      if ($validator->fails()) {
-          $errorMessages = $validator->errors()->all();
+        $validator = Validator::make($request->all(), [
+            'ratepayer_id' => 'required|exists:ratepayers,id',
+            'amount' => 'required|numeric|min:3',
+            'transaction_id' => 'required|string|min:5|max:50',
+        ]);
 
-          return format_response(
-              'validation error',
-              $errorMessages,
-              Response::HTTP_UNPROCESSABLE_ENTITY
-          );
-      }
+        if ($validator->fails()) {
+            $errorMessages = $validator->errors()->all();
 
-      $validatedData = $validator->validated();
+            return format_response(
+                'validation error',
+                $errorMessages,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
 
-      $tranService = new TransactionService;
+        $validatedData = $validator->validated();
 
-      // Check for pending demands
-      $pendingDemands = DB::table('current_demands')
-          ->where('ratepayer_id', $request->ratepayer_id)
-          ->where('is_active', 1)
-          ->whereNull('payment_id')
-          ->sum('total_demand');
+        $tranService = new TransactionService;
 
-      if ($pendingDemands === 0) {
-          return format_response(
-              'No pending demands found for this ratepayer.',
-              null,
-              Response::HTTP_NOT_FOUND
-          );
-      }
+        // Check for pending demands
+        $pendingDemands = DB::table('current_demands')
+            ->where('ratepayer_id', $request->ratepayer_id)
+            ->where('is_active', 1)
+            ->whereNull('payment_id')
+            ->sum('total_demand');
 
-      if ($request->amount > $pendingDemands) {
-          return format_response(
-              'Payment amount must fully cover one or more pending demands. Demand Till Date = ' . $pendingDemands,
-              null,
-              Response::HTTP_UNPROCESSABLE_ENTITY
-          );
-      }
 
-      $ratepayer = RatePayer::find($request->ratepayer_id);
+        if ($pendingDemands === 0) {
+            return format_response(
+                'No pending demands found for this ratepayer.',
+                null,
+                Response::HTTP_NOT_FOUND
+            );
+        }
 
-      $validatedData['ulbId'] = $ratepayer->ulb_id;
-      $validatedData['ratepayerId'] = $request->ratepayer_id;
-      $validatedData['tcId'] = 1;
-      $validatedData['entityId'] = $ratepayer->entity_id;
-      $validatedData['clusterId'] = $ratepayer->cluster_id;
-      $validatedData['eventType'] = 'PAYMENT';
-      $validatedData['remarks'] = 'Whats app Bot payment';
-      $validatedData['longitude'] = '0.0';
-      $validatedData['latitude'] = '0.0';
-      $validatedData['paymentMode'] = 'WHATSAPP';
+        if ($request->amount > $pendingDemands) {
+            return format_response(
+                'Payment amount must fully cover one or more pending demands. Demand Till Date = ' . $pendingDemands,
+                null,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
 
-      // Start a transaction to ensure data integrity
-      DB::beginTransaction();
-      try {
-          $tranService->extractRatepayerDetails($validatedData['ratepayerId']);
-          $transaction = $tranService->createNewTransaction($validatedData);
-          $payment = $tranService->createNewPayment($validatedData, $transaction->id);
-          $transaction->payment_id = $payment->id;
-          $transaction->save();
 
-          if ($transaction != null) {
-              $responseData = [
-                  'tranId' => $transaction->id,
-                  'consumerNo' => $tranService->ratepayer->consumer_no,
-                  'ratepayerName' => $tranService->ratepayer->ratepayer_name,
-                  'ratepayerAddress' => $tranService->ratepayer->ratepayer_address,
-                  'mobileNo' => $tranService->ratepayer->mobile_no,
-                  'landmark' => $tranService->ratepayer->landmark,
-                  'longitude' => $validatedData['longitude'],
-                  'latitude' => $validatedData['latitude'],
-                  'tranType' => $transaction->event_type,
-                  'pmtMode' => $validatedData['paymentMode'],
-                  'pmtAmount' => $validatedData['amount'],
-              ];
-              DB::commit();
+        $ratepayer = Ratepayer::find($request->ratepayer_id);
 
-              /**
-               * New Changes Start Here
-               */
 
-               // Prepare payment data
-               $paymentData = [
-                  'name' => $tranService->ratepayer->ratepayer_name ?? '',
-                  'mobile' => $tranService->ratepayer->mobile_no ?? '',
-                  'address' => $tranService->ratepayer->ratepayer_address ?? '',
-                  'transaction_no' => $request->transaction_id ?? '',
-                  'consumer_no' => $tranService->ratepayer->consumer_no ?? '',
-                  'category' => $tranService->ratepayer->usage_type,
-                  'ward_no' => 'WARD 1' ?? '',
-                  'holding_no' => $tranService->ratepayer->holding_no??'',
-                  //'type' => $paymentData['type'] ?? '',
-                  'from_date' => now(),
-                  'to_date' => now(),
-                  'rate_per_month' => $tranService->ratepayer->monthly_demand,
-                  'amount' => $validatedData['amount'] ?? 0,
-                  'total' => $validatedData['amount'] ?? 0,
-                  'payment_mode' => 'Whatsapp',
-                  'gst_no' =>  '',
-                  'pan_no' =>  '',
-                  'customer_remarks' => '',
-                  'mobile' => $tranService->ratepayer->mobile_no ?? '',
-               ];
 
-               // Generate PDF receipt
-               $receiptData = $receiptService->generateReceipt($paymentData);
-               $encodedPdf = base64_encode($receiptData['content']);
-              return format_response(
-                  'success',
-                  $encodedPdf,
-                  // $receiptData['content'],
-                  Response::HTTP_CREATED
-              );
-          } else {
-              DB::rollBack();
+        $validatedData['ulbId'] = $ratepayer->ulb_id;
+        $validatedData['ratepayerId'] = $request->ratepayer_id;
+        $validatedData['tcId'] = 1;
+        $validatedData['entityId'] = $ratepayer->entity_id;
+        $validatedData['clusterId'] = $ratepayer->cluster_id;
+        $validatedData['eventType'] = 'PAYMENT';
+        $validatedData['remarks'] = 'Whats app Bot payment';
+        $validatedData['longitude'] = '0.0';
+        $validatedData['latitude'] = '0.0';
+        $validatedData['paymentMode'] = 'WHATSAPP';
 
-              return format_response(
-                  'An error occurred during insertion',
-                  null,
-                  Response::HTTP_INTERNAL_SERVER_ERROR
-              );
-          }
-      } catch (Exception $e) {
-          DB::rollBack();
+        // Start a transaction to ensure data integrity
+        DB::beginTransaction();
+        try {
+            $tranService->extractRatepayerDetails($validatedData['ratepayerId']);
+            $transaction = $tranService->createNewTransaction($validatedData);
+            $payment = $tranService->createNewPayment($validatedData, $transaction->id);
 
-          return format_response(
-              'An error occurred during insertion. ' . $e->getMessage() . ' Demand Till Date = ' . $tranService->demandTillDate,
-              null,
-              Response::HTTP_INTERNAL_SERVER_ERROR
-          );
-      }
+            // dd("Hii");
+            $transaction->payment_id = $payment->id;
+            $transaction->save();
+            if ($transaction != null) {
+                $responseData = [
+                    'tranId' => $transaction->id,
+                    'consumerNo' => $tranService->ratepayer->consumer_no,
+                    'ratepayerName' => $tranService->ratepayer->ratepayer_name,
+                    'ratepayerAddress' => $tranService->ratepayer->ratepayer_address,
+                    'mobileNo' => $tranService->ratepayer->mobile_no,
+                    'landmark' => $tranService->ratepayer->landmark,
+                    'longitude' => $validatedData['longitude'],
+                    'latitude' => $validatedData['latitude'],
+                    'tranType' => $transaction->event_type,
+                    'pmtMode' => $validatedData['paymentMode'],
+                    'pmtAmount' => $validatedData['amount'],
+                ];
+                DB::commit();
+
+                /**
+                 * New Changes Start Here
+                 */
+
+                // Prepare payment data
+                $paymentData = [
+                    'name' => $tranService->ratepayer->ratepayer_name ?? '',
+                    'mobile' => $tranService->ratepayer->mobile_no ?? '',
+                    'address' => $tranService->ratepayer->ratepayer_address ?? '',
+                    'transaction_no' => $request->transaction_id ?? '',
+                    'consumer_no' => $tranService->ratepayer->consumer_no ?? '',
+                    'category' => $tranService->ratepayer->usage_type,
+                    'ward_no' => 'WARD 1' ?? '',
+                    'holding_no' => $tranService->ratepayer->holding_no ?? '',
+                    //'type' => $paymentData['type'] ?? '',
+                    'from_date' => now(),
+                    'to_date' => now(),
+                    'rate_per_month' => $tranService->ratepayer->monthly_demand,
+                    'amount' => $validatedData['amount'] ?? 0,
+                    'total' => $validatedData['amount'] ?? 0,
+                    'payment_mode' => 'Whatsapp',
+                    'gst_no' =>  '',
+                    'pan_no' =>  '',
+                    'customer_remarks' => '',
+                    'mobile' => $tranService->ratepayer->mobile_no ?? '',
+                ];
+
+
+                // Generate PDF receipt
+                $receiptData = $receiptService->generateReceipt($paymentData);
+                $encodedPdf = base64_encode($receiptData['content']);
+                return format_response(
+                    'success',
+                    $encodedPdf,
+                    // $receiptData['content'],
+                    Response::HTTP_CREATED
+                );
+            } else {
+                DB::rollBack();
+
+                return format_response(
+                    'An error occurred during insertion',
+                    null,
+                    Response::HTTP_INTERNAL_SERVER_ERROR
+                );
+            }
+        } catch (Exception $e) {
+            DB::rollBack();
+            // dd($e->getMessage());
+            return format_response(
+                'An error occurred during insertion. ' . $e->getMessage() . ' Demand Till Date = ' . $tranService->demandTillDate,
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
     }
 }
-
-
-
-

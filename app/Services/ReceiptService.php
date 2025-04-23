@@ -7,22 +7,22 @@ use Illuminate\Support\Facades\Storage;
 
 class ReceiptService
 {
-    /**
-     * Generate a PDF receipt
-     *
-     * @param array $paymentData Payment details
-     * @return array Contains PDF data and filename
-     */
-    public function generateReceipt(array $paymentData)
-    {
-        // Format payment data as needed
-        $data = $this->formatPaymentData($paymentData);
-        
-        $data = [
+   /**
+    * Generate a PDF receipt
+    *
+    * @param array $paymentData Payment details
+    * @return array Contains PDF data and filename
+    */
+   public function generateReceipt(array $paymentData)
+   {
+      // Format payment data as needed
+      $data = $this->formatPaymentData($paymentData);
+
+      $data = [
          // Header Section
          'corporation_name' => 'RANCHI MUNICIPAL CORPORATION',
          'receipt_title' => 'SOLID WASTE USER CHARGE PAYMENT RECEIPT',
-     
+
          // User Details
          'department' => 'Solid Waste User Charge and others',
          'account_description' => '',
@@ -30,7 +30,7 @@ class ReceiptService
          'mobile_no' => '1234567890',
          'address' => 'Belbaga Samlong, Marriage Hall',
          'category' => 'Above 3000 SqMtr',
-     
+
          // Transaction Details
          'transaction_no' => '1231231212',
          'transaction_date' => '29 March, 2025 12:00 PM',
@@ -38,24 +38,24 @@ class ReceiptService
          'ward_no' => '13',
          'holding_no' => '123123123122',
          'type' => 'Above 3000 SqMtr',
-     
+
          // Tax Items
          'tax_items' => [
-             [
-                 'si_no' => 1,
-                 'tax_type' => 'Solid Waste User Charge',
-                 'code' => 'N.A.',
-                 'bill_month' => 'January 2025 To March 2025',
-                 'rate' => '5000',
-                 'amount' => '5000'
-             ]
+            [
+               'si_no' => 1,
+               'tax_type' => 'Solid Waste User Charge',
+               'code' => 'N.A.',
+               'bill_month' => 'January 2025 To March 2025',
+               'rate' => '5000',
+               'amount' => '5000'
+            ]
          ],
-     
+
          // Payment Details
          'total_amount' => '5000',
          'amount_in_words' => 'Five Thousand Only',
          'payment_mode' => 'Cash',
-     
+
          // Bank Details
          'gst_no' => '123123123123',
          'pan_no' => '123123123123',
@@ -63,174 +63,195 @@ class ReceiptService
          'bank_name' => 'Indian Bank (Ranchi, Branch)',
          'account_no' => '5343434343',
          'ifsc_code' => 'IBKL0001234',
-     
+
          // Footer Details
          'print_date' => '2025-04-07 14:07 PM',
          'verification_contact' => '9297888512',
          'qr_code_url' => 'https://example.com/qr/1231231212', // Your generated QR code URL
-     
+
          // Static Content
          'notes' => [
-             'This is a Computer generated Demand and does not require physical signature',
-             'You will receive SMS in your registered mobile no. for amount paid. If SMS is not received verify your paid amount by calling 9297888512 or visit',
+            'This is a Computer generated Demand and does not require physical signature',
+            'You will receive SMS in your registered mobile no. for amount paid. If SMS is not received verify your paid amount by calling 9297888512 or visit',
          ],
-     
+
          // Signature Section
-         'issued_by' => 'Notwind Softlab Private Limited',
+         'issued_by' => 'Netwind Softlab Private Limited',
          'customer_remarks' => '',
          'customer_mobile' => ''
-     ];
+      ];
 
 
-        // Generate HTML content for the PDF
-        $html = $this->generateReceiptHtml($data);
+      // Generate HTML content for the PDF
+      $html = $this->generateReceiptHtml($data);
 
-       // Generate PDF from HTML string instead of a view
-        $pdf = PDF::loadHTML($html);
+      // Generate PDF from HTML string instead of a view
+      $pdf = PDF::loadHTML($html);
 
       //   // Generate PDF
       //   $pdf = PDF::loadView('pdfs.receipt', $data);
-        
-        // Set paper size and orientation
-        $pdf->setPaper('a4', 'portrait');
-        
-        // Generate a unique filename
-        $filename = 'receipt_' . $paymentData['transaction_no'] . '_' . time() . '.pdf';
-        
+
+      // Set paper size and orientation
+      $pdf->setPaper('a4', 'portrait');
+
+      // Generate a unique filename
+      $filename = 'receipt_' . $paymentData['transaction_no'] . '_' . time() . '.pdf';
+
       //   $pdf->render();
       //   $pdf->stream("receipt.pdf");
 
-        // Return both the PDF content and filename
-        return [
-            // 'pdf' => $pdf,
-            'content' => $pdf->output(),
-            // 'content' => $pdf->stream("receipt.pdf"),
-            'filename' => $filename
-        ];
-    }
-    
-    /**
-     * Save the generated PDF to storage
-     *
-     * @param string $content PDF content
-     * @param string $filename Filename to save
-     * @return string Path to the saved file
-     */
-    public function saveReceipt(string $content, string $filename)
-    {
-        $path = 'receipts/' . $filename;
-        Storage::disk('public')->put($path, $content);
-        
-        return $path;
-    }
-    
-    /**
-     * Format the payment data for the PDF template
-     *
-     * @param array $paymentData Raw payment data
-     * @return array Formatted data for the template
-     */
-    private function formatPaymentData(array $paymentData)
-    {
-        // Calculate the date range if needed
-        $fromDate = isset($paymentData['from_date']) ? $paymentData['from_date'] : date('F Y');
-        $toDate = isset($paymentData['to_date']) ? $paymentData['to_date'] : date('F Y');
-        
-        // Format amount in words
-        $amountInWords = $this->numberToWords($paymentData['amount']);
-        
-        return [
-            'organization' => 'RANCHI MUNICIPAL CORPORATION',
-            'department' => 'Revenue Section',
-            'account_description' => 'Solid Waste User Charge and others',
-            'name' => $paymentData['name'] ?? '',
-            'mobile' => $paymentData['mobile'] ?? '',
-            'address' => $paymentData['address'] ?? '',
-            'category' => $paymentData['category'] ?? '',
-            'transaction_no' => $paymentData['transaction_no'] ?? '',
-            'date_time' => $paymentData['date_time'] ?? date('d F, Y h:i A'),
-            'consumer_no' => $paymentData['consumer_no'] ?? '',
-            'ward_no' => $paymentData['ward_no'] ?? '',
-            'holding_no' => $paymentData['holding_no'] ?? '',
-            'type' => $paymentData['type'] ?? '',
-            'bill_month' => $fromDate . ' To ' . $toDate,
-            'rate_per_month' => $paymentData['rate_per_month'] ?? $paymentData['amount'],
-            'amount' => $paymentData['amount'] ?? 0,
-            'total' => $paymentData['amount'] ?? 0,
-            'amount_in_words' => $amountInWords,
-            'payment_mode' => $paymentData['payment_mode'] ?? 'Cash',
-            'gst_no' => $paymentData['gst_no'] ?? '',
-            'pan_no' => $paymentData['pan_no'] ?? '',
-            'account_name' => 'Ranchi Municipal Corporation',
-            'bank' => 'Axis Bank',
-            'account_no' => '5343434343',
-            'ifsc_code' => 'IBKL0001234',
-            'print_date' => date('Y-m-d H:i A'),
-            'customer_remarks' => $paymentData['customer_remarks'] ?? '',
-            'customer_mobile' => $paymentData['mobile'] ?? '',
-        ];
-    }
-    
-    /**
-     * Convert number to words
-     *
-     * @param float $num
-     * @return string
-     */
-    private function numberToWords($num)
-    {
-        // Simple implementation - for production use a dedicated library
-        $ones = [
-            0 => '', 1 => 'One', 2 => 'Two', 3 => 'Three', 4 => 'Four', 
-            5 => 'Five', 6 => 'Six', 7 => 'Seven', 8 => 'Eight', 9 => 'Nine', 
-            10 => 'Ten', 11 => 'Eleven', 12 => 'Twelve', 13 => 'Thirteen', 
-            14 => 'Fourteen', 15 => 'Fifteen', 16 => 'Sixteen', 17 => 'Seventeen', 
-            18 => 'Eighteen', 19 => 'Nineteen'
-        ];
-        
-        $tens = [
-            2 => 'Twenty', 3 => 'Thirty', 4 => 'Forty', 5 => 'Fifty', 
-            6 => 'Sixty', 7 => 'Seventy', 8 => 'Eighty', 9 => 'Ninety'
-        ];
-        
-        $num = number_format($num, 2, '.', '');
-        $num_arr = explode('.', $num);
-        $whole = (int)$num_arr[0];
-        $fraction = (int)$num_arr[1];
-        
-        if ($whole < 20) {
-            $words = isset($ones[$whole]) ? $ones[$whole] : '';
-        } elseif ($whole < 100) {
-            $words = $tens[floor($whole / 10)];
-            $words .= ($whole % 10 != 0) ? ' ' . $ones[$whole % 10] : '';
-        } elseif ($whole < 1000) {
-            $words = $ones[floor($whole / 100)] . ' Hundred';
-            $words .= ($whole % 100 != 0) ? ' ' . $this->numberToWords($whole % 100) : '';
-        } elseif ($whole < 100000) {
-            $words = $this->numberToWords(floor($whole / 1000)) . ' Thousand';
-            $words .= ($whole % 1000 != 0) ? ' ' . $this->numberToWords($whole % 1000) : '';
-        } else {
-            $words = $this->numberToWords(floor($whole / 100000)) . ' Lakh';
-            $words .= ($whole % 100000 != 0) ? ' ' . $this->numberToWords($whole % 100000) : '';
-        }
-        
-        if ($fraction > 0) {
-            $words .= ' and ' . $this->numberToWords($fraction) . ' Paise';
-        }
-        
-        return $words . ' Only';
-    }
+      // Return both the PDF content and filename
+      return [
+         // 'pdf' => $pdf,
+         'content' => $pdf->output(),
+         // 'content' => $pdf->stream("receipt.pdf"),
+         'filename' => $filename
+      ];
+   }
 
-    /**
- * Generate HTML for the receipt
- * 
- * @param array $data Receipt data
- * @return string HTML content
- */
-private function generateReceiptHtmlOld(array $data)
-{
-    // Build the HTML content
-    $html = '<!DOCTYPE html>
+   /**
+    * Save the generated PDF to storage
+    *
+    * @param string $content PDF content
+    * @param string $filename Filename to save
+    * @return string Path to the saved file
+    */
+   public function saveReceipt(string $content, string $filename)
+   {
+      $path = 'receipts/' . $filename;
+      Storage::disk('public')->put($path, $content);
+
+      return $path;
+   }
+
+   /**
+    * Format the payment data for the PDF template
+    *
+    * @param array $paymentData Raw payment data
+    * @return array Formatted data for the template
+    */
+   private function formatPaymentData(array $paymentData)
+   {
+      // Calculate the date range if needed
+      $fromDate = isset($paymentData['from_date']) ? $paymentData['from_date'] : date('F Y');
+      $toDate = isset($paymentData['to_date']) ? $paymentData['to_date'] : date('F Y');
+
+      // Format amount in words
+      $amountInWords = $this->numberToWords($paymentData['amount']);
+
+      return [
+         'organization' => 'RANCHI MUNICIPAL CORPORATION',
+         'department' => 'Revenue Section',
+         'account_description' => 'Solid Waste User Charge and others',
+         'name' => $paymentData['name'] ?? '',
+         'mobile' => $paymentData['mobile'] ?? '',
+         'address' => $paymentData['address'] ?? '',
+         'category' => $paymentData['category'] ?? '',
+         'transaction_no' => $paymentData['transaction_no'] ?? '',
+         'date_time' => $paymentData['date_time'] ?? date('d F, Y h:i A'),
+         'consumer_no' => $paymentData['consumer_no'] ?? '',
+         'ward_no' => $paymentData['ward_no'] ?? '',
+         'holding_no' => $paymentData['holding_no'] ?? '',
+         'type' => $paymentData['type'] ?? '',
+         'bill_month' => $fromDate . ' To ' . $toDate,
+         'rate_per_month' => $paymentData['rate_per_month'] ?? $paymentData['amount'],
+         'amount' => $paymentData['amount'] ?? 0,
+         'total' => $paymentData['amount'] ?? 0,
+         'amount_in_words' => $amountInWords,
+         'payment_mode' => $paymentData['payment_mode'] ?? 'Cash',
+         'gst_no' => $paymentData['gst_no'] ?? '',
+         'pan_no' => $paymentData['pan_no'] ?? '',
+         'account_name' => 'Ranchi Municipal Corporation',
+         'bank' => 'Axis Bank',
+         'account_no' => '5343434343',
+         'ifsc_code' => 'IBKL0001234',
+         'print_date' => date('Y-m-d H:i A'),
+         'customer_remarks' => $paymentData['customer_remarks'] ?? '',
+         'customer_mobile' => $paymentData['mobile'] ?? '',
+      ];
+   }
+
+   /**
+    * Convert number to words
+    *
+    * @param float $num
+    * @return string
+    */
+   private function numberToWords($num)
+   {
+      // Simple implementation - for production use a dedicated library
+      $ones = [
+         0 => '',
+         1 => 'One',
+         2 => 'Two',
+         3 => 'Three',
+         4 => 'Four',
+         5 => 'Five',
+         6 => 'Six',
+         7 => 'Seven',
+         8 => 'Eight',
+         9 => 'Nine',
+         10 => 'Ten',
+         11 => 'Eleven',
+         12 => 'Twelve',
+         13 => 'Thirteen',
+         14 => 'Fourteen',
+         15 => 'Fifteen',
+         16 => 'Sixteen',
+         17 => 'Seventeen',
+         18 => 'Eighteen',
+         19 => 'Nineteen'
+      ];
+
+      $tens = [
+         2 => 'Twenty',
+         3 => 'Thirty',
+         4 => 'Forty',
+         5 => 'Fifty',
+         6 => 'Sixty',
+         7 => 'Seventy',
+         8 => 'Eighty',
+         9 => 'Ninety'
+      ];
+
+      $num = number_format($num, 2, '.', '');
+      $num_arr = explode('.', $num);
+      $whole = (int)$num_arr[0];
+      $fraction = (int)$num_arr[1];
+
+      if ($whole < 20) {
+         $words = isset($ones[$whole]) ? $ones[$whole] : '';
+      } elseif ($whole < 100) {
+         $words = $tens[floor($whole / 10)];
+         $words .= ($whole % 10 != 0) ? ' ' . $ones[$whole % 10] : '';
+      } elseif ($whole < 1000) {
+         $words = $ones[floor($whole / 100)] . ' Hundred';
+         $words .= ($whole % 100 != 0) ? ' ' . $this->numberToWords($whole % 100) : '';
+      } elseif ($whole < 100000) {
+         $words = $this->numberToWords(floor($whole / 1000)) . ' Thousand';
+         $words .= ($whole % 1000 != 0) ? ' ' . $this->numberToWords($whole % 1000) : '';
+      } else {
+         $words = $this->numberToWords(floor($whole / 100000)) . ' Lakh';
+         $words .= ($whole % 100000 != 0) ? ' ' . $this->numberToWords($whole % 100000) : '';
+      }
+
+      if ($fraction > 0) {
+         $words .= ' and ' . $this->numberToWords($fraction) . ' Paise';
+      }
+
+      return $words . ' Only';
+   }
+
+   /**
+    * Generate HTML for the receipt
+    * 
+    * @param array $data Receipt data
+    * @return string HTML content
+    */
+   private function generateReceiptHtmlOld(array $data)
+   {
+      // Build the HTML content
+      $html = '<!DOCTYPE html>
       <html lang="en">
       <head>
          <meta charset="UTF-8">
@@ -484,100 +505,622 @@ private function generateReceiptHtmlOld(array $data)
          </div>
       </body>
       </html>';
-      
+
       return $html;
    }
 
 
-   function generateReceiptHtml($data) {
+   // function generateReceiptHtml($data)
+   // {
+   //    $html = '
+   //    <style>
+   //        body { font-family: Arial, sans-serif; margin: 0; padding: 15px; }
+   //        .header { text-align: center; margin-bottom: 15px; }
+   //        .header .logo {
+   //          width: 150px;
+   //          margin-bottom: 15px;
+   //      }
+   //        .section { margin-bottom: 15px; }
+   //        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+   //        td, th { padding: 4px; vertical-align: top; }
+   //        .bordered td, .bordered th { border: 1px solid #000; }
+   //        .text-right { text-align: right; }
+   //        .text-center { text-align: center; }
+   //        .notes { font-size: 0.9em; margin-top: 15px; }
+   //        .signature-section { margin-top: 25px; }
+   //    </style>
+
+   //    <div class="header">
+   //    <img src="' . public_path('images/rmc.png') . '" alt="RMC" class="logo">
+   //        <h3>RANCHI MUNICIPAL CORPORATION</h3>
+   //        <h4>SOLID WASTE USER CHARGE PAYMENT RECEIPT</h4>
+   //    </div>
+
+   //    <table>
+   //        <tr>
+   //            <td>Department/Section:</td>
+   //            <td>' . $data['department'] . '</td>
+   //            <td>Transaction No:</td>
+   //            <td>' . $data['transaction_no'] . '</td>
+   //        </tr>
+   //        <!-- Add other fields similarly -->
+   //    </table>
+
+   //    <table class="bordered">
+   //        <tr>
+   //            <th>SI No</th>
+   //            <th>Tax Type</th>
+   //            <th>IISNS/ACC Code</th>
+   //            <th>Bill Month</th>
+   //            <th>Rate Per Month</th>
+   //            <th>Amount</th>
+   //        </tr>';
+
+   //    foreach ($data['tax_items'] as $item) {
+   //       $html .= '
+   //        <tr>
+   //            <td>' . $item['si_no'] . '</td>
+   //            <td>' . $item['tax_type'] . '</td>
+   //            <td>' . $item['code'] . '</td>
+   //            <td>' . $item['bill_month'] . '</td>
+   //            <td class="text-right">' . $item['rate'] . '</td>
+   //            <td class="text-right">' . $item['amount'] . '</td>
+   //        </tr>';
+   //    }
+
+   //    $html .= '
+   //        <tr>
+   //            <td colspan="5" class="text-right"><strong>Total</strong></td>
+   //            <td class="text-right"><strong>' . $data['total_amount'] . '</strong></td>
+   //        </tr>
+   //    </table>
+
+   //    <div class="section">
+   //        <p>Amount in Words: <em>' . $data['amount_in_words'] . '</em></p>
+   //        <p>Payment Mode: ' . $data['payment_mode'] . '</p>
+   //    </div>
+
+   //    <div class="notes">
+   //        <p>Note:</p>
+   //        <ul>
+   //            <li>This is a Computer generated Demand and does not require physical signature</li>
+   //            <!-- Add other notes -->
+   //        </ul>
+   //    </div>
+
+   //    <table>
+   //        <tr>
+   //            <td>GST No: ' . $data['gst_no'] . '</td>
+   //            <td>Bank: ' . $data['bank_name'] . '</td>
+   //        </tr>
+   //        <!-- Add other bank details -->
+   //    </table>
+
+   //    <div class="signature-section">
+   //        <img src="' . $data['qr_code_url'] . '" style="width: 100px; float: right;">
+   //        <p>Received payment through Transaction No. ' . $data['transaction_no'] . '</p>
+   //        <p>Issued By Notwind Softlab Private Limited</p>
+   //        <p>For RANCHI MUNICIPAL CORPORATION</p>
+   //    </div>';
+
+   //    return $html;
+   // }
+
+
+
+
+   // function generateReceiptHtml($data)
+   // {
+   //    $html = '
+   //  <style>
+   //      body {
+   //          font-family: Arial, sans-serif;
+   //          margin: 0;
+   //          padding: 15px;
+   //      }
+
+   //      .header {
+   //          text-align: center;
+   //          margin-bottom: 20px;
+   //          border-bottom: 2px solid #000;
+   //          padding-bottom: 10px;
+   //      }
+
+   //      .header .logo {
+   //          width: 120px;
+   //          margin-bottom: 10px;
+   //      }
+
+   //      .section {
+   //          margin-bottom: 15px;
+   //      }
+
+   //      table {
+   //          width: 100%;
+   //          border-collapse: collapse;
+   //          margin-bottom: 15px;
+   //      }
+
+   //      td, th {
+   //          padding: 6px 10px;
+   //          vertical-align: top;
+   //      }
+
+   //      .bordered td, .bordered th {
+   //          border: 1px solid #000;
+   //      }
+
+   //      .text-right {
+   //          text-align: right;
+   //      }
+
+   //      .text-center {
+   //          text-align: center;
+   //      }
+
+   //      .notes {
+   //          font-size: 0.9em;
+   //          margin-top: 15px;
+   //      }
+
+   //      .signature-section {
+   //          margin-top: 25px;
+   //      }
+
+   //      .info-row {
+   //          display: flex;
+   //          justify-content: space-between;
+   //          margin-bottom: 15px;
+   //      }
+
+   //      .info-col {
+   //          width: 48%;
+   //      }
+
+   //      .info-col .label {
+   //          font-weight: bold;
+   //          display: inline-block;
+   //          width: 110px;
+   //      }
+
+   //      .info-col div {
+   //          margin-bottom: 6px;
+   //      }
+   //  </style>
+
+   //  <div class="header">
+   //      <img src="' . public_path('images/rmc.png') . '" alt="RMC" class="logo">
+   //      <h3>RANCHI MUNICIPAL CORPORATION</h3>
+   //      <h4>SOLID WASTE USER CHARGE PAYMENT RECEIPT</h4>
+   //  </div>
+
+   //  <table>
+   //      <tr>
+   //          <td><strong>Department/Section:</strong></td>
+   //          <td>' . $data['department'] . '</td>
+   //          <td><strong>Transaction No:</strong></td>
+   //          <td>' . $data['transaction_no'] . '</td>
+   //      </tr>
+   //  </table>
+
+   //  <div class="info-row">
+   //      <div class="info-col">
+   //          <div><span class="label">Name:</span> ' . $data['name'] . '</div>
+   //          <div><span class="label">Mobile No:</span> ' . ($data['mobile'] ?? 'N/A') . '</div>
+   //          <div><span class="label">Address:</span> ' . $data['address'] . '</div>
+   //          <div><span class="label">Category:</span> ' . $data['category'] . '</div>
+   //      </div>
+   //      <div class="info-col">
+   //          <div><span class="label">Date & Time:</span> ' . ($data['date_time'] ?? 'N/A') . '</div>
+   //          <div><span class="label">Consumer No:</span> ' . $data['consumer_no'] . '</div>
+   //          <div><span class="label">Ward No:</span> ' . $data['ward_no'] . '</div>
+   //          <div><span class="label">Holding No:</span> ' . $data['holding_no'] . '</div>
+   //          <div><span class="label">Type:</span> ' . $data['type'] . '</div>
+   //      </div>
+   //  </div>
+
+   //  <table class="bordered">
+   //      <tr>
+   //          <th>SI No</th>
+   //          <th>Tax Type</th>
+   //          <th>IISNS/ACC Code</th>
+   //          <th>Bill Month</th>
+   //          <th>Rate Per Month</th>
+   //          <th>Amount</th>
+   //      </tr>';
+
+   //    foreach ($data['tax_items'] as $item) {
+   //       $html .= '
+   //      <tr>
+   //          <td>' . $item['si_no'] . '</td>
+   //          <td>' . $item['tax_type'] . '</td>
+   //          <td>' . $item['code'] . '</td>
+   //          <td>' . $item['bill_month'] . '</td>
+   //          <td class="text-right">' . number_format($item['rate'], 2) . '</td>
+   //          <td class="text-right">' . number_format($item['amount'], 2) . '</td>
+   //      </tr>';
+   //    }
+
+   //    $html .= '
+   //      <tr>
+   //          <td colspan="5" class="text-right"><strong>Total</strong></td>
+   //          <td class="text-right"><strong>' . number_format($data['total_amount'], 2) . '</strong></td>
+   //      </tr>
+   //  </table>
+
+   //  <div class="section">
+   //      <p><strong>Amount in Words:</strong> <em>' . $data['amount_in_words'] . '</em></p>
+   //      <p><strong>Payment Mode:</strong> ' . $data['payment_mode'] . '</p>
+   //  </div>
+
+   //  <div class="notes">
+   //      <p><strong>Note:</strong></p>
+   //      <ul>
+   //          <li>This is a computer-generated receipt and does not require a physical signature.</li>
+   //      </ul>
+   //  </div>
+
+   //  <table>
+   //      <tr>
+   //          <td><strong>GST No:</strong> ' . $data['gst_no'] . '</td>
+   //          <td><strong>Bank:</strong> ' . $data['bank_name'] . '</td>
+   //      </tr>
+   //  </table>
+
+   //  <div class="signature-section">
+   //      <img src="' . $data['qr_code_url'] . '" style="width: 100px; float: right;">
+   //      <p>Received payment through Transaction No. ' . $data['transaction_no'] . '</p>
+   //      <p>Issued By Notwind Softlab Private Limited</p>
+   //      <p>For RANCHI MUNICIPAL CORPORATION</p>
+   //  </div>';
+
+   //    return $html;
+   // }
+
+
+
+
+   // function generateReceiptHtml($data)
+   // {
+   //    $html = '
+   //  <style>
+   //      body {
+   //          font-family: Arial, sans-serif;
+   //          font-size: 14px;
+   //          padding: 15px;
+   //      }
+   //      .header {
+   //          text-align: center;
+   //          margin-bottom: 20px;
+   //      }
+   //      .header img {
+   //          height: 100px;
+   //      }
+   //      .header h3 {
+   //          margin: 10px 0 5px;
+   //      }
+   //      .header h4 {
+   //          margin: 5px 0;
+   //          text-decoration: underline;
+   //      }
+   //      .info-table td {
+   //          padding: 4px 8px;
+   //      }
+   //      .flex-container {
+   //          display: flex;
+   //          justify-content: space-between;
+   //          margin-top: 15px;
+   //      }
+   //      .flex-box {
+   //          width: 48%;
+   //      }
+   //      .label {
+   //          font-weight: bold;
+   //      }
+   //      table.bordered {
+   //          width: 100%;
+   //          border-collapse: collapse;
+   //          margin-top: 15px;
+   //      }
+   //      table.bordered th, table.bordered td {
+   //          border: 1px solid black;
+   //          padding: 6px 10px;
+   //          text-align: center;
+   //      }
+   //      .text-right {
+   //          text-align: right;
+   //      }
+   //      .section {
+   //          margin-top: 15px;
+   //      }
+   //      .notes {
+   //          font-size: 12px;
+   //      }
+   //      .qr {
+   //          float: right;
+   //          margin-top: -100px;
+   //      }
+   //  </style>
+
+   //  <div class="header">
+   //      <img src="' . public_path('images/rmc.png') . '" alt="Logo">
+   //      <h3>RANCHI MUNICIPAL CORPORATION</h3>
+   //      <h4>SOLID WASTE USER CHARGE PAYMENT RECEIPT</h4>
+   //  </div>
+
+   //  <table class="info-table">
+   //      <tr>
+   //          <td><span class="label">Department/Section:</span> ' . $data['department'] . '</td>
+   //          <td><span class="label">Transaction No:</span> ' . $data['transaction_no'] . '</td>
+   //      </tr>
+   //      <tr>
+   //          <td><strong>Account Description:</strong> ' . ($data['account_desc'] ?? 'N/A') . '</td>
+   //          <td><strong>Date & Time:</strong> ' . ($data['date_time'] ?? 'N/A') . '</td>
+
+   //      </tr>
+   //  </table>
+
+   //  <div class="flex-container">
+   //      <div class="flex-box">
+   //          <p><span class="label">Name:</span> ' . $data['name'] . '</p>
+   //          <p><span class="label">Mobile No:</span> ' . ($data['mobile'] ?? 'N/A') . '</p>
+   //          <p><span class="label">Address:</span> ' . $data['address'] . '</p>
+   //          <p><span class="label">Category:</span> ' . $data['category'] . '</p>
+   //      </div>
+   //      <div class="flex-box">
+   //          <p><span class="label">Consumer No:</span> ' . $data['consumer_no'] . '</p>
+   //          <p><span class="label">Ward No:</span> ' . $data['ward_no'] . '</p>
+   //          <p><span class="label">Holding No:</span> ' . $data['holding_no'] . '</p>
+   //          <p><span class="label">Type:</span> ' . $data['type'] . '</p>
+   //      </div>
+   //  </div>
+
+   //  <table class="bordered">
+   //      <thead>
+   //          <tr>
+   //              <th>SI No</th>
+   //              <th>Tax Type</th>
+   //              <th>HSN/SAC Code</th>
+   //              <th>Bill Month</th>
+   //              <th>Rate Per Month</th>
+   //              <th>Amount</th>
+   //          </tr>
+   //      </thead>
+   //      <tbody>';
+
+   //    foreach ($data['tax_items'] as $item) {
+   //       $html .= '
+   //          <tr>
+   //              <td>' . $item['si_no'] . '</td>
+   //              <td>' . $item['tax_type'] . '</td>
+   //              <td>' . $item['code'] . '</td>
+   //              <td>' . $item['bill_month'] . '</td>
+   //              <td>' . number_format($item['rate'], 2) . '</td>
+   //              <td>' . number_format($item['amount'], 2) . '</td>
+   //          </tr>';
+   //    }
+
+   //    $html .= '
+   //          <tr>
+   //              <td colspan="5" class="text-right"><strong>Total</strong></td>
+   //              <td><strong>' . number_format($data['total_amount'], 2) . '</strong></td>
+   //          </tr>
+   //      </tbody>
+   //  </table>
+
+   //  <div class="section">
+   //      <p><strong>Amount in Words:</strong> <em>' . $data['amount_in_words'] . '</em></p>
+   //      <p><strong>Payment Mode:</strong> ' . $data['payment_mode'] . '</p>
+   //      <p><strong>Net Banking/Online Payment/Cheque/Draft/Bankers Cheque</strong> are Subject to realisation.</p>
+   //  </div>
+
+   //  <div class="notes">
+   //      <p><strong>Note:</strong></p>
+   //      <ul>
+   //          <li>This is a Computer generated Document and does not require physical signature</li>
+   //          <li>You will receive SMS on your registered mobile no. for amount paid.</li>
+   //          <li><strong>GST No:</strong> ' . $data['gst_no'] . '</li>
+   //          <li><strong>PAN No:</strong> ' . $data['pan_no'] . '</li>
+   //          <li><strong>Account Name:</strong> Ranchi Municipal Corporation</li>
+   //          <li><strong>Bank:</strong> ' . ($data['bank_name'] ?? 'N/A') . ' (' . ($data['branch'] ?? 'N/A') . ')</li>
+   //          <li><strong>Account No:</strong> ' . $data['account_no'] . '</li>
+   //          <li><strong>IFSC Code:</strong> ' . ($data['ifsc'] ?? 'N/A') . '</li>
+   //      </ul>
+   //  </div>
+
+   //  <div class="qr">
+   //      <img src="' . $data['qr_code_url'] . '" width="100">
+   //  </div>
+
+   //  <p>Received payment through Transaction No. ' . $data['transaction_no'] . '</p>
+   //  <p>Issued By Notwind Softlab Private Limited</p>
+   //  <p>For RANCHI MUNICIPAL CORPORATION</p>';
+
+
+   //    return $html;
+   // }
+
+
+   function generateReceiptHtml($data)
+   {
       $html = '
-      <style>
-          body { font-family: Arial, sans-serif; margin: 0; padding: 15px; }
-          .header { text-align: center; margin-bottom: 15px; }
-          .section { margin-bottom: 15px; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-          td, th { padding: 4px; vertical-align: top; }
-          .bordered td, .bordered th { border: 1px solid #000; }
-          .text-right { text-align: right; }
-          .text-center { text-align: center; }
-          .notes { font-size: 0.9em; margin-top: 15px; }
-          .signature-section { margin-top: 25px; }
-      </style>
-  
-      <div class="header">
-          <h3>RANCHI MUNICIPAL CORPORATION</h3>
-          <h4>SOLID WASTE USER CHARGE PAYMENT RECEIPT</h4>
-      </div>
-  
-      <table>
-          <tr>
-              <td>Department/Section:</td>
-              <td>'.$data['department'].'</td>
-              <td>Transaction No:</td>
-              <td>'.$data['transaction_no'].'</td>
-          </tr>
-          <!-- Add other fields similarly -->
-      </table>
-  
-      <table class="bordered">
-          <tr>
-              <th>SI No</th>
-              <th>Tax Type</th>
-              <th>IISNS/ACC Code</th>
-              <th>Bill Month</th>
-              <th>Rate Per Month</th>
-              <th>Amount</th>
-          </tr>';
-      
-      foreach ($data['tax_items'] as $item) {
-          $html .= '
-          <tr>
-              <td>'.$item['si_no'].'</td>
-              <td>'.$item['tax_type'].'</td>
-              <td>'.$item['code'].'</td>
-              <td>'.$item['bill_month'].'</td>
-              <td class="text-right">'.$item['rate'].'</td>
-              <td class="text-right">'.$item['amount'].'</td>
-          </tr>';
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            padding: 15px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header img {
+            height: 100px;
+            margin-left:-600px;
+        }
+            .header img1 {
+            height: 100px;
+            margin-left: 600px;
+        }
+        .header h3 {
+            margin: 10px 0 5px;
+            margin-top: -30px;
+        }
+        .header h4 {
+            margin: 5px 0;
+            text-decoration: underline;
+        }
+        .info-table td {
+            padding: 4px 8px;
+        }
+         .flex-container {
+        display: flex;
+        flex-direction: row; /* ensure horizontal layout */
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+        flex-wrap: wrap; /* optional if screen size is small */
       }
-  
+      .flex-box {
+        width: 48%; /* ensure they share row evenly */
+        box-sizing: border-box;
+      }
+        .label {
+            font-weight: bold;
+        }
+        table.bordered {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        table.bordered th, table.bordered td {
+            border: 1px solid black;
+            padding: 6px 10px;
+            text-align: center;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .section {
+            margin-top: 15px;
+        }
+        .notes {
+            font-size: 12px;
+        }
+        .qr {
+            float: right;
+            margin-top: -100px;
+        }
+    </style>
+
+    <div class="header">
+        <img src="' . public_path('images/rmc.png') . '" alt="Logo">
+         <img1 src="' . public_path('images/netwind.jpeg') . '" alt="Logo">
+        <h3>RANCHI MUNICIPAL CORPORATION</h3>
+        <h4>SOLID WASTE USER CHARGE PAYMENT RECEIPT</h4>
+    </div>
+
+    <table class="info-table">
+        <tr>
+            <td><span class="label">Department/Section:</span> ' . ($data['department'] ?? 'N/A') . '</td>
+            <td><span class="label">Transaction No:</span> ' . ($data['transaction_no'] ?? 'N/A') . '</td>
+        </tr>
+        <tr>
+            <td><strong>Account Description:</strong> ' . ($data['account_desc'] ?? 'N/A') . '</td>
+            <td><strong>Date & Time:</strong> ' . ($data['date_time'] ?? 'N/A') . '</td>
+        </tr>
+    </table>
+
+    <div class="flex-container">
+    <!-- Left box: Name, Mobile, Address, Category -->
+    <div class="flex-box">
+        <p><span class="label">Name:</span> ' . ($data['name'] ?? 'N/A') . '</p>
+        <p><span class="label">Mobile No:</span> ' . ($data['mobile'] ?? 'N/A') . '</p>
+        <p><span class="label">Address:</span> ' . ($data['address'] ?? 'N/A') . '</p>
+        <p><span class="label">Category:</span> ' . ($data['category'] ?? 'N/A') . '</p>
+    </div>
+
+    <!-- Right box: Consumer, Ward, Holding, Type -->
+    <div class="flex-box">
+        <p><span class="label">Consumer No:</span> ' . ($data['consumer_no'] ?? 'N/A') . '</p>
+        <p><span class="label">Ward No:</span> ' . ($data['ward_no'] ?? 'N/A') . '</p>
+        <p><span class="label">Holding No:</span> ' . ($data['holding_no'] ?? 'N/A') . '</p>
+        <p><span class="label">Type:</span> ' . ($data['type'] ?? 'N/A') . '</p>
+    </div>
+</div>
+
+
+    <table class="bordered">
+        <thead>
+            <tr>
+                <th>SI No</th>
+                <th>Tax Type</th>
+                <th>HSN/SAC Code</th>
+                <th>Bill Month</th>
+                <th>Rate Per Month</th>
+                <th>Amount</th>
+            </tr>
+        </thead>
+        <tbody>';
+
+      foreach ($data['tax_items'] as $item) {
+         $html .= '
+            <tr>
+                <td>' . $item['si_no'] . '</td>
+                <td>' . $item['tax_type'] . '</td>
+                <td>' . $item['code'] . '</td>
+                <td>' . $item['bill_month'] . '</td>
+                <td>' . number_format($item['rate'], 2) . '</td>
+                <td>' . number_format($item['amount'], 2) . '</td>
+            </tr>';
+      }
+
       $html .= '
-          <tr>
-              <td colspan="5" class="text-right"><strong>Total</strong></td>
-              <td class="text-right"><strong>'.$data['total_amount'].'</strong></td>
-          </tr>
-      </table>
-  
-      <div class="section">
-          <p>Amount in Words: <em>'.$data['amount_in_words'].'</em></p>
-          <p>Payment Mode: '.$data['payment_mode'].'</p>
-      </div>
-  
-      <div class="notes">
-          <p>Note:</p>
-          <ul>
-              <li>This is a Computer generated Demand and does not require physical signature</li>
-              <!-- Add other notes -->
-          </ul>
-      </div>
-  
-      <table>
-          <tr>
-              <td>GST No: '.$data['gst_no'].'</td>
-              <td>Bank: '.$data['bank_name'].'</td>
-          </tr>
-          <!-- Add other bank details -->
-      </table>
-  
-      <div class="signature-section">
-          <img src="'.$data['qr_code_url'].'" style="width: 100px; float: right;">
-          <p>Received payment through Transaction No. '.$data['transaction_no'].'</p>
-          <p>Issued By Notwind Softlab Private Limited</p>
-          <p>For RANCHI MUNICIPAL CORPORATION</p>
-      </div>';
-  
+            <tr>
+                <td colspan="5" class="text-right"><strong>Total</strong></td>
+                <td><strong>' . number_format($data['total_amount'], 2) . '</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="section">
+        <p><strong>Amount in Words:</strong> <em>' . ($data['amount_in_words'] ?? 'N/A') . '</em></p>
+        <p><strong>Payment Mode:</strong> ' . ($data['payment_mode'] ?? 'N/A') . '</p>
+        <p><strong>Net Banking/Online Payment/Cheque/Draft/Bankers Cheque</strong> are Subject to realisation.</p>
+    </div>
+
+    <div class="notes">
+        <p><strong>Note:</strong></p>
+        <ul>
+            <li>This is a Computer generated Document and does not require physical signature</li>
+            <li>You will receive SMS on your registered mobile no. for amount paid.</li>
+            <li><strong>GST No:</strong> ' . ($data['gst_no'] ?? 'N/A') . '</li>
+            <li><strong>PAN No:</strong> ' . ($data['pan_no'] ?? 'N/A') . '</li>
+            <li><strong>Account Name:</strong> Ranchi Municipal Corporation</li>
+            <li><strong>Bank:</strong> ' . ($data['bank_name'] ?? 'N/A') . ' (' . ($data['branch'] ?? 'N/A') . ')</li>
+            <li><strong>Account No:</strong> ' . ($data['account_no'] ?? 'N/A') . '</li>
+            <li><strong>IFSC Code:</strong> ' . ($data['ifsc'] ?? 'N/A') . '</li>
+        </ul>
+    </div>
+
+    <div class="qr">
+        <div id="qrcode"></div>
+    </div>
+
+    <p>Received payment through Transaction No. ' . ($data['transaction_no'] ?? 'N/A') . '</p>
+    <p>Issued By Notwind Softlab Private Limited</p>
+    <p>For RANCHI MUNICIPAL CORPORATION</p>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        var qrText = "Consumer No: ' . ($data['consumer_no'] ?? 'N/A') . '\\nTransaction: ' . ($data['transaction_no'] ?? 'N/A') . '\\nAmount: ₹' . number_format($data['total_amount'], 2) . '";
+        new QRCode(document.getElementById("qrcode"), {
+            text: qrText,
+            width: 100,
+            height: 100
+        });
+    </script>';
+
       return $html;
-  }
-
+   }
 }
-

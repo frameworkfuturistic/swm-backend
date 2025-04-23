@@ -88,7 +88,7 @@ class TransactionService
 
         if (isset($validatedData['image'])) {
             $file = $validatedData['image'];
-            $fileName = time().'_'.$file->getClientOriginalName();
+            $fileName = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs(
                 'uploads/images',
                 $fileName,
@@ -119,9 +119,9 @@ class TransactionService
     {
         // Create payment record
         $payment = $this->createPaymentRecord($validatedData, $tranId);
-
         // Process and adjust demands
         $this->processPendingDemands($validatedData['ratepayerId'], $validatedData['amount'], $payment, $validatedData['tcId']);
+
 
         return $payment;
     }
@@ -136,6 +136,7 @@ class TransactionService
         $pendingDemands = $this->getPendingDemands($ratepayerId);
         $this->demandTillDate = $pendingDemands->sum('total_demand');
 
+
         $remainingAmount = $amount;
 
         foreach ($pendingDemands as $demand) {
@@ -147,10 +148,11 @@ class TransactionService
                 // Transfer record to `demand` table
                 $this->transferToDemandTable($demand);
             } else {
+
                 break; // Partial payments not allowed
             }
         }
-
+        // dd($remainingAmount);
         if ($remainingAmount > 0) {
             throw new Exception('Payment amount must fully cover one or more pending demands.');
         }
@@ -264,7 +266,6 @@ class TransactionService
             'ratepayer_id' => $validatedData['ratepayerId'],
             'schedule_date' => $validatedData['scheduleDate'],
         ]);
-
     }
 
     public function tcMonthTransactionSummary()
@@ -343,7 +344,6 @@ class TransactionService
         ];
 
         return $response;
-
     }
 
     public function ratepayerTransactions(int $ratepayerId)
