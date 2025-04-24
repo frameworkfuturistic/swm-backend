@@ -27,8 +27,11 @@ class ClusterDemandController extends Controller
                     GROUP BY e.cluster_id
                 ) as a
             '), 'rp.cluster_id', '=', 'a.cluster_id')
+                ->join('clusters as c', 'a.cluster_id', '=', 'c.id')
                 ->select(
                     'a.cluster_id',
+                    'c.cluster_name',
+                    'c.cluster_address',
                     'rp.id as ratepayer_id',
                     'rp.consumer_no',
                     'rp.ratepayer_name',
@@ -73,21 +76,15 @@ class ClusterDemandController extends Controller
                     'p.consumer_no',
                     'd.bill_month',
                     'd.bill_year',
-                    'd.demand'
+                    'd.demand',
+                    DB::raw("STR_TO_DATE(CONCAT(d.bill_year, '-', d.bill_month, '-01'), '%Y-%m-%d') as bill_date")
                 )
                 ->where('p.paymentzone_id', 1)
                 ->whereRaw('(d.bill_month + (d.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
                 ->get();
-
             return format_response(
                 'Success',
-                [
-                    'status' => 'success',
-                    'data' => $ratepayerDemand,
-                    'metadata' => [
-                        'generated_at' => Carbon::now()->toDateTimeString()
-                    ]
-                ],
+                $ratepayerDemand,
                 Response::HTTP_OK
             );
         } catch (\Exception $e) {
