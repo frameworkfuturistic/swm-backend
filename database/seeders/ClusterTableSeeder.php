@@ -20,7 +20,7 @@ class ClusterTableSeeder extends Seeder
         for ($i = 1; $i <= 20; $i++) {
             $cluster_code = sprintf('C%02d%04d', $ulb_id, $running_counter); // Format: C + ulb_id padded to 2 digits + counter padded to 4 digits
             DB::table('clusters')->insert([
-                'ulb_id' => $ulb_id,
+                'ulb_id' => 21,
                 'ward_id' => $faker->numberBetween(1, 10),
                 'cluster_name' => $faker->unique()->words(3, true),
                 'cluster_address' => $faker->optional()->address,
