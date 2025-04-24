@@ -6,6 +6,8 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ClusterController;
 use App\Http\Controllers\Dashboard\AccountController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
+use App\Http\Controllers\Dashboard\ClusterDemandController;
+use App\Http\Controllers\Dashboard\DemandController as DashboardDemandController;
 use App\Http\Controllers\Dashboard\ManageTransactionController;
 use App\Http\Controllers\Dashboard\RateTransactionController;
 use App\Http\Controllers\DemandController;
@@ -444,6 +446,16 @@ Route::middleware(['auth:sanctum', 'api', 'admin'])->prefix('admin/masters')->gr
 Route::get('/tp/demand', [RateTransactionController::class, 'getCurrentBill']);
 // API-ID: RTRANS-002 [RateTransaction]
 Route::post('/tp/payment', [RateTransactionController::class, 'postPayment']);
+
+
+Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
+
+    // API-ID: DEMAND-001 [ClusterDemandController]
+    Route::get('/clusterDemand', [ClusterDemandController::class, 'getClusterDemands']);
+
+    // API-ID: DEMAND-002 [ClusterDemandController]
+    Route::get('/ratepayersDemand', [ClusterDemandController::class, 'getRatepayersDemands']);
+});
 
 Route::get('/debug-headers', function (Request $request) {
     return [

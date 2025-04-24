@@ -941,113 +941,302 @@ class ReceiptService
    // }
 
 
+   //    function generateReceiptHtml($data)
+   //    {
+   //       $html = '
+   //     <style>
+   //         body {
+   //             font-family: Arial, sans-serif;
+   //             font-size: 14px;
+   //             padding: 15px;
+   //         }
+   //         .header {
+   //             text-align: center;
+   //             margin-bottom: 20px;
+   //         }
+   //         .header img {
+   //             height: 100px;
+   //             margin-left:-600px;
+   //         }
+
+   //         .header h3 {
+   //             margin: 10px 0 5px;
+   //             margin-top: -30px;
+   //         }
+   //         .header h4 {
+   //             margin: 5px 0;
+   //             text-decoration: underline;
+   //         }
+   //         .info-table td {
+   //             padding: 4px 8px;
+   //         }
+   //          .flex-container {
+   //         display: flex;
+   //         flex-direction: row; /* ensure horizontal layout */
+   //         justify-content: space-between;
+   //         align-items: flex-start;
+   //         gap: 20px;
+   //         flex-wrap: wrap; /* optional if screen size is small */
+   //       }
+   //       .flex-box {
+   //         width: 48%; /* ensure they share row evenly */
+   //         box-sizing: border-box;
+   //       }
+   //         .label {
+   //             font-weight: bold;
+   //         }
+   //         table.bordered {
+   //             width: 100%;
+   //             border-collapse: collapse;
+   //             margin-top: 15px;
+   //         }
+   //         table.bordered th, table.bordered td {
+   //             border: 1px solid black;
+   //             padding: 6px 10px;
+   //             text-align: center;
+   //         }
+   //         .text-right {
+   //             text-align: right;
+   //         }
+   //         .section {
+   //             margin-top: 15px;
+   //         }
+   //         .notes {
+   //             font-size: 12px;
+   //         }
+   //         .qr {
+   //             float: right;
+   //             margin-top: -100px;
+   //         }
+   //     </style>
+
+   //     <div class="header">
+   //         <img src="' . public_path('images/rmc.png') . '" alt="Logo">
+   //          <img src="' . public_path('images/netwind.jpeg') . '" alt="Logo" . style="height: 90px; margin-left: 1060px; width: 100px; margin-top: 1px;">
+   //         <h3>RANCHI MUNICIPAL CORPORATION</h3>
+   //         <h4>SOLID WASTE USER CHARGE PAYMENT RECEIPT</h4>
+   //     </div>
+
+   //     <table class="info-table">
+   //         <tr>
+   //             <td><span class="label">Department/Section:</span> ' . ($data['department'] ?? 'N/A') . '</td>
+   //             <td><span class="label">Transaction No:</span> ' . ($data['transaction_no'] ?? 'N/A') . '</td>
+   //         </tr>
+   //         <tr>
+   //             <td><strong>Account Description:</strong> ' . ($data['account_desc'] ?? 'N/A') . '</td>
+   //             <td><strong>Date & Time:</strong> ' . ($data['date_time'] ?? 'N/A') . '</td>
+   //         </tr>
+   //     </table>
+
+   //     <div class="flex-container">
+   //     <!-- Left box: Name, Mobile, Address, Category -->
+   //     <div class="flex-box">
+   //         <p><span class="label">Name:</span> ' . ($data['name'] ?? 'N/A') . '</p>
+   //         <p><span class="label">Mobile No:</span> ' . ($data['mobile'] ?? 'N/A') . '</p>
+   //         <p><span class="label">Address:</span> ' . ($data['address'] ?? 'N/A') . '</p>
+   //         <p><span class="label">Category:</span> ' . ($data['category'] ?? 'N/A') . '</p>
+   //     </div>
+
+   //     <!-- Right box: Consumer, Ward, Holding, Type -->
+   //     <div class="flex-box">
+   //         <p><span class="label">Consumer No:</span> ' . ($data['consumer_no'] ?? 'N/A') . '</p>
+   //         <p><span class="label">Ward No:</span> ' . ($data['ward_no'] ?? 'N/A') . '</p>
+   //         <p><span class="label">Holding No:</span> ' . ($data['holding_no'] ?? 'N/A') . '</p>
+   //         <p><span class="label">Type:</span> ' . ($data['type'] ?? 'N/A') . '</p>
+   //     </div>
+   // </div>
+
+
+   //     <table class="bordered">
+   //         <thead>
+   //             <tr>
+   //                 <th>SI No</th>
+   //                 <th>Tax Type</th>
+   //                 <th>HSN/SAC Code</th>
+   //                 <th>Bill Month</th>
+   //                 <th>Rate Per Month</th>
+   //                 <th>Amount</th>
+   //             </tr>
+   //         </thead>
+   //         <tbody>';
+
+   //       foreach ($data['tax_items'] as $item) {
+   //          $html .= '
+   //             <tr>
+   //                 <td>' . $item['si_no'] . '</td>
+   //                 <td>' . $item['tax_type'] . '</td>
+   //                 <td>' . $item['code'] . '</td>
+   //                 <td>' . $item['bill_month'] . '</td>
+   //                 <td>' . number_format($item['rate'], 2) . '</td>
+   //                 <td>' . number_format($item['amount'], 2) . '</td>
+   //             </tr>';
+   //       }
+
+   //       $html .= '
+   //             <tr>
+   //                 <td colspan="5" class="text-right"><strong>Total</strong></td>
+   //                 <td><strong>' . number_format($data['total_amount'], 2) . '</strong></td>
+   //             </tr>
+   //         </tbody>
+   //     </table>
+
+   //     <div class="section">
+   //         <p><strong>Amount in Words:</strong> <em>' . ($data['amount_in_words'] ?? 'N/A') . '</em></p>
+   //         <p><strong>Payment Mode:</strong> ' . ($data['payment_mode'] ?? 'N/A') . '</p>
+   //         <p><strong>Net Banking/Online Payment/Cheque/Draft/Bankers Cheque</strong> are Subject to realisation.</p>
+   //     </div>
+
+   //     <div class="notes">
+   //         <p><strong>Note:</strong></p>
+   //         <ul>
+   //             <li>This is a Computer generated Document and does not require physical signature</li>
+   //             <li>You will receive SMS on your registered mobile no. for amount paid.</li>
+   //             <li><strong>GST No:</strong> ' . ($data['gst_no'] ?? 'N/A') . '</li>
+   //             <li><strong>PAN No:</strong> ' . ($data['pan_no'] ?? 'N/A') . '</li>
+   //             <li><strong>Account Name:</strong> Ranchi Municipal Corporation</li>
+   //             <li><strong>Bank:</strong> ' . ($data['bank_name'] ?? 'N/A') . ' (' . ($data['branch'] ?? 'N/A') . ')</li>
+   //             <li><strong>Account No:</strong> ' . ($data['account_no'] ?? 'N/A') . '</li>
+   //             <li><strong>IFSC Code:</strong> ' . ($data['ifsc'] ?? 'N/A') . '</li>
+   //         </ul>
+   //     </div>
+
+   //     <div class="qr">
+   //         <div id="qrcode"></div>
+   //     </div>
+
+   //     <p>Received payment through Transaction No. ' . ($data['transaction_no'] ?? 'N/A') . '</p>
+   //     <p>Issued By Notwind Softlab Private Limited</p>
+   //     <p>For RANCHI MUNICIPAL CORPORATION</p>
+
+   //     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+   //     <script>
+   //         var qrText = "Consumer No: ' . ($data['consumer_no'] ?? 'N/A') . '\\nTransaction: ' . ($data['transaction_no'] ?? 'N/A') . '\\nAmount: ₹' . number_format($data['total_amount'], 2) . '";
+   //         new QRCode(document.getElementById("qrcode"), {
+   //             text: qrText,
+   //             width: 100,
+   //             height: 100
+   //         });
+   //     </script>';
+
+   //       return $html;
+   //    }
+
    function generateReceiptHtml($data)
    {
+      $logo1Path = public_path('images/rmc.png');
+      $logo1Type = pathinfo($logo1Path, PATHINFO_EXTENSION);
+      $logo1Data = file_get_contents($logo1Path);
+      $logo1Base64 = 'data:image/' . $logo1Type . ';base64,' . base64_encode($logo1Data);
+
+      $logo2Path = public_path('images/netwind.jpeg');
+      $logo2Type = pathinfo($logo2Path, PATHINFO_EXTENSION);
+      $logo2Data = file_get_contents($logo2Path);
+      $logo2Base64 = 'data:image/' . $logo2Type . ';base64,' . base64_encode($logo2Data);
+
       $html = '
     <style>
         body {
             font-family: Arial, sans-serif;
             font-size: 14px;
-            padding: 15px;
+            padding: 20px;
         }
-        .header {
+        .logo-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo-left img {
+            height: 85px;
+            margin-left: -18px;
+        }
+       .logo-right img {
+           margin-left: 600px;
+           margin-top: -40px;
+           height: 30px
+        }
+      
+        .header-text {
             text-align: center;
-            margin-bottom: 20px;
+            margin: 10px 0 20px;
         }
-        .header img {
-            height: 100px;
-            margin-left:-600px;
+        .header-text h3 {
+            margin: 5px 0;
+            margin-top: -65px;
         }
-            .header img1 {
-            height: 100px;
-            margin-left: 600px;
-        }
-        .header h3 {
-            margin: 10px 0 5px;
-            margin-top: -30px;
-        }
-        .header h4 {
+        .header-text h4 {
             margin: 5px 0;
             text-decoration: underline;
         }
+        .info-table, .info-table td {
+            width: 100%;
+            padding: 5px;
+            vertical-align: top;
+        }
         .info-table td {
-            padding: 4px 8px;
+            padding-bottom: 6px;
         }
-         .flex-container {
-        display: flex;
-        flex-direction: row; /* ensure horizontal layout */
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 20px;
-        flex-wrap: wrap; /* optional if screen size is small */
-      }
-      .flex-box {
-        width: 48%; /* ensure they share row evenly */
-        box-sizing: border-box;
-      }
-        .label {
-            font-weight: bold;
+        .flex-container {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin: 10px 0;
         }
-        table.bordered {
+        .flex-box {
+            width: 48%;
+        }
+        .bordered {
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
         }
-        table.bordered th, table.bordered td {
+        .bordered th, .bordered td {
             border: 1px solid black;
-            padding: 6px 10px;
+            padding: 8px;
             text-align: center;
-        }
-        .text-right {
-            text-align: right;
         }
         .section {
             margin-top: 15px;
+        }
+        .section p, .section ul {
+            margin: 5px 0;
         }
         .notes {
             font-size: 12px;
         }
         .qr {
             float: right;
-            margin-top: -100px;
+            margin-top: -90px;
         }
     </style>
 
-    <div class="header">
-        <img src="' . public_path('images/rmc.png') . '" alt="Logo">
-         <img1 src="' . public_path('images/netwind.jpeg') . '" alt="Logo">
+    <div class="logo-row">
+        <div class="logo-left"><img src="' . $logo1Base64 . '" alt="RMC Logo"></div>
+        <div class="logo-right"><img src="' . $logo2Base64 . '" alt="NSPL Logo"></div>
+    </div>
+
+    <div class="header-text">
         <h3>RANCHI MUNICIPAL CORPORATION</h3>
         <h4>SOLID WASTE USER CHARGE PAYMENT RECEIPT</h4>
     </div>
 
     <table class="info-table">
         <tr>
-            <td><span class="label">Department/Section:</span> ' . ($data['department'] ?? 'N/A') . '</td>
-            <td><span class="label">Transaction No:</span> ' . ($data['transaction_no'] ?? 'N/A') . '</td>
+            <td><strong>Department/Section:</strong> ' . ($data['department'] ?? 'N/A') . '</td>
+            <td><strong>Transaction No:</strong> ' . ($data['transaction_no'] ?? 'N/A') . '</td>
+            <td><strong>Name:</strong> ' . ($data['name'] ?? 'N/A') . '</td>
+            <td><strong>Mobile No:</strong> ' . ($data['mobile'] ?? 'N/A') . '</td>
+            <td><strong>Address:</strong> ' . ($data['address'] ?? 'N/A') . '</td>
+            <td><strong>Category:</strong> ' . ($data['category'] ?? 'N/A') . '</td>
         </tr>
         <tr>
             <td><strong>Account Description:</strong> ' . ($data['account_desc'] ?? 'N/A') . '</td>
             <td><strong>Date & Time:</strong> ' . ($data['date_time'] ?? 'N/A') . '</td>
+            <td><strong>Consumer No:</strong> ' . ($data['consumer_no'] ?? 'N/A') . '</td>
+            <td><strong>Ward No:</strong> ' . ($data['ward_no'] ?? 'N/A') . '</td>
+            <td><strong>Holding No:</strong> ' . ($data['holding_no'] ?? 'N/A') . '</td>
+            <td><strong>Type:</strong> ' . ($data['type'] ?? 'N/A') . '</td>
         </tr>
     </table>
-
-    <div class="flex-container">
-    <!-- Left box: Name, Mobile, Address, Category -->
-    <div class="flex-box">
-        <p><span class="label">Name:</span> ' . ($data['name'] ?? 'N/A') . '</p>
-        <p><span class="label">Mobile No:</span> ' . ($data['mobile'] ?? 'N/A') . '</p>
-        <p><span class="label">Address:</span> ' . ($data['address'] ?? 'N/A') . '</p>
-        <p><span class="label">Category:</span> ' . ($data['category'] ?? 'N/A') . '</p>
-    </div>
-
-    <!-- Right box: Consumer, Ward, Holding, Type -->
-    <div class="flex-box">
-        <p><span class="label">Consumer No:</span> ' . ($data['consumer_no'] ?? 'N/A') . '</p>
-        <p><span class="label">Ward No:</span> ' . ($data['ward_no'] ?? 'N/A') . '</p>
-        <p><span class="label">Holding No:</span> ' . ($data['holding_no'] ?? 'N/A') . '</p>
-        <p><span class="label">Type:</span> ' . ($data['type'] ?? 'N/A') . '</p>
-    </div>
-</div>
 
 
     <table class="bordered">
@@ -1077,7 +1266,7 @@ class ReceiptService
 
       $html .= '
             <tr>
-                <td colspan="5" class="text-right"><strong>Total</strong></td>
+                <td colspan="5" style="text-align:right;"><strong>Total</strong></td>
                 <td><strong>' . number_format($data['total_amount'], 2) . '</strong></td>
             </tr>
         </tbody>
@@ -1108,7 +1297,7 @@ class ReceiptService
     </div>
 
     <p>Received payment through Transaction No. ' . ($data['transaction_no'] ?? 'N/A') . '</p>
-    <p>Issued By Notwind Softlab Private Limited</p>
+    <p>Issued By Netwind Softlab Private Limited</p>
     <p>For RANCHI MUNICIPAL CORPORATION</p>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
