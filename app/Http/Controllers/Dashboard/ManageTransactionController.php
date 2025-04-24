@@ -31,38 +31,39 @@ class ManageTransactionController extends Controller
             $dateTo = $request->input('date_to', null);
             $vrno = $request->input('vrno', null);
 
-            $query = DB::table('transactions')
-                ->join('payments', 'transactions.payment_id', '=', 'payments.id')
-                ->join('ratepayers', 'transactions.ratepayer_id', '=', 'ratepayers.id')
-                ->leftJoin('users', 'transactions.cancelledby_id', '=', 'users.id')
+            $query = DB::table('current_transactions')
+                ->join('payments', 'current_transactions.payment_id', '=', 'payments.id')
+                ->join('ratepayers', 'current_transactions.ratepayer_id', '=', 'ratepayers.id')
+                ->leftJoin('users', 'current_transactions.cancelledby_id', '=', 'users.id')
                 ->select(
-                    DB::raw("CONCAT('TRX1000', transactions.id) AS id"),
-                    DB::raw("CONCAT('ULB-', transactions.ulb_id) AS ulb_id"),
-                    DB::raw("CONCAT('RATEPAYER100', transactions.ratepayer_id) AS ratepayer_id"),
-                    'transactions.vrno',
-                    'transactions.payment_id',
-                    'transactions.denial_reason_id',
+                    DB::raw("CONCAT('TRX1000', current_transactions.id) AS id"),
+                    DB::raw("CONCAT('ULB-', current_transactions.ulb_id) AS ulb_id"),
+                    DB::raw("CONCAT('RATEPAYER100', current_transactions.ratepayer_id) AS ratepayer_id"),
+                    'current_transactions.vrno',
+                    'current_transactions.payment_id',
+                    'current_transactions.denial_reason_id',
                     'ratepayers.ratepayer_name',
-                    'transactions.tc_id',
+                    'current_transactions.tc_id',
                     'payments.payment_date',
                     'payments.payment_mode',
                     'payments.payment_status',
                     'payments.amount',
-                    'transactions.is_cancelled',
+                    'current_transactions.is_cancelled',
                     'users.name as cancelled_by',
-                    'transactions.cancellation_date',
-                    'transactions.remarks as cancellation_reason',
-                    'transactions.created_at',
-                    'transactions.updated_at'
+                    'current_transactions.cancellation_date',
+                    'current_transactions.remarks as cancellation_reason',
+                    'current_transactions.created_at',
+                    'current_transactions.updated_at'
                 );
 
 
+
             if ($isCancelled === '0') {
-                $query->where('transactions.is_cancelled', 0)
-                    ->whereNull('transactions.cancellation_date');
+                $query->where('current_transactions.is_cancelled', 0)
+                    ->whereNull('current_transactions.cancellation_date');
             } elseif ($isCancelled === '1') {
-                $query->where('transactions.is_cancelled', 1)
-                    ->whereNotNull('transactions.cancellation_date');
+                $query->where('current_transactions.is_cancelled', 1)
+                    ->whereNotNull('current_transactions.cancellation_date');
             }
 
 
@@ -72,7 +73,7 @@ class ManageTransactionController extends Controller
 
 
             if ($vrno) {
-                $query->where('transactions.vrno', 'like', "%$vrno%");
+                $query->where('current_transactions.vrno', 'like', "%$vrno%");
             }
 
 

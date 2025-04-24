@@ -236,7 +236,7 @@ class AccountController extends Controller
                         'payments.tc_id',
                         'users.name as tc_name',
                         'ratepayer_cheques.is_returned',
-                        'ratepayer_cheques.paymentStatus',
+                        'payments.payment_status',
                         'ratepayer_cheques.realization_date',
 
                     );
@@ -287,10 +287,11 @@ class AccountController extends Controller
                 $otherPayments = DB::table('payments')
                     ->whereNotIn('payment_mode', ['CASH', 'CHEQUE'])
                     ->leftJoin('ratepayers', 'payments.ratepayer_id', '=', 'ratepayers.id')
+                    ->leftJoin('current_transactions', 'payments.tran_id', '=', 'current_transactions.id')
                     ->leftJoin('users', 'payments.tc_id', '=', 'users.id')
                     ->select(
                         DB::raw("CONCAT('PMT-2000', payments.id) AS id"),
-                        DB::raw("CONCAT('Ratepayer 100', ratepayer_id) AS ratepayer_id"),
+                        DB::raw("CONCAT('Ratepayer 100', payments.ratepayer_id) AS ratepayer_id"),
                         'payments.vrno',
                         'ratepayers.ratepayer_name',
                         'payments.tc_id',
@@ -299,7 +300,7 @@ class AccountController extends Controller
                         'payments.amount',
                         'payments.payment_verified',
                         'payments.payment_mode',
-                        'payments.payment_details as payment_detail',
+                        'current_transactions.remarks as payment_detail',
                         'payments.payment_status'
                     );
 

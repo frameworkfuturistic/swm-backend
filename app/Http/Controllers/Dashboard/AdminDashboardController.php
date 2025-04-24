@@ -18,776 +18,279 @@ use Illuminate\Support\Facades\Log;
 class AdminDashboardController extends Controller
 {
 
-    // API-ID: ADASH-001 [Admin Dashboard]
-
-
-    public function getTransactionDetails(Request $request)
+    /**
+     * Get dashboard data for the specified date range
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function getDashboardData(Request $request)
     {
+        // Validate the request parameters
+        $validator = Validator::make($request->all(), [
+            'start_date' => 'required|date_format:Y-m-d',
+            'end_date' => 'required|date_format:Y-m-d|after_or_equal:start_date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
         try {
-            $validator = Validator::make($request->all(), [
-                'fromDate' => 'nullable|date',
-                'toDate' => 'nullable|date|after_or_equal:fromDate',
-                'zone' => 'nullable|string|max:255',
-                'eventType' => 'nullable|string|max:255',
-            ]);
+            // Get card summary data
+            $cardSummary = $this->getCardSummary($startDate, $endDate);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => 'Validation error',
-                    'errors' => $validator->errors(),
-                    'success' => false,
-                ], 422);
-            }
+            // Get monthly transaction data
+            $monthlyTransactions = $this->getMonthlyTransactions($startDate, $endDate);
 
+            // Get payment mode distribution
+            $paymentModeDistribution = $this->getPaymentModeDistribution($startDate, $endDate);
 
-            $fromDate = $request->input('fromDate', null);
-            $toDate = $request->input('toDate', null);
-            $zone = $request->input('zone', 'All Zones');
-            $eventType = $request->input('eventType', 'All Events');
+            // Get TC wise transaction data
+            $tcWiseTransactions = $this->getTcWiseTransactions($startDate, $endDate);
 
-            // Log the input values for debugging
-            Log::info('Input Values:', [
-                'fromDate' => $fromDate,
-                'toDate' => $toDate,
-                'zone' => $zone,
-                'eventType' => $eventType
-            ]);
+            // Get monthly payment data
+            $monthlyPayments = $this->getMonthlyPayments($startDate, $endDate);
 
+            // Get transactions list
+            $transactions = $this->getTransactions($startDate, $endDate);
 
-            // Total Transactions (Filtered by Date and Zone)
-            $totalTransactions = DB::table('current_transactions')
-                ->selectRaw('COUNT(id) as totaltransactions')
-                ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween(DB::raw('DATE(event_time)'), [$fromDate, $toDate]);
-                })
-                ->value('totaltransactions');
+            // Get outcome distribution (pie chart)
+            $outcomeDistribution = $this->getVisitOutcomesDistribution($startDate, $endDate);
 
-
-
-
-
-            // Total Payments (Filtered by Date and Zone)
-            $totalPayments = DB::table('payments')
-                ->selectRaw('SUM(amount) as totalPayments')
-                ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween(DB::raw('DATE(payment_date)'), [$fromDate, $toDate]);
-                })
-                ->value('totalPayments');
-
-
-
-
-
-            // Completed Payments (Filtered by Date and Zone)
-            $completedPayments = DB::table('payments')
-                ->selectRaw('COUNT(*) as completedPayments')
-                ->where('payment_status', 'COMPLETED')
-                ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween(DB::raw('DATE(payment_date)'), [$fromDate, $toDate]);
-                })
-                ->value('completedPayments');
-
-
-
-
-
-            // Pending Payments (Filtered by Date and Zone)
-            $pendingPayments = DB::table('payments')
-                ->selectRaw('COUNT(*) as pendingPayments')
-                ->where('payment_status', 'PENDING')
-                ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween(DB::raw('DATE(payment_date)'), [$fromDate, $toDate]);
-                })
-                ->value('pendingPayments');
-
-
-
-
-            // lastTotalTransactions (Filtered by Date and Zone)
-
-            $lastTotalTransactions = DB::table('current_transactions')
-                ->selectRaw('COUNT(id) as lastTotalTransactions')
-                ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween(DB::raw('DATE(event_time)'), [$fromDate, $toDate]);
-                })
-                ->value('lastTotalTransactions');
-
-
-
-
-            // lastTotalPayments (Filtered by Date and Zone)
-
-            $lastTotalPayments = DB::table('payments')
-                ->selectRaw('SUM(amount) as lastTotalPayments')
-                ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween(DB::raw('DATE(payment_date)'), [$fromDate, $toDate]);
-                })
-                ->value('lastTotalPayments');
-
-
-
-
-            // lastPendingPayments (Filtered by Date and Zone)
-
-            $lastPendingPayments = DB::table('payments')
-                ->selectRaw('COUNT(*) as lastPendingPayments')
-                ->where('payment_status', 'PENDING')
-                ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                    return $query->whereBetween(DB::raw('DATE(payment_date)'), [$fromDate, $toDate]);
-                })
-                ->value('lastPendingPayments');
-
-            // Query execution time
-            $queryRunTime = $this->responseTime();
-
-            // Capture apiid and Device Name from request
-            $apiid = $request->input('apiid', $request->header('apiid', 'ADASH-001'));
-            if (!$apiid) {
-                Log::debug('No apiid passed in the request.');
-            }
-
-            // Return the response using the format_response helper
-            return $this->format_response(
-                'Transaction Overview fetched successfully',
-                [
-
-                    'totalTransactions' => $totalTransactions,
-                    'lastTotalTransactions' => $lastTotalTransactions,
-                    'totalPayments' => $totalPayments,
-                    'lastTotalPayments' => $lastTotalPayments,
-                    'completedPayments' => $completedPayments,
-                    'pendingPayments' => $pendingPayments,
-                    'lastPendingPayments' => $lastPendingPayments,
-
-
+            // Compile all data into a single response
+            $ret = ([
+                'status' => 'success',
+                'data' => [
+                    'card_summary' => $cardSummary,
+                    'monthly_transactions' => $monthlyTransactions,
+                    'payment_mode_distribution' => $paymentModeDistribution,
+                    'tc_wise_transactions' => $tcWiseTransactions,
+                    'monthly_payments' => $monthlyPayments,
+                    'transactions' => $transactions,
+                    'outcome_distribution' => $outcomeDistribution
                 ],
-                true,
-                [
-                    'apiid' => $apiid,
-                    'version' => '1.0',
-                    'queryRunTime' => $queryRunTime,
-                    'route' => 'getTransactionOverview',
-                    'device' => $request->header('Device-Name', 'Unknown Device')
+                'metadata' => [
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                    'generated_at' => Carbon::now()->toDateTimeString()
                 ]
+            ]);
+
+            return format_response(
+                'Success',
+                $ret,
+                Response::HTTP_OK
             );
         } catch (\Exception $e) {
-            $queryRunTime = $this->responseTime();
-            $apiid = $request->input('apiid', $request->header('apiid', null));
-            return $this->responseMsgs(
-                'Error occurred while fetching transaction overview: ' . $e->getMessage(),
-                null,
-                false,
-                [
-                    'apiid' => $apiid,
-                    'version' => '1.0',
-                    'queryRunTime' => $queryRunTime,
-                    'route' => 'getTransactionOverview',
-                    'device' => $request->header('Device-Name', 'Unknown Device')
-                ]
-            );
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch dashboard data',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
-
-
-
-    // API-ID: ADASH-002 [Admin Dashboard]
-
-    public function getOverviewDetails(Request $request)
+    /**
+     * Get card summary data
+     *
+     * @param string $startDate
+     * @param string $endDate
+     * @return array
+     */
+    private function getCardSummary($startDate, $endDate)
     {
-        try {
-            $validator = Validator::make($request->all(), [
-                'fromDate' => 'nullable|date',
-                'toDate' => 'nullable|date|after_or_equal:fromDate',
-                'zone' => 'nullable|string|max:255',
-                'eventType' => 'nullable|string|max:255',
-            ]);
+        $result = DB::select("
+            SELECT
+                COUNT(id) AS totaltransactions,
+                SUM(IF(event_type='PAYMENT',1,0)) AS payments,
+                SUM(IF(event_type='DENIAL',1,0)) AS denials,
+                SUM(IF(event_type='DOOR-CLOSED',1,0)) AS doorclosed,
+                SUM(IF(event_type='DEFERRED',1,0)) AS reschedules,
+                SUM(IF(event_type='CHEQUE',1,0)) AS cheques
+            FROM current_transactions
+            WHERE DATE(event_time) BETWEEN ? AND ?
+        ", [$startDate, $endDate]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => 'Validation error',
-                    'errors' => $validator->errors(),
-                    'success' => false,
-                ], 422);
+        return $result[0] ?? [];
+    }
+
+    /**
+     * Get monthly transaction data
+     *
+     * @param string $startDate
+     * @param string $endDate
+     * @return array
+     */
+    private function getMonthlyTransactions($startDate, $endDate)
+    {
+        return DB::select("
+            SELECT
+                MONTH(event_time) AS month,
+                MONTHNAME(event_time) AS monthName,
+                COUNT(id) AS transactions,
+                SUM(IF(event_type='PAYMENT',1,0)) AS payments
+            FROM current_transactions
+            WHERE DATE(event_time) BETWEEN ? AND ?
+            GROUP BY MONTH(event_time), MONTHNAME(event_time)
+            ORDER BY MONTH(event_time)
+        ", [$startDate, $endDate]);
+    }
+
+    /**
+     * Get payment mode distribution
+     *
+     * @param string $startDate
+     * @param string $endDate
+     * @return array
+     */
+    private function getPaymentModeDistribution($startDate, $endDate)
+    {
+        return DB::select("
+            SELECT
+                payment_mode,
+                SUM(amount) AS total_amount
+            FROM payments
+            WHERE DATE(payment_date) BETWEEN ? AND ?
+            GROUP BY payment_mode
+        ", [$startDate, $endDate]);
+    }
+
+    /**
+     * Get TC wise transaction data
+     *
+     * @param string $startDate
+     * @param string $endDate
+     * @return array
+     */
+    private function getTcWiseTransactions($startDate, $endDate)
+    {
+        return DB::select("
+            SELECT 
+                t.tc_id, 
+                u.name,
+                COUNT(t.id) AS transactions, 
+                COUNT(p.id) AS payments
+            FROM current_transactions t
+            INNER JOIN users u ON t.tc_id = u.id
+            LEFT JOIN payments p ON t.payment_id = p.id
+            WHERE DATE(t.event_time) BETWEEN ? AND ?
+            GROUP BY t.tc_id, u.name
+        ", [$startDate, $endDate]);
+    }
+
+    /**
+     * Get monthly payment data
+     *
+     * @param string $startDate
+     * @param string $endDate
+     * @return array
+     */
+    private function getMonthlyPayments($startDate, $endDate)
+    {
+        return DB::select("
+            SELECT
+                MONTH(payment_date) AS month,
+                MONTHNAME(payment_date) AS monthName,
+                SUM(amount) AS payments
+            FROM payments
+            WHERE DATE(payment_date) BETWEEN ? AND ?
+            GROUP BY MONTH(payment_date), MONTHNAME(payment_date)
+            ORDER BY MONTH(payment_date)
+        ", [$startDate, $endDate]);
+    }
+
+    /**
+     * Get transactions list
+     *
+     * @param string $startDate
+     * @param string $endDate
+     * @param int $limit
+     * @return array
+     */
+    private function getTransactions($startDate, $endDate, $limit = 100)
+    {
+        return DB::select("
+            SELECT 
+                t.id AS transaction_id,
+                u.ulb_name,
+                r.ratepayer_name,
+                t.event_time,
+                t.event_type,
+                p.payment_mode,
+                p.payment_status,
+                p.amount
+            FROM current_transactions t
+            INNER JOIN ulbs u ON u.id = t.ulb_id
+            INNER JOIN ratepayers r ON t.ratepayer_id = r.id
+            LEFT JOIN payments p ON p.id = t.payment_id
+            WHERE DATE(t.event_time) BETWEEN ? AND ?
+            ORDER BY t.event_time DESC
+            LIMIT ?
+        ", [$startDate, $endDate, $limit]);
+    }
+
+    private function getVisitOutcomesDistribution($startDate, $endDate)
+    {
+        $result = DB::select("
+        SELECT
+            event_type,
+            COUNT(*) as count,
+            ROUND((COUNT(*) / (SELECT COUNT(*) FROM current_transactions 
+                               WHERE DATE(event_time) BETWEEN ? AND ?)) * 100, 0) as percentage
+        FROM current_transactions
+        WHERE DATE(event_time) BETWEEN ? AND ?
+        GROUP BY event_type
+        ORDER BY count DESC
+    ", [$startDate, $endDate, $startDate, $endDate]);
+
+        // Map the event types to the labels used in the chart
+        $mappedResults = [];
+        foreach ($result as $row) {
+            $label = $row->event_type;
+            // Map the event types to more readable labels if needed
+            switch ($row->event_type) {
+                case 'PAYMENT':
+                    $label = 'Payment';
+                    $color = '#4CAF50'; // Green
+                    break;
+                case 'DENIAL':
+                    $label = 'Denial';
+                    $color = '#F44336'; // Red
+                    break;
+                case 'DOOR-CLOSED':
+                    $label = 'Door Closed';
+                    $color = '#2196F3'; // Blue
+                    break;
+                case 'DEFERRED':
+                    $label = 'Deferred';
+                    $color = '#FFA726'; // Orange
+                    break;
+                case 'CHEQUE':
+                    $label = 'Cheque';
+                    $color = '#9C27B0'; // Purple
+                    break;
+                default:
+                    $label = 'Other';
+                    $color = '#607D8B'; // Gray
+                    break;
             }
 
-
-            $fromDate = $request->input('fromDate', null);
-            $toDate = $request->input('toDate', null);
-            $zone = $request->input('zone', 'All Zones');
-            $eventType = $request->input('eventType', 'All Events');
-
-            // Log the input values for debugging
-            Log::info('Input Values:', [
-                'fromDate' => $fromDate,
-                'toDate' => $toDate,
-                'zone' => $zone,
-                'eventType' => $eventType
-            ]);
-
-            // Fetch the required data
-            $monthlyOverview = $this->getMonthlyOverview($fromDate, $toDate, $zone);
-            $eventTypeOverview = $this->getEventTypeOverview($fromDate, $toDate, $eventType);
-            $paymentModeStatus = $this->getPaymentModeStatus($fromDate, $toDate, $zone);
-            $clusterData = $this->getClusterData();
-
-
-            // Capture apiid and Device Name from request
-            $apiid = $request->input('apiid', $request->header('apiid', 'ADASH-002'));
-            if (!$apiid) {
-                Log::debug('No apiid passed in the request.');
-            }
-
-            // Query execution time
-            $queryRunTime = $this->responseTime();
-
-            // Return the response using the format_response helper
-            return $this->format_response(
-                'Overview details fetched successfully',
-                [
-
-                    'transactionsData' => $monthlyOverview,
-                    'eventType' => $eventTypeOverview,
-                    'paymentModeStatus' => $paymentModeStatus,
-                    'clusters' => $clusterData
-
-                ],
-                true,
-                [
-                    'apiid' => $apiid,
-                    'version' => '1.0',
-                    'queryRunTime' => $queryRunTime,
-                    'route' => 'getOverviewDetails',
-                    'device' => $request->header('Device-Name', 'Unknown Device')
-                ]
-            );
-        } catch (\Exception $e) {
-            $queryRunTime = $this->responseTime();
-            $apiid = $request->input('apiid', $request->header('apiid', null));
-            return $this->responseMsgs(
-                'Error occurred while fetching overview details: ' . $e->getMessage(),
-                null,
-                false,
-                [
-                    'apiid' => $apiid,
-                    'version' => '1.0',
-                    'queryRunTime' => $queryRunTime,
-                    'route' => 'getOverviewDetails',
-                    'device' => $request->header('Device-Name', 'Unknown Device')
-                ]
-            );
-        }
-    }
-
-
-
-
-    private function getMonthlyOverview($fromDate, $toDate, $zone)
-    {
-        return DB::table('current_transactions as ct')
-            ->join('payments as p', 'ct.id', '=', 'p.tran_id')
-            ->select(
-                // DB::raw('MONTH(ct.event_time) as month_number'),
-                DB::raw('MONTHNAME(ct.event_time) as month'),
-                DB::raw('COUNT(ct.id) as transactions'),
-                DB::raw("SUM(IF(ct.event_type = 'PAYMENT', 1, 0)) as payments"),
-                DB::raw('SUM(p.amount) as amount')
-            )
-            ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                return $query->whereBetween(DB::raw('DATE(ct.event_time)'), [$fromDate, $toDate]);
-            })
-            ->groupBy(DB::raw('MONTH(ct.event_time), MONTHNAME(ct.event_time)'))
-            ->orderBy(DB::raw('MONTH(ct.event_time)'))
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'month' => $item->month,
-                    'transactions' => $item->transactions,
-                    'payments' => $item->payments,
-                    'amount' => $item->amount,
-                ];
-            });
-    }
-
-
-
-    private function getEventTypeOverview($fromDate, $toDate, $eventType)
-    {
-        return DB::table('current_transactions')
-            ->select(
-                'event_type as type',
-                DB::raw("SUM(IF(event_type = 'PAYMENT', 1, 0)) as count"),
-                DB::raw("SUM(IF(event_type = 'DENIAL', 1, 0)) as denials"),
-                DB::raw("SUM(IF(event_type = 'DOOR-CLOSED', 1, 0)) as doorclosed"),
-                DB::raw("SUM(IF(event_type = 'DEFERRED', 1, 0)) as reschedules"),
-                DB::raw("SUM(IF(event_type = 'CHEQUE', 1, 0)) as cheques")
-            )
-            ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                return $query->whereBetween(DB::raw('DATE(event_time)'), [$fromDate, $toDate]);
-            })
-            ->when($eventType !== 'All Events', function ($query) use ($eventType) {
-                return $query->where('event_type', $eventType);
-            })
-            ->groupBy('event_type')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'type' => ucwords(strtolower(str_replace('-', ' ', $item->type))),
-                    'count' => $item->count,
-                    'denials' => $item->denials,
-                    'doorclosed' => $item->doorclosed,
-                    'reschedules' => $item->reschedules,
-                    'cheques' => $item->cheques,
-                    'color' => $this->getEventTypeColor($item->type)
-                ];
-            });
-    }
-
-
-
-    private function getEventTypeColor($eventType)
-    {
-        $colors = [
-            'PAYMENT' => '#4CAF50',
-            'DENIAL' => '#F44336',
-            'DOOR-CLOSED' => '#2196F3',
-            'DEFERRED' => '#FF9800',
-            'CHEQUE' => '#9C27B0',
-            'OTHER' => '#607D8B'
-        ];
-
-        return $colors[$eventType] ?? '#607D8B';
-    }
-
-    private function getPaymentModeStatus($fromDate, $toDate, $zone)
-    {
-        return DB::table('payments')
-            ->select(
-                'payment_mode',
-                DB::raw("SUM(CASE WHEN payment_status = 'completed' THEN 1 ELSE 0 END) as completed"),
-                DB::raw("SUM(CASE WHEN payment_status = 'PENDING' THEN 1 ELSE 0 END) as pending"),
-                DB::raw("SUM(CASE WHEN payment_status = 'refunded' THEN 1 ELSE 0 END) as refunded"),
-                DB::raw("SUM(CASE WHEN payment_status = 'failed' THEN 1 ELSE 0 END) as failed")
-            )
-            ->when($fromDate && $toDate, function ($query) use ($fromDate, $toDate) {
-                return $query->whereBetween(DB::raw('DATE(payment_date)'), [$fromDate, $toDate]);
-            })
-            // The zone filter is removed to match the query, but can be re-added if needed.
-            ->groupBy('payment_mode')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'type' => $item->payment_mode,
-                    'completed' => $item->completed,
-                    'pending' => $item->pending,
-                    'failed' => $item->failed,
-                    'refunded' => $item->refunded
-                ];
-            });
-    }
-
-
-
-
-    private function getClusterData()
-    {
-
-        $clusterData = DB::table('clusters as cl')
-            ->join('payment_zones as pz', 'cl.ulb_id', '=', 'pz.ulb_id')
-            ->leftJoin('payments as p', 'p.cluster_id', '=', 'cl.id')
-            ->leftJoin('current_transactions as ct', 'ct.cluster_id', '=', 'cl.id')
-            ->select(
-                DB::raw("CASE
-                        WHEN pz.payment_zone = 1 THEN 'East Cluster'
-                        WHEN pz.payment_zone = 2 THEN 'West Cluster'
-                        WHEN pz.payment_zone = 3 THEN 'North Cluster'
-                        WHEN pz.payment_zone = 4 THEN 'South Cluster'
-                       
-                    END AS zone"),
-                DB::raw('SUM(p.amount) AS amount'),
-                DB::raw('COUNT(p.id) AS payments'),
-                DB::raw('COUNT(ct.id) AS transactions')
-            )
-            ->groupBy('pz.payment_zone', 'cl.ulb_id')
-            ->get();
-
-
-        if ($clusterData->isEmpty()) {
-            Log::debug('No cluster data found.');
-        }
-
-        // Return the data in the format you want
-        return $clusterData->map(function ($item) {
-            return [
-                'zone' => $item->zone,
-                'transactions' => $item->transactions,
-                'payments' => $item->payments,
-                'amount' => $item->amount,
-                // 'color' => $item->color,
+            $mappedResults[] = [
+                'label' => $label,
+                'percentage' => (int)$row->percentage,
+                'count' => (int)$row->count,
+                'color' => $color
             ];
-        });
-    }
-
-
-
-
-
-
-    // API-ID: ADASH-003 [Admin Dashboard]
-    public function fetchTransactions(Request $request)
-    {
-        try {
-            // Extract input parameters from query string
-            $fromDate = $request->query('fromDate', null);
-            $toDate = $request->query('toDate', null);
-            $zone = $request->query('zone', 'All Zones');
-            $eventType = $request->query('eventType', 'All Events');
-
-            // Log the input values for debugging
-            Log::info('Input Values:', [
-                'fromDate' => $fromDate,
-                'toDate' => $toDate,
-                'zone' => $zone,
-                'eventType' => $eventType
-            ]);
-
-            // Build the query with logging to capture the SQL query
-            $query = DB::table('current_transactions')
-                ->join('payment_zones as pz', 'current_transactions.ulb_id', '=', 'pz.ulb_id')
-                ->leftJoin('payments', 'current_transactions.payment_id', '=', 'payments.id')
-                ->select(
-                    DB::raw("CONCAT('TRX1000', current_transactions.id) AS id"),
-                    DB::raw("CONCAT('ULB-', current_transactions.ulb_id) AS ulb"),
-                    DB::raw("CONCAT('RATEPAYER100', current_transactions.ratepayer_id) AS ratepayer"),
-                    DB::raw("CONCAT('PMT-2000', payments.id) AS paymentId"),
-                    'current_transactions.event_time as eventTime',
-                    'current_transactions.event_type as eventType',
-                    'payments.payment_mode as paymentMode',
-                    'payments.payment_status as paymentStatus',
-                    'payments.amount',
-                    'current_transactions.verification_date as verificationDate',
-                    'current_transactions.cancellation_date as cancellationDate',
-                    'pz.payment_zone as zone'
-                );
-
-            // Add date filter if both fromDate and toDate are provided
-            if ($fromDate && $toDate) {
-                $query->whereBetween('current_transactions.event_time', [$fromDate, $toDate]);
-            }
-
-            // Add zone filter
-            if ($zone !== 'All Zones') {
-                $query->where('pz.payment_zone', $zone);
-            }
-
-            // Add eventType filter
-            if ($eventType !== 'All Events') {
-                $query->where('current_transactions.event_type', $eventType);
-            }
-
-            // Log the generated SQL query for debugging
-            Log::info('Generated SQL Query: ' . $query->toSql());
-
-            // Execute the query and map the results
-            $transactions = $query->get()->map(function ($item) {
-                return [
-                    'id' => $item->id,
-                    'ulb' => $item->ulb,
-                    'ratepayer' => $item->ratepayer,
-                    'eventTime' => $item->eventTime,
-                    'eventType' => $item->eventType,
-                    'paymentId' => $item->paymentId,
-                    'paymentMode' => $item->paymentMode,
-                    'paymentStatus' => $item->paymentStatus,
-                    'amount' => $item->amount,
-                    'verificationDate' => $item->verificationDate,
-                    'cancellationDate' => $item->cancellationDate,
-                    'zone' => $item->zone
-                ];
-            });
-
-            // Capture API ID and Device Name
-            $apiid = $request->query('apiid', $request->header('apiid', 'ADASH-003'));
-            if (!$apiid) {
-                Log::debug('No apiid passed in the request.');
-            }
-
-            // Query execution time
-            $queryRunTime = $this->responseTime();
-
-            // Return the response using the format_response helper
-            return response()->json([
-                'status' => true,
-                'message' => 'Transactions fetched successfully',
-                'data' => $transactions->toArray(),
-                'extra' => [
-                    'apiid' => $apiid,
-                    'version' => '1.0',
-                    'queryRunTime' => $queryRunTime,
-                    'route' => 'fetchTransactions',
-                    'device' => $request->header('Device-Name', 'Unknown Device')
-                ]
-            ]);
-        } catch (\Exception $e) {
-            // Log the exception for debugging
-            Log::error('Error in fetching transactions', ['error' => $e->getMessage()]);
-
-            // Query execution time
-            $queryRunTime = $this->responseTime();
-            $apiid = $request->query('apiid', $request->header('apiid', null));
-
-            return response()->json([
-                'status' => false,
-                'message' => 'Error occurred while fetching transactions: ' . $e->getMessage(),
-                'data' => null,
-                'extra' => [
-                    'apiid' => $apiid,
-                    'version' => '1.0',
-                    'queryRunTime' => $queryRunTime,
-                    'route' => 'fetchTransactions',
-                    'device' => $request->header('Device-Name', 'Unknown Device')
-                ]
-            ]);
         }
-    }
 
-
-
-
-
-
-    // API-ID: ADASH-004 [Admin Dashboard]
-    public function fetchInsights(Request $request)
-    {
-        try {
-            // Extract input parameters
-            $fromDate = $request->input('fromDate', null);
-            $toDate = $request->input('toDate', null);
-            $zone = $request->input('zone', 'All Zones');
-            $eventType = $request->input('eventType', 'All Events');
-
-            // Log the input values for debugging
-            Log::info('Input Values:', [
-                'fromDate' => $fromDate,
-                'toDate' => $toDate,
-                'zone' => $zone,
-                'eventType' => $eventType
-            ]);
-
-            // Fetch Insights Data
-            $alertData = $this->getAlertData($request);
-            $cancellationData = $this->getCancellationData();
-            $denialData = $this->getDenialData();
-            $collectorData = $this->getCollectorData();
-
-
-
-
-            // Capture apiid and Device Name from request
-            $apiid = $request->input('apiid', $request->header('apiid', 'ADASH-004'));
-            if (!$apiid) {
-                Log::debug('No apiid passed in the request.');
-            }
-
-            // Query execution time
-            $queryRunTime = $this->responseTime();
-
-            // Return the response using the format_response helper
-            return $this->format_response(
-                'Insights fetched successfully',
-                [
-
-                    'cancellationData' => $cancellationData,
-                    'denialData' => $denialData,
-                    'collectorData' => $collectorData,
-                    'alert' => $alertData
-
-                ],
-                true,
-                [
-                    'apiid' => $apiid,
-                    'version' => '1.0',
-                    'queryRunTime' => $queryRunTime,
-                    'route' => 'fetchInsights',
-                    'device' => $request->header('Device-Name', 'Unknown Device')
-                ]
-            );
-        } catch (\Exception $e) {
-            $queryRunTime = $this->responseTime();
-            $apiid = $request->input('apiid', $request->header('apiid', null));
-            return $this->responseMsgs(
-                'Error occurred while fetching insights: ' . $e->getMessage(),
-                null,
-                false,
-                [
-                    'apiid' => $apiid,
-                    'version' => '1.0',
-                    'queryRunTime' => $queryRunTime,
-                    'route' => 'fetchInsights',
-                    'device' => $request->header('Device-Name', 'Unknown Device')
-                ]
-            );
-        }
-    }
-
-
-    // // Helper method to get denial data
-    private function getDenialData()
-    {
-        return DenialReason::select('reason as type')
-            ->selectRaw('COUNT(*) as value')
-            ->groupBy('reason')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'type' => $item->type,
-                    'value' => $item->value,
-                    'color' => $this->getDenialColor($item->type)
-                ];
-            });
-    }
-
-
-
-    // // Helper method to get collector data
-    private function getCollectorData()
-    {
-        return User::select(DB::raw('"Tax Collector" as type'), 'users.name as collector_name')
-            ->selectRaw('COUNT(transactions.id) as transactions')
-            ->selectRaw('SUM(CASE WHEN transactions.event_type = "PAYMENT" THEN 1 ELSE 0 END) as payments')
-            ->selectRaw('SUM(payments.amount) as amount')
-            ->leftJoin('transactions', 'users.id', '=', 'transactions.tc_id')
-            ->leftJoin('payments', 'transactions.payment_id', '=', 'payments.id')
-            ->where('users.role', 'TAX_COLLECTOR')
-            ->groupBy('users.id', 'users.name')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'type' => $item->type . ' ' . $item->collector_name,
-                    'transactions' => $item->transactions,
-                    'payments' => $item->payments,
-                    'amount' => $item->amount
-                ];
-            });
-    }
-
-
-    // // Helper method to get Alert data
-    private function getAlertData(Request $request)
-    {
-        Log::info('Alert Data:', $request->all());
-        $defaultAlerts = [
-            [
-                'title' => 'System Update',
-                'message' => 'System maintenance is scheduled for tonight from 12:00 AM to 2:00 AM.',
-                'dateTime' => now()->toDateTimeString(),
-                'priority' => 'High',
-                'category' => 'Failed',
-            ],
-            [
-                'title' => 'New User Registration',
-                'message' => 'A new user has registered in the system.',
-                'dateTime' => now()->toDateTimeString(),
-                'priority' => 'Low',
-                'category' => 'Unverified',
-            ],
-            [
-                'title' => 'Payment Received',
-                'message' => 'A new payment has been received successfully.',
-                'dateTime' => now()->toDateTimeString(),
-                'priority' => 'Medium',
-                'category' => 'Delayed',
-            ]
-        ];
-
-        if (!$request->has('title') && !$request->has('message')) {
-            Log::info('Returning default alerts.');
-            return $defaultAlerts;
-        }
-        $alert = [
-            'title' => $request->input('title', ''),
-            'message' => $request->input('message', ''),
-            'dateTime' => $request->input('dateTime', now()->toDateTimeString()),
-            'priority' => $request->input('priority', 'Medium'),
-            'category' => $request->input('category', 'Unverified'),
-        ];
-        Log::info('Final Alert Data:', $alert);
-        return [$alert];
-    }
-
-
-
-    // // Helper method to get cancellation data
-    private function getCancellationData()
-    {
-        return DenialReason::select('reason as type', DB::raw('COUNT(*) as value'))
-            ->groupBy('reason')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'type' => $item->type,
-                    'value' => $item->value,
-                    'color' => $this->getCancellationColor($item->type)
-                ];
-            });
-    }
-
-
-    private function getCancellationColor($reason)
-    {
-        $colors = [
-            'Unauthorized usaget' => '#F44336',
-            'Misrepresentation of facts' => '#FF9800',
-            'Duplicate application' => '#2196F3',
-            'Unverified identity' => '#9C27B0',
-            'Other' => '#607D8B'
-        ];
-
-        return $colors[$reason] ?? '#607D8B';
-    }
-
-
-    private function getDenialColor($reason)
-    {
-        $colors = [
-            'Taxpayer unavailable' => '#F44336',
-            'Refused to pay' => '#FF9800',
-            'Disputed bill amount' => '#2196F3',
-            'Door closed' => '#9C27B0',
-            'Other' => '#607D8B'
-        ];
-
-        return $colors[$reason] ?? '#607D8B';
-    }
-
-
-
-
-    // // Helper function to calculate the response time
-    private function responseTime()
-    {
-        return microtime(true) - LARAVEL_START;
-    }
-
-    // // Helper function to format the response
-    private function format_response($message, $data = null, $status_code = 200, $extra = [])
-    {
-        return response()->json([
-            'status' => $status_code,
-            'message' => $message,
-            'data' => $data,
-            'extra' => $extra
-        ]);
-    }
-
-    // // Helper function to format error messages
-    private function responseMsgs($message, $data = null, $status_code = 500, $extra = [])
-    {
-        return response()->json([
-            'status' => $status_code,
-            'message' => $message,
-            'data' => $data,
-            'extra' => $extra
-        ]);
+        return $mappedResults;
     }
 }

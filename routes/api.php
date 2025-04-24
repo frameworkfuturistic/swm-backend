@@ -247,8 +247,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('demand')->grou
     Route::get('current/ratepayer/{id}', [DemandController::class, 'showRatepayerCurrentDemand']);
 
 
-   // API-ID: DEMAND-004 [Get pending demands of a cluster where summary of all pending entity ratepayers is listed]
-   Route::get('current/cluster/{id}', [DemandController::class, 'clusterDemands']);
+    // API-ID: DEMAND-004 [Get pending demands of a cluster where summary of all pending entity ratepayers is listed]
+    Route::get('current/cluster/{id}', [DemandController::class, 'clusterDemands']);
 
 
 
@@ -378,16 +378,17 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
 Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
 
     // API-ID: ADASH-001 [Admin Dashboard]
-    Route::post('/dashboard/admin', [AdminDashboardController::class, 'getTransactionDetails']);
+    // Route::post('/dashboard/admin', [AdminDashboardController::class, 'getTransactionDetails']);
+    Route::post('/dashboard/admin', [AdminDashboardController::class, 'getDashboardData']);
 
-    // API-ID: ADASH-002 [Admin Dashboard]
-    Route::post('/overview-details', [AdminDashboardController::class, 'getOverviewDetails']);
+    // // API-ID: ADASH-002 [Admin Dashboard]
+    // Route::post('/overview-details', [AdminDashboardController::class, 'getOverviewDetails']);
 
-    // API-ID: ADASH-003 [Admin Dashboard]
-    Route::get('/fetch-transactions', [AdminDashboardController::class, 'fetchTransactions']);
+    // // API-ID: ADASH-003 [Admin Dashboard]
+    // Route::get('/fetch-transactions', [AdminDashboardController::class, 'fetchTransactions']);
 
-    // API-ID: ADASH-004 [Admin Dashboard]
-    Route::post('/fetch-insights', [AdminDashboardController::class, 'fetchInsights']);
+    // // API-ID: ADASH-004 [Admin Dashboard]
+    // Route::post('/fetch-insights', [AdminDashboardController::class, 'fetchInsights']);
 
 
 
@@ -445,13 +446,13 @@ Route::get('/tp/demand', [RateTransactionController::class, 'getCurrentBill']);
 Route::post('/tp/payment', [RateTransactionController::class, 'postPayment']);
 
 Route::get('/debug-headers', function (Request $request) {
-   return [
-       'all_headers' => getallheaders(),
-       'auth_key_direct' => $request->header('AUTH_KEY'),
-       'server_vars' => array_filter($_SERVER, function($key) {
-           return strpos($key, 'HTTP_') === 0;
-       }, ARRAY_FILTER_USE_KEY)
-   ];
+    return [
+        'all_headers' => getallheaders(),
+        'auth_key_direct' => $request->header('AUTH_KEY'),
+        'server_vars' => array_filter($_SERVER, function ($key) {
+            return strpos($key, 'HTTP_') === 0;
+        }, ARRAY_FILTER_USE_KEY)
+    ];
 });
 
 Route::fallback(function () {
