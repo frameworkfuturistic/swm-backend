@@ -96,6 +96,8 @@ class SubCategoryController extends Controller
             $subCategory = SubCategory::create([
                 'category_id' => $validatedData['categoryId'],
                 'sub_category' => $validatedData['subCategory'],
+                'subcategory_code' => $validatedData['subcategoryCode'],
+                'rate' => $validatedData['rate'],
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

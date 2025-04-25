@@ -9,6 +9,8 @@ class SubCategory extends Model
     protected $fillable = [
         'category_id',
         'sub_category',
+        'subcategory_code',
+        'rate'
     ];
 
     protected $hidden = ['created_at', 'updated_at'];

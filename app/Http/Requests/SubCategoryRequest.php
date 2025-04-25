@@ -35,6 +35,15 @@ class SubCategoryRequest extends FormRequest
                     ->where('category_id', $this->input('categoryId'))
                     ->ignore($this->route('id'), 'id'), // Exclude the current record by ID
             ],
+            'subcategoryCode' => [
+            'required',
+            'string',
+            'max:50',
+            Rule::unique('sub_categories', 'subcategory_code')
+                ->where('category_id', $this->input('categoryId'))
+                ->ignore($this->route('id'), 'id'),
+            ],
+            'rate' => 'required|numeric|lt:10000',
         ];
     }
 }

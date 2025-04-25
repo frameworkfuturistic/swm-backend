@@ -81,6 +81,7 @@ class RatepayerService
                 'r.whatsapp_no as whatsAppNo',
                 'r.usage_type as usageType',
                 'r.status',
+                'r.is_active',
                 'r.reputation',
                 's.sub_category as subCategory',
             ])

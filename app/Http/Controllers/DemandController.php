@@ -199,44 +199,42 @@ class DemandController extends Controller
 
             DB::enableQueryLog();
 
-            $results = DB::table('entities as e')
-            ->join('ratepayers as rp', 'rp.entity_id', '=', 'e.id')
-            ->join('current_demands as cd', 'cd.ratepayer_id', '=', 'rp.id')
-            ->select(
-                'e.cluster_id as cluster_id',
-                DB::raw('ANY_VALUE(rp.consumer_no) as consumer_no'),
-                DB::raw('ANY_VALUE(rp.ratepayer_name) as ratepayer_name'),
-                DB::raw('ANY_VALUE(rp.ratepayer_address) as ratepayer_address'),
-                DB::raw('SUM(cd.demand) as clusterDemand')
-            )
-            ->where('rp.paymentzone_id', $id)
-            ->whereNotNull('e.cluster_id')
-            ->whereRaw('(cd.bill_month + (cd.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
-            ->groupBy('e.cluster_id')
-            ->get();
-            
+            // $results = DB::table('entities as e')
+            // ->join('ratepayers as rp', 'rp.entity_id', '=', 'e.id')
+            // ->join('current_demands as cd', 'cd.ratepayer_id', '=', 'rp.id')
+            // ->select(
+            //     'e.cluster_id as cluster_id',
+            //     DB::raw('ANY_VALUE(rp.consumer_no) as consumer_no'),
+            //     DB::raw('ANY_VALUE(rp.ratepayer_name) as ratepayer_name'),
+            //     DB::raw('ANY_VALUE(rp.ratepayer_address) as ratepayer_address'),
+            //     DB::raw('SUM(cd.demand) as clusterDemand')
+            // )
+            // ->where('rp.paymentzone_id', $id)
+            // ->whereNotNull('e.cluster_id')
+            // ->whereRaw('(cd.bill_month + (cd.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
+            // ->groupBy('e.cluster_id')
+            // ->get();
 
-            // $results = DB::table('current_demands as c')
-            //     ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
-            //     ->select(
-            //         'c.ratepayer_id',
-            //         'r.consumer_no',
-            //         'r.ratepayer_name',
-            //         'r.ratepayer_address',
-            //         'r.mobile_no',
-            //         'r.reputation',
-            //         'r.lastpayment_amt',
-            //         DB::raw('if(((latitude IS NOT NULL) AND (longitude IS NOT NULL) AND (latitude BETWEEN -90 AND 90) AND (longitude BETWEEN -180 AND 180)),true,false) as validCoordinates'),
-            //         DB::raw('DATE_FORMAT(r.lastpayment_date,"%d/%m/%Y") as lastpayment_date'),
-            //         DB::raw('SUM(c.total_demand) as totalDemand')
-            //     )
-            //     ->whereRaw('c.total_demand - c.payment > 0')  // Ensure unpaid demand exists
-            //     ->whereRaw('MONTH(SYSDATE()) >= c.bill_month')  // Ensure current month is less than or equal to bill_month
-            //     ->where('r.paymentzone_id', $id)  // Ensure current month is less than or equal to bill_month
-            //     ->whereRaw('cluster_id IS NOT NULL')  // Ensure current month is less than or equal to bill_month
-            //     ->groupBy('c.ratepayer_id', 'r.consumer_no', 'r.ratepayer_name', 'r.ratepayer_address', 'r.mobile_no')  // Group by ratepayer_id and relevant columns
-            //     ->orderBy('r.ratepayer_name')
-            //     ->get();
+            $currentMonth = now()->month;
+            $currentYear = now()->year;
+            
+            $subQuery = DB::query()
+            ->select('e.cluster_id', DB::raw('SUM(d.demand) AS clusterDemand'))
+            ->from('ratepayers AS r')
+            ->join('entities AS e', 'r.entity_id', '=', 'e.id')
+            ->join('current_demands AS d', 'r.id', '=', 'd.ratepayer_id')
+            ->whereNotNull('e.cluster_id')
+            ->whereRaw('(d.bill_month + (d.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
+            ->groupBy('e.cluster_id');
+        
+            $qry = DB::table('ratepayers AS rp')
+                  ->select('a.cluster_id', 'rp.id AS ratepayer_id', 'rp.consumer_no', 'rp.ratepayer_name', 'rp.ratepayer_address', 'a.clusterDemand')
+                  ->joinSub($subQuery, 'a', function ($join) {
+                     $join->on('rp.cluster_id', '=', 'a.cluster_id');
+                  });
+
+            $results = $qry->get();
+
 
             return format_response(
                 'Show Pending Demands from '.$zone->payment_zone,

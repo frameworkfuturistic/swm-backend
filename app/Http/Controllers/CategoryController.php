@@ -72,12 +72,14 @@ class CategoryController extends Controller
         try {
             $validated = $request->validate([
                 'category' => 'required|string|max:50|unique:categories,category,NULL,id,ulb_id,'.$request->ulb_id,
+                'categoryCode' => 'required|string|max:50|unique:categories,category_code,NULL,id,ulb_id,' . $request->ulb_id,
             ]);
 
             $ulbId = $request->ulb_id;
             $category = DB::table('categories')->insert([
                 'ulb_id' => $ulbId,
                 'category' => $validated['category'],
+                'category_code' => $validated['categoryCode'],
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
