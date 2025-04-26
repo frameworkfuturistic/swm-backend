@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountsController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ClusterController;
+use App\Http\Controllers\ClusterPaymentController;
 use App\Http\Controllers\Dashboard\AccountController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
 use App\Http\Controllers\Dashboard\ClusterDemandController;
@@ -41,7 +42,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
     // API-ID: ADMIN-007 [Create Category]
     Route::post('categories', [CategoryController::class, 'store']);
     // API-ID: ADMIN-008 [Create Sub Category]
-    Route::post('categories/{id}/sub-categories', [SubCategoryController::class, 'store']);
+    Route::post('sub-categories', [SubCategoryController::class, 'store']);
     // API-ID: ADMIN-009 [Create Rate List]
     Route::post('rate-list', [RateListController::class, 'store']);
     // API-ID: ADMIN-010 [Create Denial Reason]
@@ -196,8 +197,6 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'force-json', 'api'])->prefix('
     Route::get('ratepayers/{id}', [RatepayerController::class, 'show'])->where('id', '[0-9]+');
     //Done
 
-    //Done
-
 });
 
 //Operations
@@ -286,6 +285,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('transactions')
     Route::post('cheque-collection', [TransactionController::class, 'chequeCollection']);
     //Transactions - API-ID: TRAN-008
     Route::post('cancel', [TransactionController::class, 'cancellation']);
+    //Transactions - API-ID: TRAN-009
+    Route::post('cluster-payment', [ClusterPaymentController::class, 'processClusterPayment']);
 
     //Done
 
@@ -372,8 +373,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
 
 //reporting
 Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->group(function () {
-    //  Route::get('demand/zone/{id}', [DenialReasonController::class, 'show']);
-    // Route::get('demand/ratepayer/{id}', DenialReasonController::class);
+   //  Route::get('demand/zone/{id}', [DenialReasonController::class, 'show']);
+   //  Route::get('demand/ratepayer/{id}', DenialReasonController::class);
     // Route::get('demand/ward/{id}', DenialReasonController::class);
 
     // Route::get('transactions/entity/{id}', DenialReasonController::class);
