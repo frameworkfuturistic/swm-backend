@@ -118,7 +118,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
     // API-ID: ADMIN-023 [Suspend TC]
     Route::put('tc/{id}/suspend', [AuthController::class, 'suspendUser']);
     // API-ID: ADMIN-024 [Revoke Suspended TC]
-    Route::put('tc/{id}/revoke-suspension', [TCController::class, 'revoke']);
+    Route::put('tc/{id}/revoke-suspension', [AuthController::class, 'revoke']);
     // API-ID: ADMIN-025 [Save Profile Picture]
     Route::put('saveprofile-picture/{id}', [AuthController::class, 'setProfilePicture']); //Done
     // API-ID: ADMIN-039 [Add Entity and corresponding Ratepayer]

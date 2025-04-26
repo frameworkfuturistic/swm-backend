@@ -41,6 +41,7 @@ class TCController extends Controller
                 ->where('is_active', 1)
                 ->where('role', 'tax_collector')
                 ->get();
+                
 
             // $tcs = User::where('ulb_id', $ulbId)
             //     ->where('is_active', 1)
