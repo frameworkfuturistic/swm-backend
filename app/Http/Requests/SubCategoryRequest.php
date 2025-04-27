@@ -26,7 +26,7 @@ class SubCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'categoryId' => 'nullable|exists:categories,id',
+            'categoryId' => 'required|exists:categories,id',
             'subCategory' => [
                 'required',
                 'string',
@@ -37,7 +37,7 @@ class SubCategoryRequest extends FormRequest
             ],
             'subcategoryCode' => [
             'string',
-            'max:50',
+            'max:2',
             Rule::unique('sub_categories', 'subcategory_code')
                 ->where('category_id', $this->input('categoryId'))
                 ->ignore($this->route('id'), 'id'),

@@ -305,7 +305,7 @@ class ClusterPaymentController extends Controller
         $transaction->remarks = $request->input('payment.remarks');
         $transaction->longitude = $request->input('payment.longitude');
         $transaction->latitude = $request->input('payment.latitude');
-        $transaction->is_verified = true;
+        $transaction->is_verified = false;
         $transaction->is_cancelled = false;
         $transaction->vrno = 0; // Initial VRNo is 0
         $transaction->save();
@@ -374,7 +374,7 @@ class ClusterPaymentController extends Controller
         $entityTransaction->event_time = Carbon::now();
         $entityTransaction->event_type = 'PAYMENT';
         $entityTransaction->auto_remarks = "Payment applied from cluster payment";
-        $entityTransaction->is_verified = true;
+        $entityTransaction->is_verified = false;
         $entityTransaction->is_cancelled = false;
         $entityTransaction->vrno = 0; // Initial VRNo is 0
         $entityTransaction->save();
