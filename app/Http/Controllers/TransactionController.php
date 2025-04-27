@@ -627,7 +627,7 @@ class TransactionController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'ulb_id' => 'required|exists:ulbs,id',
-                'zone_id' => 'required|numeric',
+                'zone_id' => 'nullable|numeric',
                 //  'tc_id' => 'required|numeric',
                 'subcategory_id' => 'required|numeric',
                 //  'entity_id' => 'nullable|numeric',
@@ -656,9 +656,16 @@ class TransactionController extends Controller
                     Response::HTTP_UNPROCESSABLE_ENTITY
                 );
             }
+            
             $validatedData = $validator->validated();
+            if ($request->zone_id == null)
+            {
+               $validatedData['zone_id'] =1;
+            }            
 
-            $tcId = Auth::user()->id;
+            // $tcId = Auth::user()->id;
+            $tcId = Auth::check() ? Auth::user()->id : 0;
+
             $validatedData['tc_id'] = $tcId;
 
             $tempEntity = TempEntities::create($validatedData);
@@ -672,7 +679,7 @@ class TransactionController extends Controller
             DB::rollBack();
 
             return format_response(
-                'An error occurred during insertion. '.$e->getMessage().' Demand Till Date = '.$tranService->demandTillDate,
+                'An error occurred during insertion. ',
                 null,
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
