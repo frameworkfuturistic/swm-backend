@@ -423,10 +423,10 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
 
 
 
-Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
+Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin')->group(function () {
 
     // API-ID: MDASH-001 [Manager Dashboard]
-    Route::get('/dashboard/admin/denial', [ManageTransactionController::class, 'getTransactionData']);
+    Route::get('/payment-trans', [ManageTransactionController::class, 'getTransactionData']);
 
     // API-ID: MDASH-002 [Active and Deactive Transaction]
     Route::post('/transaction/toggle', [ManageTransactionController::class, 'toggleTransactionStatus']);
