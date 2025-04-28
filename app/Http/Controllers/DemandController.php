@@ -137,10 +137,14 @@ class DemandController extends Controller
         //   return response()->json($demand->load('ratepayer'));
     }
 
-    public function zoneCurrentDemands($id)
+    public function zoneCurrentDemands(Request $request )
     {
         try {
-            $zone = PaymentZone::find($id);
+           $request->validate([
+               'zoneId' => ['required', 'exists:payment_zones,id'],
+           ]);
+
+            $zone = PaymentZone::find($request->zoneId);
             DB::enableQueryLog();
             $query = DB::table('current_demands as c')
                 ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
@@ -158,7 +162,7 @@ class DemandController extends Controller
                 )
                 ->whereRaw('c.total_demand - c.payment > 0')  // Ensure unpaid demand exists
                 ->whereRaw('MONTH(SYSDATE()) >= c.bill_month')  // Ensure current month is less than or equal to bill_month
-                ->where('r.paymentzone_id', $id)  // Ensure current month is less than or equal to bill_month
+                ->where('r.paymentzone_id', $zone->id)  // Ensure current month is less than or equal to bill_month
                 ->whereRaw('cluster_id IS NULL')
                 ->groupBy('c.ratepayer_id', 'r.consumer_no', 'r.ratepayer_name', 'r.ratepayer_address', 'r.mobile_no')  // Group by ratepayer_id and relevant columns
                 ->orderBy('r.ratepayer_name');

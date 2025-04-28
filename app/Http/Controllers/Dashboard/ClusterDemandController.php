@@ -82,6 +82,28 @@ class ClusterDemandController extends Controller
                 ->where('p.paymentzone_id', 1)
                 ->whereRaw('(d.bill_month + (d.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
                 ->get();
+
+         //   $request->validate([
+         //       'paymentzone_id' => ['required', 'exists:payment_zones,id'],
+         //   ]);
+
+         //    $ratepayerDemand = DB::table('ratepayers as r')
+         //        ->select(
+         //            'r.id as ratepayer_id',
+         //            'r.ratepayer_name',
+         //            'r.ratepayer_address',
+         //            'r.consumer_no',
+         //            'd.bill_month',
+         //            'd.bill_year',
+         //            DB::raw('SUM(d.demand) as demand'),
+         //            DB::raw("STR_TO_DATE(CONCAT(d.bill_year, '-', d.bill_month, '-01'), '%Y-%m-%d') as bill_date")
+         //        )
+         //        ->join('current_demands as d', 'r.id', '=', 'd.ratepayer_id')
+         //        ->where('r.paymentzone_id', 1)
+         //        ->whereRaw('(d.bill_month + (d.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
+         //        ->groupBy('r.id')
+         //        ->get();
+
             return format_response(
                 'Success',
                 $ratepayerDemand,
