@@ -27,7 +27,13 @@ class ManageTransactionController extends Controller
             $validated = $request->validate([
                'zoneId' => ['required', 'exists:payment_zones,id'],
                'is_canceled' => ['required', 'boolean'],
-           ]);
+               'tranDate' => [
+                   'required', 
+                   'date', 
+                   'after_or_equal:' . now()->subYear()->toDateString(), // not before 1 year ago
+                   'before_or_equal:' . now()->toDateString(),           // not after today
+               ],
+            ]);
 
             $query = Payment::query()
                ->select([
@@ -50,7 +56,8 @@ class ManageTransactionController extends Controller
                ])
                ->join('ratepayers', 'payments.ratepayer_id', '=', 'ratepayers.id')
                ->where('ratepayers.paymentzone_id', $validated['zoneId'])
-               ->where('payments.is_canceled', $validated['is_canceled']);
+               ->where('payments.is_canceled', $validated['is_canceled'])
+               ->whereDate('payments.payment_date', $validated['tranDate']); 
 
             $transactions = $query->get();
 
