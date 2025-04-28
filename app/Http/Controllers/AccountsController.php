@@ -6,6 +6,7 @@ use App\Models\CurrentDemand;
 use App\Models\CurrentTransaction;
 use App\Models\Demand;
 use App\Models\Payment;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -28,20 +29,38 @@ class AccountsController extends Controller
 {
     public function dailyTransactions(Request $request)
     {
-        $ulbId = $request->ulb_id;
-        try {
+      $today = Carbon::today();
+      $oneYearAgo = Carbon::today()->subYear();
+      $ulbId = $request->ulb_id;
+      try {
             $validator = Validator::make($request->all(), [
-                'tranDate' => [
-                    'required',
-                    'regex:/^\d{4}-\d{2}-\d{2}$/',
-                    function ($attribute, $value, $fail) {
-                        if (! \DateTime::createFromFormat('Y-m-d', $value)) {
-                            $fail('The '.$attribute.' is not a valid date.');
-                        }
-                    },
-                ],
-                'zoneId' => 'required|numeric|between:1,100',
+               'dateFrom' => [
+                  'required',
+                  'date_format:Y-m-d',
+                  function ($attribute, $value, $fail) use ($oneYearAgo, $today) {
+                     if ($value < $oneYearAgo->format('Y-m-d') || $value > $today->format('Y-m-d')) {
+                           $fail('The '.$attribute.' must be between '.$oneYearAgo->format('Y-m-d').' and '.$today->format('Y-m-d').'.');
+                     }
+                  },
+               ],
+               'dateTo' => [
+                  'required',
+                  'date_format:Y-m-d',
+                  function ($attribute, $value, $fail) use ($today) {
+                     if ($value > $today->format('Y-m-d')) {
+                           $fail('The '.$attribute.' cannot be after '.$today->format('Y-m-d').'.');
+                     }
+                  },
+               ],
+               'zoneId' => 'required|numeric|between:1,100',
+               'tranType' => 'required|in:ALL,PAYMENT,DENIAL,DOOR-CLOSED,DEFERRED,CHEQUE,OTHER',
             ]);
+            
+            $validator->after(function ($validator) use ($request) {
+                  if ($request->dateFrom > $request->dateTo) {
+                     $validator->errors()->add('dateFrom', 'The dateFrom must be before or equal to dateTo.');
+                  }
+            });
 
             if ($validator->fails()) {
                 $errorMessages = $validator->errors()->all();
@@ -53,39 +72,46 @@ class AccountsController extends Controller
                 );
             }
 
-            $currentTransactions = DB::table('current_transactions as c')
+            $query = DB::table('current_transactions as c')
                 ->select(
                     'c.id',
                     'c.tc_id',
+                    'c.payment_id',
                     'c.event_type as eventType',
                     'c.event_time as eventTime',
                     'r.ratepayer_name as ratepayerName',
+                    'r.ratepayer_address as ratepayerAddress',
+                    'r.mobile_no as ratepayerMobile',
                     'u1.name as tcName',
-                    'p.payment_mode as paymentMode',
-                    'p.payment_status as paymentStatus',
+                  //   'p.payment_mode as paymentMode',
+                  //   'p.payment_status as paymentStatus',
                     'u2.name as cancelledBy',
                     'c.cancellation_date as cancellationDate',
                     'c.schedule_date as scheduleDate',
                     'c.remarks',
                     'c.photo_path as photoPath',
-                    'p.payment_verified as paymentVerified',
-                    'p.refund_initiated as refundInitiated',
-                    'p.refund_verified as refundVerified',
-                    'u3.name as verifiedBy',
+                  //   'p.payment_verified as paymentVerified',
+                  //   'p.refund_initiated as refundInitiated',
+                  //   'p.refund_verified as refundVerified',
+                  //   'u3.name as verifiedBy',
                     'c.is_verified as isVerified',
                     'c.is_cancelled as isCancelled'
                 )
                 ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
                 ->join('users as u1', 'c.tc_id', '=', 'u1.id')
-                ->leftJoin('payments as p', 'c.id', '=', 'p.tran_id')
+               //  ->leftJoin('payments as p', 'c.id', '=', 'p.tran_id')
                 ->leftJoin('users as u2', 'c.cancelledby_id', '=', 'u2.id')
-                ->leftJoin('users as u3', 'p.verified_by', '=', 'u3.id')
+               //  ->leftJoin('users as u3', 'p.verified_by', '=', 'u3.id')
                 ->where('c.ulb_id', $ulbId)
                 ->where('r.paymentzone_id', $request->zoneId)
                 ->where('c.is_cancelled', false)
-                ->whereDate('c.created_at', $request->tranDate)
-                ->whereIn('c.event_type', ['DENIAL', 'DOOR-CLOSED', 'DEFERRED'])
-                ->get();
+                ->whereDate('c.event_time', '>=', $request->dateFrom)
+                ->whereDate('c.event_time', '<=', $request->dateTo);
+
+            if ($request->tranType !== 'ALL') {
+                  $query->where('event_type', $request->tranType);
+            }
+            $currentTransactions = $query->get();
 
             return format_response(
                 'Day Transactions',
