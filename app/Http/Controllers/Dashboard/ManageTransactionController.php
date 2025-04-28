@@ -84,7 +84,8 @@ class ManageTransactionController extends Controller
 
             $validator = Validator::make($request->all(), [
                'payment_id' => 'nullable|integer|exists:payments,id',  // Ensure it's numeric and exists in the `payments` table
-               'is_canceled' => 'required|boolean',  // Validate `is_cancelled` as a boolean
+               'is_canceled' => 'required|boolean',  // Validate `is_canceled` as a boolean
+               'cancellation_reason' => 'nullable|string|max:50',  // Ensure it's a string with a max length of 50
             ]);
 
             if ($validator->fails()) {
