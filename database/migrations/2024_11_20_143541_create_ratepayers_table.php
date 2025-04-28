@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('ward_id')->constrained('wards')->notNullable();
             $table->foreignId('entity_id')->nullable()->constrained('entities')->nullOnDelete();
             $table->foreignId('cluster_id')->nullable()->constrained('clusters')->nullOnDelete();
+            $table->foreignId('ratepayer_id')->nullable();
             $table->foreignId('paymentzone_id')->nullable()->constrained('payment_zones')->nullOnDelete();
             $table->bigInteger('last_payment_id')->nullable()->constrained('payments')->nullOnDelete();
             $table->foreignId('subcategory_id')->constrained('sub_categories');
