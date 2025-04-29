@@ -47,6 +47,7 @@ return new class extends Migration
             $table->string('neft_date', 25)->nullable();
             $table->unsignedBigInteger('ratepayercheque_id')->nullable()->default(null);
             $table->boolean('is_canceled')->default(false); // Active status
+            $table->string('cancellation_reason', 50)->nullable();
             $table->integer('vrno');
             $table->timestamps();
         });

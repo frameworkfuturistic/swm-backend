@@ -434,17 +434,19 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
 
 
 
+Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('accounts')->group(function () {
 
+   // API-ID: ACDASH-001 [Non Cash Verification]
+   Route::get('/otherpayment-verification', [AccountController::class, 'getDateOtherPaymentsForVerification']);
 
+   // API-ID: ACDASH-002 [Cheque Verification]
+    Route::get('/cheque-verification', [AccountController::class, 'getDateChequeCollection']);
 
+    // API-ID: ACDASH-003 [Cash Verification]
+    Route::get('/cash-verification', [AccountController::class, 'getDateCashForVerification']);
 
-Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin/masters')->group(function () {
-
-    // API-ID: ACDASH-001 [Account Dashboard]
-    Route::get('/account', [AccountController::class, 'getPaymentSummary']);
-
-    // API-ID: ACDASH-002 [Account Dashboard]
-    Route::get('/paymentSummary', [AccountController::class, 'getAccountSummary']);
+    // API-ID: ACDASH-004 [Date Receipt Summary] -OK
+    Route::get('/date-collection-summary', [AccountController::class, 'getDatePaymentSummary']);
 });
 
 

@@ -628,7 +628,7 @@ class TransactionController extends Controller
             $validator = Validator::make($request->all(), [
                 'ulb_id' => 'required|exists:ulbs,id',
                 'zone_id' => 'nullable|numeric',
-                //  'tc_id' => 'required|numeric',
+                 'tc_id' => 'nullable|numeric',
                 'subcategory_id' => 'required|numeric',
                 //  'entity_id' => 'nullable|numeric',
                 //  'cluster_id' => 'nullable|numeric',
