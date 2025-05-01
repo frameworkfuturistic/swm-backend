@@ -4,6 +4,10 @@ namespace App\Services;
 
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use App\Models\Ratepayer;
+use Exception;
+
 
 class ReceiptService
 {
@@ -17,7 +21,9 @@ class ReceiptService
    {
       // Format payment data as needed
       $data = $this->formatPaymentData($paymentData);
-
+      $amountInWords = $this->numberToWords($paymentData['amount']);
+      $fromDate = isset($paymentData['from_date']) ? $paymentData['from_date'] : date('F Y');
+      $toDate = isset($paymentData['to_date']) ? $paymentData['to_date'] : date('F Y');
       $data = [
          // Header Section
          'corporation_name' => 'RANCHI MUNICIPAL CORPORATION',
@@ -26,18 +32,18 @@ class ReceiptService
          // User Details
          'department' => 'Solid Waste User Charge and others',
          'account_description' => '',
-         'name' => 'Rambart Garden',
-         'mobile_no' => '1234567890',
-         'address' => 'Belbaga Samlong, Marriage Hall',
-         'category' => 'Above 3000 SqMtr',
+         'name' => $paymentData['name'] ?? '',
+         'mobile' => $paymentData['mobile'] ?? '',
+         'address' => $paymentData['address'] ?? '',
+         'category' => $paymentData['category'] ?? '',
 
          // Transaction Details
-         'transaction_no' => '1231231212',
-         'transaction_date' => '29 March, 2025 12:00 PM',
-         'consumer_no' => '123123123',
-         'ward_no' => '13',
-         'holding_no' => '123123123122',
-         'type' => 'Above 3000 SqMtr',
+         'transaction_no' => $paymentData['transaction_no'] ?? '',
+         'date_time' => $paymentData['date_time'] ?? date('d F, Y h:i A'),
+         'consumer_no' => $paymentData['consumer_no'] ?? '',
+         'ward_no' => $paymentData['ward_no'] ?? '',
+         'holding_no' => $paymentData['holding_no'] ?? '',
+         'type' => $paymentData['type'] ?? '',
 
          // Tax Items
          'tax_items' => [
@@ -45,27 +51,27 @@ class ReceiptService
                'si_no' => 1,
                'tax_type' => 'Solid Waste User Charge',
                'code' => 'N.A.',
-               'bill_month' => 'January 2025 To March 2025',
-               'rate' => '5000',
-               'amount' => '5000'
+               'bill_month' => $fromDate . ' To ' . $toDate,
+               'rate' => $paymentData['rate_per_month'] ?? $paymentData['amount'],
+               'amount' => $paymentData['amount'] ?? 0,
             ]
          ],
 
          // Payment Details
-         'total_amount' => '5000',
-         'amount_in_words' => 'Five Thousand Only',
-         'payment_mode' => 'Cash',
+         'total_amount' => $paymentData['amount'] ?? 0,
+         'amount_in_words' => $amountInWords,
+         'payment_mode' => $paymentData['payment_mode'] ?? 'Cash',
 
          // Bank Details
-         'gst_no' => '123123123123',
-         'pan_no' => '123123123123',
+         'gst_no' => $paymentData['gst_no'] ?? '',
+         'pan_no' => $paymentData['pan_no'] ?? '',
          'account_name' => 'Ranchi Municipal Corporation',
-         'bank_name' => 'Indian Bank (Ranchi, Branch)',
+         'bank' => 'Axis Bank',
          'account_no' => '5343434343',
          'ifsc_code' => 'IBKL0001234',
 
          // Footer Details
-         'print_date' => '2025-04-07 14:07 PM',
+         'print_date' => date('Y-m-d H:i A'),
          'verification_contact' => '9297888512',
          'qr_code_url' => 'https://api.qrserver.com/v1/create-qr-code/?data=Transaction+No+:+1231231212+|+Consumer+No+:+123123123+|+Consumer+Name+:+Ramhari+Garden+|+Bill+Amount+:+5000&size=200x200', // Your generated QR code URL
 
@@ -77,8 +83,8 @@ class ReceiptService
 
          // Signature Section
          'issued_by' => 'Netwind Softlab Private Limited',
-         'customer_remarks' => '',
-         'customer_mobile' => ''
+         'customer_remarks' => $paymentData['customer_remarks'] ?? '',
+         'customer_mobile' => $paymentData['mobile'] ?? '',
       ];
 
 
@@ -108,6 +114,8 @@ class ReceiptService
          'filename' => $filename
       ];
    }
+
+
 
    /**
     * Save the generated PDF to storage
