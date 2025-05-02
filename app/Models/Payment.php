@@ -29,6 +29,9 @@ class Payment extends Model
         'cheque_number',
         'is_canceled',
         'vrno',
+        'payment_from',
+        'payment_to',
+        'receipt_no'
     ];
     public function cluster()
     {

@@ -22,6 +22,7 @@ class CurrentTransaction extends Model
         'latitude',
         'vrno',
         'auto_remarks',
+        'transaction_no'
     ];
 
     protected $hidden = ['ulb_id', 'created_at', 'updated_at', 'verifiedby_id', 'vrno'];
