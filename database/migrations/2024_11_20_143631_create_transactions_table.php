@@ -13,15 +13,16 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
-            $table->foreignId('tc_id')->constrained('users')->notNullable();
-            $table->foreignId('ratepayer_id')->constrained('ratepayers')->notNullable();
-            $table->foreignId('entity_id')->nullable()->constrained('entities')->nullOnDelete();
-            $table->foreignId('cluster_id')->nullable()->constrained('clusters')->nullOnDelete();
-            $table->foreignId('payment_id')->nullable()->constrained('payments')->nullOnDelete();
-            $table->foreignId('denial_reason_id')->nullable()->constrained('denial_reasons')->nullOnDelete();
-            $table->foreignId('cancelledby_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('verifiedby_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('ulb_id')->notNullable();
+            $table->unsignedBigInteger('tc_id')->notNullable();
+            $table->unsignedBigInteger('ratepayer_id')->notNullable();
+            $table->unsignedBigInteger('entity_id')->nullable();
+            $table->unsignedBigInteger('cluster_id')->nullable();
+            $table->unsignedBigInteger('payment_id')->nullable();
+            $table->unsignedBigInteger('denial_reason_id')->nullable();
+            $table->unsignedBigInteger('cancelledby_id')->nullable();
+            $table->unsignedBigInteger('verifiedby_id')->nullable();
+            $table->string('transaction_no', 50)->nullable();
 
             $table->dateTime('event_time')->notNullable();
             $table->date('cancellation_date')->nullable(); // Cancellation date
@@ -42,15 +43,16 @@ return new class extends Migration
 
         Schema::create('current_transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
-            $table->foreignId('tc_id')->constrained('users')->notNullable();
-            $table->foreignId('ratepayer_id')->constrained('ratepayers')->notNullable();
-            $table->foreignId('entity_id')->nullable()->constrained('entities')->nullOnDelete();
-            $table->foreignId('cluster_id')->nullable()->constrained('clusters')->nullOnDelete();
-            $table->foreignId('payment_id')->nullable()->constrained('payments')->nullOnDelete();
-            $table->foreignId('denial_reason_id')->nullable()->constrained('denial_reasons')->nullOnDelete();
-            $table->foreignId('cancelledby_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('verifiedby_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('ulb_id')->notNullable();
+            $table->unsignedBigInteger('tc_id')->notNullable();
+            $table->unsignedBigInteger('ratepayer_id')->notNullable();
+            $table->unsignedBigInteger('entity_id')->nullable();
+            $table->unsignedBigInteger('cluster_id')->nullable();
+            $table->unsignedBigInteger('payment_id')->nullable();
+            $table->unsignedBigInteger('denial_reason_id')->nullable();
+            $table->unsignedBigInteger('cancelledby_id')->nullable();
+            $table->unsignedBigInteger('verifiedby_id')->nullable();
+            $table->string('transaction_no', 50)->nullable();
 
             $table->dateTime('event_time')->notNullable();
             $table->date('cancellation_date')->nullable(); // Cancellation date

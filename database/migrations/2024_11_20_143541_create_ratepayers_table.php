@@ -13,16 +13,16 @@ return new class extends Migration
     {
         Schema::create('ratepayers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ulb_id')->constrained('ulbs');
-            $table->foreignId('ward_id')->constrained('wards')->notNullable();
-            $table->foreignId('entity_id')->nullable()->constrained('entities')->nullOnDelete();
-            $table->foreignId('cluster_id')->nullable()->constrained('clusters')->nullOnDelete();
-            $table->foreignId('ratepayer_id')->nullable();
-            $table->foreignId('paymentzone_id')->nullable()->constrained('payment_zones')->nullOnDelete();
-            $table->bigInteger('last_payment_id')->nullable()->constrained('payments')->nullOnDelete();
-            $table->foreignId('subcategory_id')->constrained('sub_categories');
-            $table->bigInteger('rate_id')->nullable()->constrained('rate_list')->nullOnDelete();
-            $table->bigInteger('last_transaction_id')->nullable()->constrained('transactions')->nullOnDelete();
+            $table->unsignedBigInteger('ulb_id');
+            $table->unsignedBigInteger('ward_id')->notNullable();
+            $table->unsignedBigInteger('entity_id')->nullable();
+            $table->unsignedBigInteger('cluster_id')->nullable();
+            $table->unsignedBigInteger('ratepayer_id')->nullable();
+            $table->unsignedBigInteger('paymentzone_id')->nullable();
+            $table->unsignedBigInteger('last_payment_id')->nullable();
+            $table->unsignedBigInteger('subcategory_id')->notNullable();
+            $table->unsignedBigInteger('rate_id')->nullable();
+            $table->unsignedBigInteger('last_transaction_id')->nullable();
             $table->string('ratepayer_name', 250)->nullable();
             $table->string('ratepayer_address', 255)->nullable();
             $table->string('consumer_no', 50)->nullable(); // `consumer_no` column as varchar(255), nullable
@@ -48,15 +48,17 @@ return new class extends Migration
 
         Schema::create('log_ratepayers', function (Blueprint $table) {
             $table->id();
-            $table->bigInteger('ulb_id')->constrained('ulbs');
-            $table->bigInteger('ward_id')->nullable();
-            $table->bigInteger('entity_id')->nullable();
-            $table->bigInteger('cluster_id')->nullable();
-            $table->bigInteger('paymentzone_id')->nullable();
-            $table->bigInteger('last_payment_id')->nullable();
-            $table->bigInteger('subcategory_id')->nullable();
-            $table->bigInteger('rate_id')->nullable();
-            $table->bigInteger('last_transaction_id')->nullable();
+            $table->unsignedBigInteger('ulb_id');
+            $table->unsignedBigInteger('ward_id')->notNullable();
+            $table->unsignedBigInteger('entity_id')->nullable();
+            $table->unsignedBigInteger('cluster_id')->nullable();
+            $table->unsignedBigInteger('ratepayer_id')->nullable();
+            $table->unsignedBigInteger('paymentzone_id')->nullable();
+            $table->unsignedBigInteger('last_payment_id')->nullable();
+            $table->unsignedBigInteger('subcategory_id')->notNullable();
+            $table->unsignedBigInteger('rate_id')->nullable();
+            $table->unsignedBigInteger('last_transaction_id')->nullable();
+
             $table->string('ratepayer_name', 250)->nullable();
             $table->string('ratepayer_address', 255)->nullable();
             $table->string('consumer_no', 50)->nullable(); // `consumer_no` column as varchar(255), nullable

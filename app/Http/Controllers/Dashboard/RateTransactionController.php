@@ -51,6 +51,7 @@ class RateTransactionController extends Controller
 
             $ratepayer = Ratepayer::where('ulb_id', $request->ulb_id)
                 ->where('is_active', 1)
+                ->whereNull('cluster_id')
                 ->where(function ($query) use ($request) {
                     if ($request->consumer_no) {
                         $query->where('consumer_no', $request->consumer_no);
@@ -67,23 +68,53 @@ class RateTransactionController extends Controller
                 ], Response::HTTP_NOT_FOUND);
             }
 
-            $currentDemand = DB::table('current_demands')
-                ->where([
-                    ['ulb_id', $request->ulb_id],
-                    ['ratepayer_id', $ratepayer->id],
-                    ['is_active', 1],
-                ])
-                ->whereNull('payment_id')
-                ->selectRaw("
-                  SUM(total_demand) as total_sum, 
-                  COUNT(*) as total_count, 
-                  GROUP_CONCAT(DISTINCT CONCAT(MONTHNAME(STR_TO_DATE(bill_month, '%m')), ' ', bill_year) ORDER BY bill_year, bill_month SEPARATOR ', ') as bill_periods
-               ")
-                ->first();
+            // New Modifications
+            $pendingDemands = CurrentDemand::where('ratepayer_id', $ratepayer->id)
+               ->where('is_active', true)
+               ->whereRaw('ifnull(demand,0) > ifnull(payment,0)')
+               ->orderBy('bill_year')
+               ->orderBy('bill_month')
+               ->get();
 
-            $totalSum = $currentDemand->total_sum;
-            $totalCount = $currentDemand->total_count;
-            $billPeriods = $currentDemand->bill_periods;
+            // End new modifications
+            $totalSum = $pendingDemands->sum('total_demand');
+            $totalCount = $pendingDemands->count('total_demand');
+
+            $firstPeriod = '';
+            $lastPeriod = '';
+
+            if ($pendingDemands->isNotEmpty()) {
+                  $sorted = $pendingDemands->sortBy([
+                     ['bill_year', 'asc'],
+                     ['bill_month', 'asc'],
+                  ]);
+            
+                  $first = $sorted->first();
+                  $last = $sorted->last();
+            
+                  $firstPeriod = \Carbon\Carbon::createFromDate($first->bill_year, $first->bill_month)->format('M-Y');
+                  $lastPeriod = \Carbon\Carbon::createFromDate($last->bill_year, $last->bill_month)->format('M-Y');
+            }
+
+            $billPeriods = $firstPeriod . ' to ' . $lastPeriod;
+
+            // $currentDemand = DB::table('current_demands')
+            //     ->where([
+            //         ['ulb_id', $request->ulb_id],
+            //         ['ratepayer_id', $ratepayer->id],
+            //         ['is_active', 1],
+            //     ])
+            //    //  ->whereNull('payment_id')
+            //     ->selectRaw("
+            //       SUM(total_demand) as total_sum, 
+            //       COUNT(*) as total_count, 
+            //       GROUP_CONCAT(DISTINCT CONCAT(MONTHNAME(STR_TO_DATE(bill_month, '%m')), ' ', bill_year) ORDER BY bill_year, bill_month SEPARATOR ', ') as bill_periods
+            //    ")
+            //     ->first();
+
+            // $totalSum = $currentDemand->total_sum;
+            // $totalCount = $currentDemand->total_count;
+            // $billPeriods = $currentDemand->bill_periods;
 
             if ($totalSum === 0) {
                 return response()->json([
@@ -95,6 +126,8 @@ class RateTransactionController extends Controller
             $data = [
                 'consumer_no'          => $ratepayer->consumer_no,
                 'ratepayer_id'         => $ratepayer->id,
+                'ratepayer_name'       => $ratepayer->ratepayer_name,
+                'ratepayer_address'    => $ratepayer->ratepayer_address,
                 'last_payment_amount'  => $ratepayer->lastpayment_amt,
                 'last_payment_date'    => $ratepayer->lastpayment_date,
                 'last_payment_mode'    => $ratepayer->lastpayment_mode,
@@ -186,6 +219,7 @@ class RateTransactionController extends Controller
 
         $validatedData['ulbId'] = $ratepayer->ulb_id;
         $validatedData['ratepayerId'] = $request->ratepayer_id;
+        $validatedData['vendorReceipt'] = $request->transaction_id;
         $validatedData['tcId'] = 1;
         $validatedData['entityId'] = $ratepayer->entity_id;
         $validatedData['clusterId'] = $ratepayer->cluster_id;

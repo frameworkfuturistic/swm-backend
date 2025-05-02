@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('entities', function (Blueprint $table) {
             $table->id(); // Auto-increment primary key
-            $table->foreignId('ulb_id')->constrained('ulbs')->notNullable();
-            $table->foreignId('ward_id')->constrained('wards')->notNullable();
-            $table->foreignId('cluster_id')->nullable()->constrained('clusters')->nullOnDelete();
-            $table->foreignId('subcategory_id')->constrained('sub_categories');
-            $table->foreignId('verifiedby_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('appliedtc_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('ulb_id')->notNullable();
+            $table->unsignedBigInteger('ward_id')->notNullable();
+            $table->unsignedBigInteger('cluster_id')->nullable();
+            $table->unsignedBigInteger('subcategory_id')->nullable();
+            $table->unsignedBigInteger('verifiedby_id')->nullable();
+            $table->unsignedBigInteger('appliedtc_id')->nullable();
             $table->bigInteger('lastpayment_id')->nullable()->constrained('payments')->nullOnDelete();
 
             $table->string('holding_no', 255)->nullable();

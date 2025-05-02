@@ -9,6 +9,7 @@ use App\Models\Payment;
 use App\Models\Ratepayer;
 use App\Models\TempEntities;
 use App\Models\Transaction;
+use App\Services\NumberGeneratorService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -40,7 +41,21 @@ use Razorpay\Api\Api;
  */
 class TransactionController extends Controller
 {
+   protected $numberGenerator;
+   public function __construct(NumberGeneratorService $numberGenerator)
+    {
+        $this->numberGenerator = $numberGenerator;
+    }
+
     /**
+     * Usage
+     *  // Generate a transaction number
+     *  $transactionNumber = $this->numberGenerator->generateTransactionNumber();
+     */
+
+
+    /**
+     * 
      * 1. api/transactions/payment/cash
      * 2.
      */

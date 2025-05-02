@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('clusters', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ulb_id')->constrained('ulbs')->notNullable(); // Correctly chaining notNullable
-            $table->foreignId('ward_id')->constrained('wards')->notNullable();
-            $table->foreignId('verifiedby_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('appliedtc_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('ulb_id')->notNullable(); // Correctly chaining notNullable
+            $table->unsignedBigInteger('ward_id')->notNullable();
+            $table->unsignedBigInteger('verifiedby_id')->nullable();
+            $table->unsignedBigInteger('appliedtc_id')->nullable();
             $table->string('cluster_code', 20)->notNullable(); // Cluster name cannot be null
-            $table->string('cluster_name', 60)->notNullable(); // Cluster name cannot be null
+            $table->string('cluster_name', 160)->notNullable(); // Cluster name cannot be null
             $table->string('cluster_address', 255)->nullable();
             $table->string('pincode', 6)->nullable(); // Corrected nullable, pincode can be empty
             $table->string('landmark', 100)->nullable();
@@ -49,10 +49,10 @@ return new class extends Migration
 
         Schema::create('log_clusters', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ulb_id')->constrained('ulbs')->notNullable(); // Correctly chaining notNullable
-            $table->bigInteger('ward_id')->nullable();
-            $table->bigInteger('verifiedby_id')->nullable();
-            $table->bigInteger('appliedtc_id')->nullable();
+            $table->unsignedBigInteger('ulb_id')->notNullable(); // Correctly chaining notNullable
+            $table->unsignedBigInteger('ward_id')->nullable();
+            $table->unsignedBigInteger('verifiedby_id')->nullable();
+            $table->unsignedBigInteger('appliedtc_id')->nullable();
             $table->string('cluster_code', 20)->notNullable(); // Cluster name cannot be null
             $table->string('cluster_name', 60)->notNullable(); // Cluster name cannot be null
             $table->string('cluster_address', 255)->nullable();

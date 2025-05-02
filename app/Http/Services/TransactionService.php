@@ -10,6 +10,7 @@ use App\Models\PaymentOrder;
 use App\Models\Ratepayer;
 use App\Models\RatepayerCheque;
 use App\Models\RatepayerSchedule;
+use App\Services\NumberGeneratorService;
 use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -50,10 +51,12 @@ class TransactionService
      */
     public function createNewTransaction(array $validatedData): CurrentTransaction
     {
+      $transactionNo = app(NumberGeneratorService::class)->generate('transaction_no');
         $ratepayer = Ratepayer::find($validatedData['ratepayerId']);
         $data = [
             'ulb_id' => $validatedData['ulbId'],
             'tc_id' => $validatedData['tcId'],
+            'transaction_no' => $transactionNo,
             'ratepayer_id' => $validatedData['ratepayerId'],
             'entity_id' => $validatedData['entityId'],
             'cluster_id' => $validatedData['clusterId'],
@@ -117,12 +120,17 @@ class TransactionService
      */
     public function createNewPayment(array $validatedData, int $tranId): Payment
     {
-        // Create payment record
-        $payment = $this->createPaymentRecord($validatedData, $tranId);
-        // Process and adjust demands
-        $this->processPendingDemands($validatedData['ratepayerId'], $validatedData['amount'], $payment, $validatedData['tcId']);
+         // Create payment record
+         $payment = $this->createPaymentRecord($validatedData, $tranId);
 
+         // Process and adjust demands
+         $billPeriod = $this->processPendingDemands($validatedData['ratepayerId'], $validatedData['amount'], $payment, $validatedData['tcId']);
 
+         $payment['payment_from'] = $billPeriod[0];
+         $payment['payment_to'] = $billPeriod[1];
+
+         $payment->save();
+         
         return $payment;
     }
 
@@ -131,11 +139,26 @@ class TransactionService
      *
      * @throws Exception
      */
-    protected function processPendingDemands(int $ratepayerId, float $amount, Payment $payment, int $tcId): void
+    protected function processPendingDemands(int $ratepayerId, float $amount, Payment $payment, int $tcId): array
     {
         $pendingDemands = $this->getPendingDemands($ratepayerId);
         $this->demandTillDate = $pendingDemands->sum('total_demand');
 
+        $firstPeriod = '';
+        $lastPeriod = '';
+
+        if ($pendingDemands->isNotEmpty()) {
+            $sorted = $pendingDemands->sortBy([
+               ['bill_year', 'asc'],
+               ['bill_month', 'asc'],
+            ]);
+      
+            $first = $sorted->first();
+            $last = $sorted->last();
+      
+            $firstPeriod = \Carbon\Carbon::createFromDate($first->bill_year, $first->bill_month)->format('M-Y');
+            $lastPeriod = \Carbon\Carbon::createFromDate($last->bill_year, $last->bill_month)->format('M-Y');
+         }
 
         $remainingAmount = $amount;
 
@@ -161,6 +184,7 @@ class TransactionService
         $ratepayer->lastpayment_date = now();
         $ratepayer->lastpayment_mode = $payment->payment_mode;
         $ratepayer->save();
+        return [$firstPeriod, $lastPeriod];
     }
 
     /**
@@ -170,7 +194,7 @@ class TransactionService
     {
         return CurrentDemand::where('ratepayer_id', $ratepayerId)
             ->where('is_active', true)
-            ->whereRaw('demand > payment')
+            ->whereRaw('ifnull(demand,0) > ifnull(payment,0)')
             ->orderBy('bill_year')
             ->orderBy('bill_month')
             ->get();
@@ -193,8 +217,11 @@ class TransactionService
      */
     protected function createPaymentRecord(array $validatedData, int $tranId): Payment
     {
+        $receiptNo = app(NumberGeneratorService::class)->generate('receipt_no');
         return Payment::create([
             'ulb_id' => $validatedData['ulbId'],
+            'receipt_no' => $receiptNo,
+            'vendor_receipt' => $validatedData['vendorReceipt'],
             'ratepayer_id' => $validatedData['ratepayerId'],
             'tc_id' => $validatedData['tcId'],
             'entity_id' => $validatedData['entityId'],
