@@ -37,8 +37,8 @@ class ReceiptService
          'address' => $paymentData['address'] ?? '',
          'category' => $paymentData['category'] ?? '',
 
-         // Transaction Details
-         'transaction_no' => $paymentData['transaction_no'] ?? '',
+         // Transaction Details  receipt_no
+         'receipt_no' => $paymentData['receipt_no'] ?? '',
          'date_time' => $paymentData['date_time'] ?? date('d F, Y h:i A'),
          'consumer_no' => $paymentData['consumer_no'] ?? '',
          'ward_no' => $paymentData['ward_no'] ?? '',
@@ -51,7 +51,8 @@ class ReceiptService
                'si_no' => 1,
                'tax_type' => 'Solid Waste User Charge',
                'code' => 'N.A.',
-               'bill_month' => $fromDate . ' To ' . $toDate,
+               // 'bill_month' => $paymentData . ' To ' . $paymentData,
+               'bill_month' => ($paymentData['payment_from'] ?? '') . ' To ' . ($paymentData['payment_to'] ?? ''),
                'rate' => $paymentData['rate_per_month'] ?? $paymentData['amount'],
                'amount' => $paymentData['amount'] ?? 0,
             ]
@@ -87,7 +88,7 @@ class ReceiptService
          'customer_mobile' => $paymentData['mobile'] ?? '',
       ];
 
-
+      // dd($paymentData);
       // Generate HTML content for the PDF
       $html = $this->generateReceiptHtml($data);
 
@@ -101,7 +102,7 @@ class ReceiptService
       $pdf->setPaper('a4', 'portrait');
 
       // Generate a unique filename
-      $filename = 'receipt_' . $paymentData['transaction_no'] . '_' . time() . '.pdf';
+      $filename = 'receipt_' . $paymentData['receipt_no'] . '_' . time() . '.pdf';
 
       //   $pdf->render();
       //   $pdf->stream("receipt.pdf");
@@ -155,13 +156,14 @@ class ReceiptService
          'mobile' => $paymentData['mobile'] ?? '',
          'address' => $paymentData['address'] ?? '',
          'category' => $paymentData['category'] ?? '',
-         'transaction_no' => $paymentData['transaction_no'] ?? '',
+         'receipt_no' => $paymentData['receipt_no'] ?? '',
          'date_time' => $paymentData['date_time'] ?? date('d F, Y h:i A'),
          'consumer_no' => $paymentData['consumer_no'] ?? '',
          'ward_no' => $paymentData['ward_no'] ?? '',
          'holding_no' => $paymentData['holding_no'] ?? '',
          'type' => $paymentData['type'] ?? '',
-         'bill_month' => $fromDate . ' To ' . $toDate,
+         // 'bill_month' => $paymentData . ' To ' . $paymentData,
+         'bill_month' => ($paymentData['payment_from'] ?? '') . ' To ' . ($paymentData['payment_to'] ?? ''),
          'rate_per_month' => $paymentData['rate_per_month'] ?? $paymentData['amount'],
          'amount' => $paymentData['amount'] ?? 0,
          'total' => $paymentData['amount'] ?? 0,
@@ -628,7 +630,7 @@ class ReceiptService
       $logo2Data = file_get_contents($logo2Path);
       $logo2Base64 = 'data:image/' . $logo2Type . ';base64,' . base64_encode($logo2Data);
 
-      $qrData = 'Transaction No: ' . $data['transaction_no'] . ' | Consumer No: ' . $data['consumer_no'] . ' | Amount: ' . number_format($data['total_amount'], 2);
+      $qrData = 'Receipt No: ' . $data['receipt_no'] . ' | Consumer No: ' . $data['consumer_no'] . ' | Amount: ' . number_format($data['total_amount'], 2);
       $qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?data=' . urlencode($qrData) . '&size=200x200';
 
       $qrCodeBase64 = '';
@@ -712,6 +714,14 @@ class ReceiptService
             margin-top: -90px;
         }
         .signature-section { margin-top: 25px; }
+         .footer-logos {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 50px;
+        }
+        .footer-logos img {
+            height: 60px;
+        }
     </style>
 
     <div class="logo-row">
@@ -727,7 +737,7 @@ class ReceiptService
     <table class="info-table">
         <tr>
             <td><strong>Department/Section:</strong> ' . ($data['department'] ?? 'N/A') . '</td>
-            <td><strong>Transaction No:</strong> ' . ($data['transaction_no'] ?? 'N/A') . '</td>
+            <td><strong>Receipt No:</strong> ' . ($data['receipt_no'] ?? 'N/A') . '</td>
             <td><strong>Name:</strong> ' . ($data['name'] ?? 'N/A') . '</td>
             <td><strong>Mobile No:</strong> ' . ($data['mobile'] ?? 'N/A') . '</td>
             <td><strong>Address:</strong> ' . ($data['address'] ?? 'N/A') . '</td>
@@ -799,10 +809,19 @@ class ReceiptService
     <div class="signature-section">
         <!-- Add the dynamically generated QR code -->
         ' . (!empty($qrCodeBase64) ? '<img src="' . $qrCodeBase64 . '" style="width: 100px; float: right;">' : '') . '
-        <p>Received payment through Transaction No. ' . $data['transaction_no'] . '</p>
+        <p>Received payment through Receipt No. ' . $data['receipt_no'] . '</p>
         <p>Issued By Netwind Softlab Private Limited</p>
         <p>For RANCHI MUNICIPAL CORPORATION</p>
-    </div>';
+    </div>
+
+
+   ';
+
+      // <div class="footer-logos">
+      // <div><img src="' . $logo1Base64 . '" alt="Left Logo"></div>
+      // <div><img src="' . $logo2Base64 . '" alt="Right Logo"></div>
+      // </div>
+
 
       return $html;
    }
