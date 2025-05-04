@@ -71,7 +71,9 @@ class RateTransactionController extends Controller
             // New Modifications
             $pendingDemands = CurrentDemand::where('ratepayer_id', $ratepayer->id)
                ->where('is_active', true)
-               ->whereRaw('ifnull(demand,0) > ifnull(payment,0)')
+               // ->whereRaw('ifnull(demand,0) > ifnull(payment,0)')
+               ->whereRaw('ifnull(total_demand,0) - ifnull(payment,0) > 0')
+               ->whereRaw('(bill_month + (bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
                ->orderBy('bill_year')
                ->orderBy('bill_month')
                ->get();

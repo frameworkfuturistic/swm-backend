@@ -53,6 +53,87 @@ class TransactionController extends Controller
      *  $transactionNumber = $this->numberGenerator->generateTransactionNumber();
      */
 
+     public function getReceipt(Request $request, $ratepayerId)
+     {
+         // Validate the ratepayer ID as a positive integer and check existence
+         $validator = Validator::make(['ratepayer_id' => $ratepayerId], [
+             'ratepayer_id' => 'required|integer|exists:ratepayers,id',
+         ]);
+     
+         if ($validator->fails()) {
+             return response()->json([
+                 'status' => 'error',
+                 'message' => 'Invalid ratepayer ID.',
+                 'errors' => $validator->errors(),
+             ], 422);
+         }
+     
+         try {
+            //  $query = DB::table('payments as p')
+            //      ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
+            //      ->where('p.ratepayer_id', $ratepayerId)
+            //      ->orderByDesc('p.id')
+            //      ->select(
+            //          'r.ratepayer_name',
+            //          'r.ratepayer_address',
+            //          'r.consumer_no',
+            //          'p.payment_date',
+            //          'p.payment_mode',
+            //          'p.receipt_no',
+            //          'p.payment_from',
+            //          'p.payment_to',
+            //          'p.amount'
+            //      );
+
+            $query = DB::table('payments as p')
+               ->select(
+                  'r.ratepayer_name',
+                  'r.ratepayer_address',
+                  'r.consumer_no',
+                  'p.payment_date',
+                  'p.payment_mode',
+                  'p.receipt_no',
+                  'p.payment_from',
+                  'p.payment_to',
+                  'p.amount',
+                  'r.monthly_demand',
+                  'u.name as tc_name',
+                  'w.ward_name',
+                  'r.subcategory_id',
+                  's.sub_category',
+                  DB::raw("'' as mobile_no")
+               )
+               ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
+               ->join('wards as w', 'r.ward_id', '=', 'w.id')
+               ->join('users as u', 'p.tc_id', '=', 'u.id')
+               ->leftJoin('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+               ->where('p.ratepayer_id', $ratepayerId)
+               ->orderByDesc('p.id');
+
+            $latestPayment= $query->first();
+     
+             if (!$latestPayment) {
+               return format_response(
+                  'Could not fetch data',
+                  null,
+                  Response::HTTP_NOT_FOUND
+               );
+   
+            }else {
+                  return format_response(
+                     'Success',
+                     $latestPayment,
+                     Response::HTTP_OK
+                  );
+             }
+         } catch (\Exception $e) {
+            return format_response(
+               'Could not fetch data',
+               null,
+               Response::HTTP_NOT_FOUND
+            );
+         }
+     }
 
     /**
      * 

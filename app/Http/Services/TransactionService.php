@@ -218,24 +218,50 @@ class TransactionService
     protected function createPaymentRecord(array $validatedData, int $tranId): Payment
     {
         $receiptNo = app(NumberGeneratorService::class)->generate('receipt_no');
-        return Payment::create([
-            'ulb_id' => $validatedData['ulbId'],
-            'receipt_no' => $receiptNo,
-            'vendor_receipt' => $validatedData['vendorReceipt'],
-            'ratepayer_id' => $validatedData['ratepayerId'],
-            'tc_id' => $validatedData['tcId'],
-            'entity_id' => $validatedData['entityId'],
-            'cluster_id' => $validatedData['clusterId'],
-            'tran_id' => $tranId,
-            'payment_status' => 'COMPLETED',
-            'payment_verified' => false,
-            'refund_initiated' => false,
-            'refund_verified' => false,
-            'payment_date' => now(),
-            'payment_mode' => $validatedData['paymentMode'],
-            'vrno' => 1,
-            'amount' => $validatedData['amount'],
-        ]);
+
+        $data = [
+         'ulb_id' => $validatedData['ulbId'],
+         'receipt_no' => $receiptNo,
+         'ratepayer_id' => $validatedData['ratepayerId'],
+         'tc_id' => $validatedData['tcId'],
+         'entity_id' => $validatedData['entityId'],
+         'cluster_id' => $validatedData['clusterId'],
+         'tran_id' => $tranId,
+         'payment_status' => 'COMPLETED',
+         'payment_verified' => false,
+         'refund_initiated' => false,
+         'refund_verified' => false,
+         'payment_date' => now(),
+         'payment_mode' => $validatedData['paymentMode'],
+         'vrno' => 0,
+         'amount' => $validatedData['amount'],
+     ];
+     
+     // Conditionally include vendor_receipt if it exists
+     if (array_key_exists('vendorReceipt', $validatedData)) {
+         $data['vendor_receipt'] = $validatedData['vendorReceipt'];
+     }
+     
+     return Payment::create($data);
+
+      //   return Payment::create([
+      //       'ulb_id' => $validatedData['ulbId'],
+      //       'receipt_no' => $receiptNo,
+      //       'vendor_receipt' => $validatedData['vendorReceipt'],
+      //       'ratepayer_id' => $validatedData['ratepayerId'],
+      //       'tc_id' => $validatedData['tcId'],
+      //       'entity_id' => $validatedData['entityId'],
+      //       'cluster_id' => $validatedData['clusterId'],
+      //       'tran_id' => $tranId,
+      //       'payment_status' => 'COMPLETED',
+      //       'payment_verified' => false,
+      //       'refund_initiated' => false,
+      //       'refund_verified' => false,
+      //       'payment_date' => now(),
+      //       'payment_mode' => $validatedData['paymentMode'],
+      //       'vrno' => 1,
+      //       'amount' => $validatedData['amount'],
+      //   ]);
     }
 
     /**

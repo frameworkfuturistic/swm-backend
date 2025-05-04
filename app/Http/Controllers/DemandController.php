@@ -93,7 +93,8 @@ class DemandController extends Controller
         try {
             $ratepayers = CurrentDemand::where('ratepayer_id', $id)
                 ->where('is_active', true)
-                ->whereRaw('MONTH(SYSDATE()) >= bill_month')
+               //  ->whereRaw('MONTH(SYSDATE()) >= bill_month')
+                ->whereRaw('(bill_month + (bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
                 ->get();
 
             return format_response(
@@ -137,15 +138,23 @@ class DemandController extends Controller
         //   return response()->json($demand->load('ratepayer'));
     }
 
-    public function zoneCurrentDemands(Request $request )
+    public function zoneCurrentDemands(Request $request, $id )
     {
         try {
-           $request->validate([
-               'zoneId' => ['required', 'exists:payment_zones,id'],
-           ]);
+         //   $request->validate([
+         //       'zoneId' => ['required', 'exists:payment_zones,id'],
+         //   ]);
 
-            $zone = PaymentZone::find($request->zoneId);
-            DB::enableQueryLog();
+            $zone = PaymentZone::find($id);
+            if ($zone == null) {
+               return format_response(
+                  'Database error occurred',
+                  null,
+                  Response::HTTP_NOT_FOUND
+              );
+            }
+
+            // DB::enableQueryLog();
             $query = DB::table('current_demands as c')
                 ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
                 ->select(
@@ -160,8 +169,8 @@ class DemandController extends Controller
                     DB::raw('DATE_FORMAT(r.lastpayment_date,"%d/%m/%Y") as lastpayment_date'),
                     DB::raw('SUM(c.total_demand) as totalDemand')
                 )
-                ->whereRaw('c.total_demand - c.payment > 0')  // Ensure unpaid demand exists
-                ->whereRaw('MONTH(SYSDATE()) >= c.bill_month')  // Ensure current month is less than or equal to bill_month
+                ->whereRaw('ifnull(c.total_demand,0) - ifnull(c.payment,0) > 0')  // Ensure unpaid demand exists
+                ->whereRaw('(c.bill_month + (c.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')  // Ensure current month is less than or equal to bill_month
                 ->where('r.paymentzone_id', $zone->id)  // Ensure current month is less than or equal to bill_month
                 ->whereRaw('cluster_id IS NULL')
                 ->groupBy('c.ratepayer_id', 'r.consumer_no', 'r.ratepayer_name', 'r.ratepayer_address', 'r.mobile_no')  // Group by ratepayer_id and relevant columns
@@ -181,7 +190,7 @@ class DemandController extends Controller
             return format_response(
                 'Database error occurred',
                 null,
-                Response::HTTP_INTERNAL_SERVER_ERROR
+                Response::HTTP_NOT_FOUND
             );
         } catch (\Exception $e) {
             Log::error('Unexpected error during entity update: '.$e->getMessage());
@@ -203,22 +212,6 @@ class DemandController extends Controller
 
             DB::enableQueryLog();
 
-            // $results = DB::table('entities as e')
-            // ->join('ratepayers as rp', 'rp.entity_id', '=', 'e.id')
-            // ->join('current_demands as cd', 'cd.ratepayer_id', '=', 'rp.id')
-            // ->select(
-            //     'e.cluster_id as cluster_id',
-            //     DB::raw('ANY_VALUE(rp.consumer_no) as consumer_no'),
-            //     DB::raw('ANY_VALUE(rp.ratepayer_name) as ratepayer_name'),
-            //     DB::raw('ANY_VALUE(rp.ratepayer_address) as ratepayer_address'),
-            //     DB::raw('SUM(cd.demand) as clusterDemand')
-            // )
-            // ->where('rp.paymentzone_id', $id)
-            // ->whereNotNull('e.cluster_id')
-            // ->whereRaw('(cd.bill_month + (cd.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
-            // ->groupBy('e.cluster_id')
-            // ->get();
-
             $currentMonth = now()->month;
             $currentYear = now()->year;
             
@@ -227,7 +220,10 @@ class DemandController extends Controller
             ->from('ratepayers AS r')
             ->join('entities AS e', 'r.entity_id', '=', 'e.id')
             ->join('current_demands AS d', 'r.id', '=', 'd.ratepayer_id')
+            ->where('d.is_active', '=' , 1)
+            ->where('r.paymentzone_id', '=' , $id)
             ->whereNotNull('e.cluster_id')
+            ->whereRaw('(ifnull(d.total_demand,0) - ifnull(d.payment,0)) > 0')
             ->whereRaw('(d.bill_month + (d.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
             ->groupBy('e.cluster_id');
         
@@ -269,7 +265,7 @@ class DemandController extends Controller
     public function clusterDemands($id)
     {
         try {
-            $zone = PaymentZone::find($id);
+            // $zone = PaymentZone::find($id);
 
             $query = DB::table('ratepayers as r')
             ->join('entities as e', 'e.id', '=', 'r.entity_id')
@@ -286,9 +282,10 @@ class DemandController extends Controller
                 DB::raw('DATE_FORMAT(r.lastpayment_date, "%d/%m/%Y") as lastpayment_date'),
                 DB::raw('SUM(c.total_demand) as totalDemand')
             )
-            ->whereRaw('(c.total_demand - c.payment) > 0')
+            ->whereRaw('(ifnull(c.total_demand,0) - ifnull(c.payment,0)) > 0')
             ->whereRaw('(c.bill_month + (c.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
             // ->where('r.paymentzone_id', 2)
+            ->where('c.is_active', 1)
             ->where('e.cluster_id', $id)
             ->groupBy('c.ratepayer_id');
 
@@ -318,7 +315,7 @@ class DemandController extends Controller
             //     ->get();
 
             return format_response(
-                'Show Pending Cluster Demands from '.$zone->payment_zone,
+                'Show Pending Cluster Demands ',
                 $results,
                 Response::HTTP_OK
             );

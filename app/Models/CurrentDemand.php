@@ -19,6 +19,7 @@ class CurrentDemand extends Model
         'demand',
         'total_demand',
         'payment',
+        'payment_id'
     ];
 
     protected $hidden = [
