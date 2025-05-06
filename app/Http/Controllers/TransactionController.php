@@ -871,4 +871,55 @@ class TransactionController extends Controller
         }
 
     }
+
+    /**
+     * Get transactions for a specific ratepayer
+     * 
+     * @param int $ratepayerId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getTransactionsByRatepayer($ratepayerId)
+    {
+        try {
+            // Validate the ratepayer ID
+            if (!is_numeric($ratepayerId)) {
+               return format_response(
+                  'validation error',
+                  null,
+                  Response::HTTP_BAD_REQUEST
+              );
+            }
+
+            // Execute the query using DB facade
+            $transactions = DB::table('current_transactions as t')
+                ->select(
+                    't.transaction_no',
+                    't.event_type',
+                    't.event_time',
+                    't.schedule_date',
+                    'p.payment_mode',
+                    'p.amount',
+                    't.remarks'
+                )
+                ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
+                ->leftJoin('payments as p', 't.payment_id', '=', 'p.id')
+                ->where('t.ratepayer_id', $ratepayerId)
+                ->orderBy('t.id', 'desc')
+                ->get();
+
+            return format_response(
+               'Success',
+               $transactions,
+               Response::HTTP_OK
+            );
+
+        } catch (\Exception $e) {
+            return format_response(
+               'validation error',
+               null,
+               Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
 }

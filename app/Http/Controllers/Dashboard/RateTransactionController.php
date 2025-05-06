@@ -70,6 +70,7 @@ class RateTransactionController extends Controller
 
             // New Modifications
             $pendingDemands = CurrentDemand::where('ratepayer_id', $ratepayer->id)
+<<<<<<< HEAD
                ->where('is_active', true)
                // ->whereRaw('ifnull(demand,0) > ifnull(payment,0)')
                ->whereRaw('ifnull(total_demand,0) - ifnull(payment,0) > 0')
@@ -77,6 +78,13 @@ class RateTransactionController extends Controller
                ->orderBy('bill_year')
                ->orderBy('bill_month')
                ->get();
+=======
+                ->where('is_active', true)
+                ->whereRaw('ifnull(demand,0) > ifnull(payment,0)')
+                ->orderBy('bill_year')
+                ->orderBy('bill_month')
+                ->get();
+>>>>>>> 91358e16033a41c35da098d412d57e99affcfb19
 
             // End new modifications
             $totalSum = $pendingDemands->sum('total_demand');
@@ -86,16 +94,16 @@ class RateTransactionController extends Controller
             $lastPeriod = '';
 
             if ($pendingDemands->isNotEmpty()) {
-                  $sorted = $pendingDemands->sortBy([
-                     ['bill_year', 'asc'],
-                     ['bill_month', 'asc'],
-                  ]);
-            
-                  $first = $sorted->first();
-                  $last = $sorted->last();
-            
-                  $firstPeriod = \Carbon\Carbon::createFromDate($first->bill_year, $first->bill_month)->format('M-Y');
-                  $lastPeriod = \Carbon\Carbon::createFromDate($last->bill_year, $last->bill_month)->format('M-Y');
+                $sorted = $pendingDemands->sortBy([
+                    ['bill_year', 'asc'],
+                    ['bill_month', 'asc'],
+                ]);
+
+                $first = $sorted->first();
+                $last = $sorted->last();
+
+                $firstPeriod = \Carbon\Carbon::createFromDate($first->bill_year, $first->bill_month)->format('M-Y');
+                $lastPeriod = \Carbon\Carbon::createFromDate($last->bill_year, $last->bill_month)->format('M-Y');
             }
 
             $billPeriods = $firstPeriod . ' to ' . $lastPeriod;
@@ -237,6 +245,7 @@ class RateTransactionController extends Controller
             $tranService->extractRatepayerDetails($validatedData['ratepayerId']);
             $transaction = $tranService->createNewTransaction($validatedData);
             $payment = $tranService->createNewPayment($validatedData, $transaction->id);
+            // dd($payment->toArray());
 
             // dd("Hii");
             $transaction->payment_id = $payment->id;
@@ -266,14 +275,17 @@ class RateTransactionController extends Controller
                     'name' => $tranService->ratepayer->ratepayer_name ?? '',
                     'mobile' => $tranService->ratepayer->mobile_no ?? '',
                     'address' => $tranService->ratepayer->ratepayer_address ?? '',
-                    'transaction_no' => $request->transaction_id ?? '',
+                    // 'transaction_no' => $request->transaction_id ?? '',receipt_no
+                    'receipt_no' => $payment->receipt_no ?? '',
                     'consumer_no' => $tranService->ratepayer->consumer_no ?? '',
                     'category' => $tranService->ratepayer->usage_type,
                     'ward_no' => 'WARD 1' ?? '',
                     'holding_no' => $tranService->ratepayer->holding_no ?? '',
                     //'type' => $paymentData['type'] ?? '',
-                    'from_date' => now(),
-                    'to_date' => now(),
+                    'payment_from' => $payment->payment_from ?? '',
+                    'payment_to' => $payment->payment_to ?? '',
+                    // 'from_date' => now(),
+                    // 'to_date' => now(),
                     'rate_per_month' => $tranService->ratepayer->monthly_demand,
                     'amount' => $validatedData['amount'] ?? 0,
                     'total' => $validatedData['amount'] ?? 0,
@@ -283,7 +295,7 @@ class RateTransactionController extends Controller
                     'customer_remarks' => '',
                     'mobile' => $tranService->ratepayer->mobile_no ?? '',
                 ];
-
+                // dd($paymentData);
 
                 // Generate PDF receipt
                 $receiptData = $receiptService->generateReceipt($paymentData);

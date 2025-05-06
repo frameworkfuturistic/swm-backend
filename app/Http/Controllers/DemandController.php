@@ -93,9 +93,8 @@ class DemandController extends Controller
         try {
             $ratepayers = CurrentDemand::where('ratepayer_id', $id)
                 ->where('is_active', true)
-               //  ->whereRaw('MONTH(SYSDATE()) >= bill_month')
                 ->whereRaw('(bill_month + (bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
-                ->get();
+               ->get();
 
             return format_response(
                 'Current Demand',
@@ -236,7 +235,7 @@ class DemandController extends Controller
             $results = $qry->get();
 
 
-            return format_response(
+               return format_response(
                 'Show Pending Demands from '.$zone->payment_zone,
                 $results,
                 Response::HTTP_OK
@@ -267,6 +266,9 @@ class DemandController extends Controller
         try {
             // $zone = PaymentZone::find($id);
 
+            $year = request('year');
+            $month = request('month');
+
             $query = DB::table('ratepayers as r')
             ->join('entities as e', 'e.id', '=', 'r.entity_id')
             ->join('current_demands as c', 'r.id', '=', 'c.ratepayer_id')
@@ -283,8 +285,8 @@ class DemandController extends Controller
                 DB::raw('SUM(c.total_demand) as totalDemand')
             )
             ->whereRaw('(ifnull(c.total_demand,0) - ifnull(c.payment,0)) > 0')
-            ->whereRaw('(c.bill_month + (c.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
-            // ->where('r.paymentzone_id', 2)
+            // ->whereRaw('(c.bill_month + (c.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
+            ->whereRaw('(c.bill_month + (c.bill_year * 12)) <= (? + (? * 12))', [$month ?? date('n'), $year ?? date('Y')])
             ->where('c.is_active', 1)
             ->where('e.cluster_id', $id)
             ->groupBy('c.ratepayer_id');

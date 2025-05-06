@@ -13,6 +13,7 @@ use App\Models\CurrentTransaction;
 use App\Models\Ratepayer;
 use App\Models\Cluster;
 use App\Models\Entity;
+use App\Services\NumberGeneratorService;
 use Carbon\Carbon;
 
 class ClusterPaymentController extends Controller
@@ -36,7 +37,7 @@ class ClusterPaymentController extends Controller
         $ulb_id = $request->user()->ulb_id;
         
         // Check if the ratepayer is a cluster ratepayer
-        $ratepayerValidation = $this->validateClusterRatepayer($request->input('payment.ratepayer_id'));
+        $ratepayerValidation = $this->validateClusterRatepayer($request->input('payment.ratepayer_id')); //Validates if cluster ratepayer exists
         if ($ratepayerValidation !== true) {
             return $ratepayerValidation;
         }
@@ -52,7 +53,7 @@ class ClusterPaymentController extends Controller
         }
         
         // Check that payment amount matches total demands
-        $demandValidation = $this->validatePaymentAmount($request->entities, $request->input('payment.payment_amount'));
+        $demandValidation = $this->validatePaymentAmount($request->entities, $request->input('payment.payment_amount'), $request->payment['year'],$request->payment['month']);
         if ($demandValidation !== true) {
             return $demandValidation;
         }
@@ -62,7 +63,7 @@ class ClusterPaymentController extends Controller
         
         try {
             // Create payment record
-            $payment = $this->createPayment($request, $tc_id, $ulb_id, $cluster_id);
+            $payment = $this->createPayment($request, $tc_id, $ulb_id, $cluster_id,$request->payment['year'],$request->payment['month']);
             
             // Create transaction record
             $transaction = $this->createClusterTransaction($request, $tc_id, $ulb_id, $cluster_id, $payment->id);
@@ -72,7 +73,7 @@ class ClusterPaymentController extends Controller
             $payment->save();
             
             // Update demands for included entities
-            $this->updateEntityDemands($request->entities, $payment->id, $tc_id, $ulb_id);
+            $this->updateEntityDemands($request->entities, $payment->id, $tc_id, $ulb_id, $request->payment['year'],$request->payment['month']);
             
             DB::commit();
             
@@ -104,39 +105,25 @@ class ClusterPaymentController extends Controller
      */
     private function validateRequest(Request $request)
     {
-      //   $validator = Validator::make($request->all(), [
-      //       'ratepayer_id' => 'required|exists:ratepayers,id',
-      //       'payment_mode' => 'required|in:CASH,CARD,UPI,CHEQUE,ONLINE,WHATSAPP',
-      //       'payment_amount' => 'required|integer|min:1',
-      //       'included_entities' => 'required|array|min:1',
-      //       'included_entities.*' => 'exists:entities,id',
-      //       'longitude' => 'nullable|numeric',
-      //       'latitude' => 'nullable|numeric',
-      //       'remarks' => 'nullable|string|max:250',
-      //       // Payment mode specific fields
-      //       'card_number' => 'required_if:payment_mode,CARD|nullable|string|max:25',
-      //       'upi_id' => 'required_if:payment_mode,UPI|nullable|string|max:100',
-      //       'cheque_number' => 'required_if:payment_mode,CHEQUE|nullable|string|max:25',
-      //       'bank_name' => 'required_if:payment_mode,CHEQUE|nullable|string|max:25',
-      //   ]);
-
-            $validator = Validator::make($request->all(), [
-               'payment.ratepayer_id' => 'required|exists:ratepayers,id',
-               'payment.payment_mode' => 'required|in:CASH,CARD,UPI,CHEQUE,ONLINE,WHATSAPP',
-               'payment.payment_amount' => 'required|integer|min:1',
-               'payment.longitude' => 'nullable|numeric',
-               'payment.latitude' => 'nullable|numeric',
-               'payment.remarks' => 'nullable|string|max:250',
-         
-               // Conditional fields based on payment_mode
-               'payment.card_number' => 'required_if:payment.payment_mode,CARD|nullable|string|max:25',
-               'payment.upi_id' => 'required_if:payment.payment_mode,UPI|nullable|string|max:100',
-               'payment.cheque_no' => 'required_if:payment.payment_mode,CHEQUE|nullable|string|max:25',
-               'payment.bank' => 'required_if:payment.payment_mode,CHEQUE|nullable|string|max:25',
-         
-               // Entities array
-               'entities' => 'required|array|min:1',
-               'entities.*.entity_id' => 'required|exists:entities,id',
+         $validator = Validator::make($request->all(), [
+            'payment.ratepayer_id' => 'required|exists:ratepayers,id',
+            'payment.payment_mode' => 'required|in:CASH,CARD,UPI,CHEQUE,ONLINE,WHATSAPP',
+            'payment.year' => 'required|integer|min:2021|max:2030',
+            'payment.month' => 'required|integer|min:1|max:12',
+            'payment.payment_amount' => 'required|integer|min:1',
+            'payment.longitude' => 'nullable|numeric',
+            'payment.latitude' => 'nullable|numeric',
+            'payment.remarks' => 'nullable|string|max:250',
+      
+            // Conditional fields based on payment_mode
+            'payment.card_number' => 'required_if:payment.payment_mode,CARD|nullable|string|max:25',
+            'payment.upi_id' => 'required_if:payment.payment_mode,UPI|nullable|string|max:100',
+            'payment.cheque_no' => 'required_if:payment.payment_mode,CHEQUE|nullable|string|max:25',
+            'payment.bank' => 'required_if:payment.payment_mode,CHEQUE|nullable|string|max:25',
+      
+            // Entities array
+            'entities' => 'required|array|min:1',
+            'entities.*.entity_id' => 'required|exists:entities,id',
          ]);
      
         if ($validator->fails()) {
@@ -156,7 +143,7 @@ class ClusterPaymentController extends Controller
      * @param int $ratepayerId
      * @return true|Response
      */
-    private function validateClusterRatepayer($ratepayerId)
+    private function validateClusterRatepayer($ratepayerId) 
     {
         $ratepayer = Ratepayer::find($ratepayerId);
         
@@ -213,7 +200,7 @@ class ClusterPaymentController extends Controller
      * @param int $paymentAmount
      * @return true|Response
      */
-    private function validatePaymentAmount($includedEntities, $paymentAmount)
+    private function validatePaymentAmount($includedEntities, $paymentAmount, $year, $month)
     {
         $totalDemand = 0;
         
@@ -222,8 +209,10 @@ class ClusterPaymentController extends Controller
             
             if ($entityRatepayer) {
                 $demands = CurrentDemand::where('ratepayer_id', $entityRatepayer->id)
-                    ->whereNull('payment_id')
+                  //   ->whereNull('payment_id')
                     ->where('is_active', true)
+                    ->whereRaw('ifnull(demand,0)-ifnull(payment,0) >0')
+                    ->whereRaw('(bill_month + (bill_year * 12)) <= (? + (? * 12))', [$month, $year])
                     ->sum('total_demand');
                 
                 $totalDemand += $demands;
@@ -251,16 +240,20 @@ class ClusterPaymentController extends Controller
      * @param int $clusterId
      * @return Payment
      */
-    private function createPayment(Request $request, $tcId, $ulbId, $clusterId)
+    private function createPayment(Request $request, $tcId, $ulbId, $clusterId, $year, $month)
     {
+        $receiptNo = app(NumberGeneratorService::class)->generate('receipt_no');
+        $formattedDate = date('F-Y', mktime(0, 0, 0, $month, 1, $year));
         $payment = new Payment();
         $payment->ulb_id = $ulbId;
+        $payment->receipt_no = $receiptNo;
         $payment->ratepayer_id = $request->input('payment.ratepayer_id');
         $payment->cluster_id = $clusterId;
         $payment->entity_id = null;
         $payment->tc_id = $tcId;
         $payment->payment_date = Carbon::now();
         $payment->payment_mode = $request->input('payment.payment_mode');
+        $payment->payment_to = $formattedDate;
         $payment->payment_status = 'COMPLETED';
         $payment->amount = $request->input('payment.payment_amount');
         $payment->payment_verified = true;
@@ -293,12 +286,14 @@ class ClusterPaymentController extends Controller
      */
     private function createClusterTransaction(Request $request, $tcId, $ulbId, $clusterId, $paymentId)
     {
+        $transactionNo = app(NumberGeneratorService::class)->generate('transaction_no');
         $transaction = new CurrentTransaction();
         $transaction->ulb_id = $ulbId;
         $transaction->tc_id = $tcId;
         $transaction->ratepayer_id = $request->input('payment.ratepayer_id');
         $transaction->entity_id = null;
         $transaction->cluster_id = $clusterId;
+        $transaction->transaction_no = $transactionNo;
         $transaction->payment_id = $paymentId;
         $transaction->event_time = Carbon::now();
         $transaction->event_type = 'PAYMENT';
@@ -322,7 +317,7 @@ class ClusterPaymentController extends Controller
      * @param int $ulbId
      * @return void
      */
-    private function updateEntityDemands($includedEntities, $paymentId, $tcId, $ulbId)
+    private function updateEntityDemands($includedEntities, $paymentId, $tcId, $ulbId, $year, $month)
     {
         foreach ($includedEntities as $entityId) {
             // Find the entity ratepayer
@@ -334,8 +329,10 @@ class ClusterPaymentController extends Controller
             
             // Get all outstanding demands for this entity
             $demands = CurrentDemand::where('ratepayer_id', $entityRatepayer->id)
-                ->whereNull('payment_id')
+               //  ->whereNull('payment_id')
                 ->where('is_active', true)
+                ->whereRaw('ifnull(demand,0)-ifnull(payment,0) > 0')
+                ->whereRaw('(bill_month + (bill_year * 12)) <= (? + (? * 12))', [$month, $year])
                 ->get();
             
             foreach ($demands as $demand) {
@@ -364,10 +361,12 @@ class ClusterPaymentController extends Controller
      */
     private function createEntityTransaction($entityId, $ratepayerId, $paymentId, $tcId, $ulbId)
     {
+        $transactionNo = app(NumberGeneratorService::class)->generate('transaction_no');
         $entityTransaction = new CurrentTransaction();
         $entityTransaction->ulb_id = $ulbId;
         $entityTransaction->tc_id = $tcId;
         $entityTransaction->ratepayer_id = $ratepayerId;
+        $entityTransaction->transaction_no = $transactionNo;
         $entityTransaction->entity_id = $entityId;
         $entityTransaction->cluster_id = null;
         $entityTransaction->payment_id = $paymentId;

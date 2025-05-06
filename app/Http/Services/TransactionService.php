@@ -51,7 +51,7 @@ class TransactionService
      */
     public function createNewTransaction(array $validatedData): CurrentTransaction
     {
-      $transactionNo = app(NumberGeneratorService::class)->generate('transaction_no');
+        $transactionNo = app(NumberGeneratorService::class)->generate('transaction_no');
         $ratepayer = Ratepayer::find($validatedData['ratepayerId']);
         $data = [
             'ulb_id' => $validatedData['ulbId'],
@@ -120,17 +120,18 @@ class TransactionService
      */
     public function createNewPayment(array $validatedData, int $tranId): Payment
     {
-         // Create payment record
-         $payment = $this->createPaymentRecord($validatedData, $tranId);
+        // Create payment record
+        $payment = $this->createPaymentRecord($validatedData, $tranId);
+        // dd(collect($payment)->toArray());
 
-         // Process and adjust demands
-         $billPeriod = $this->processPendingDemands($validatedData['ratepayerId'], $validatedData['amount'], $payment, $validatedData['tcId']);
+        // Process and adjust demands
+        $billPeriod = $this->processPendingDemands($validatedData['ratepayerId'], $validatedData['amount'], $payment, $validatedData['tcId']);
 
-         $payment['payment_from'] = $billPeriod[0];
-         $payment['payment_to'] = $billPeriod[1];
+        $payment['payment_from'] = $billPeriod[0];
+        $payment['payment_to'] = $billPeriod[1];
 
-         $payment->save();
-         
+        $payment->save();
+
         return $payment;
     }
 
@@ -149,16 +150,16 @@ class TransactionService
 
         if ($pendingDemands->isNotEmpty()) {
             $sorted = $pendingDemands->sortBy([
-               ['bill_year', 'asc'],
-               ['bill_month', 'asc'],
+                ['bill_year', 'asc'],
+                ['bill_month', 'asc'],
             ]);
-      
+
             $first = $sorted->first();
             $last = $sorted->last();
-      
+
             $firstPeriod = \Carbon\Carbon::createFromDate($first->bill_year, $first->bill_month)->format('M-Y');
             $lastPeriod = \Carbon\Carbon::createFromDate($last->bill_year, $last->bill_month)->format('M-Y');
-         }
+        }
 
         $remainingAmount = $amount;
 
@@ -263,6 +264,7 @@ class TransactionService
       //       'amount' => $validatedData['amount'],
       //   ]);
     }
+
 
     /**
      * Transfer a record from current_demand to demand table

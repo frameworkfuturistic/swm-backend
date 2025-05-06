@@ -299,6 +299,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('transactions')
     Route::post('cluster-payment', [ClusterPaymentController::class, 'processClusterPayment']);
     //Transactions - API-ID: TRAN-010
     Route::get('receipt/{ratepayerId}', [TransactionController::class, 'getReceipt']);
+    //Transactions - API-ID: TRAN-011
+    Route::get('ratepayer-transactions/{id}', [TransactionController::class, 'getTransactionsByRatepayer']);
 
     //Done
 
