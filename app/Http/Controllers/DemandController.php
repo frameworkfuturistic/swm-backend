@@ -235,10 +235,10 @@ class DemandController extends Controller
             $results = $qry->get();
 
 
-               return format_response(
-                'Show Pending Demands from '.$zone->payment_zone,
-                $results,
-                Response::HTTP_OK
+            return format_response(
+               'Show Pending Demands from '.$zone->payment_zone,
+               $results,
+               Response::HTTP_OK
             );
 
         } catch (\Illuminate\Database\QueryException $e) {

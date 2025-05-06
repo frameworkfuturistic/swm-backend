@@ -70,7 +70,6 @@ class RateTransactionController extends Controller
 
             // New Modifications
             $pendingDemands = CurrentDemand::where('ratepayer_id', $ratepayer->id)
-<<<<<<< HEAD
                ->where('is_active', true)
                // ->whereRaw('ifnull(demand,0) > ifnull(payment,0)')
                ->whereRaw('ifnull(total_demand,0) - ifnull(payment,0) > 0')
@@ -78,13 +77,6 @@ class RateTransactionController extends Controller
                ->orderBy('bill_year')
                ->orderBy('bill_month')
                ->get();
-=======
-                ->where('is_active', true)
-                ->whereRaw('ifnull(demand,0) > ifnull(payment,0)')
-                ->orderBy('bill_year')
-                ->orderBy('bill_month')
-                ->get();
->>>>>>> 91358e16033a41c35da098d412d57e99affcfb19
 
             // End new modifications
             $totalSum = $pendingDemands->sum('total_demand');
