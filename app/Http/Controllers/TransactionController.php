@@ -69,23 +69,34 @@ class TransactionController extends Controller
          }
      
          try {
-            //  $query = DB::table('payments as p')
-            //      ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
-            //      ->where('p.ratepayer_id', $ratepayerId)
-            //      ->orderByDesc('p.id')
-            //      ->select(
-            //          'r.ratepayer_name',
-            //          'r.ratepayer_address',
-            //          'r.consumer_no',
-            //          'p.payment_date',
-            //          'p.payment_mode',
-            //          'p.receipt_no',
-            //          'p.payment_from',
-            //          'p.payment_to',
-            //          'p.amount'
-            //      );
 
-            $query = DB::table('payments as p')
+            $query="";
+            $ratepayer = Ratepayer::find($ratepayerId);
+            if ($ratepayer?->cluster_id) {
+               $query = DB::table('current_transactions')
+               ->select([
+                   'rec_name as ratepayer_name',
+                   'rec_address as ratepayer_address',
+                   'rec_consumerno as consumer_no',
+                   DB::raw("DATE_FORMAT(event_time, '%d/%m/%Y') as payment_date"),
+                   'rec_paymentmode as payment_mode',
+                   'rec_receiptno as receipt_no',
+                   'rec_period as period',
+                   'rec_amount as amount',
+                   DB::raw("0 as monthly_demand"),
+                   'rec_tcname as tc_name',
+                   'rec_tcmobile as tc_mobile',
+                   'rec_ward as ward_name',
+                   'rec_category as category',
+                   'rec_subcategory as sub_category',
+                   'rec_chequeno as cheque_no',
+                   'rec_chequedate as cheque_date',
+                   'rec_bankname as bank_name',
+               ])
+               ->where('ratepayer_id', $ratepayerId)
+               ->orderByDesc('id');
+            } else {
+               $query = DB::table('payments as p')
                ->select(
                   'r.ratepayer_name',
                   'r.ratepayer_address',
@@ -93,15 +104,17 @@ class TransactionController extends Controller
                   'p.payment_date',
                   'p.payment_mode',
                   'p.receipt_no',
-                  'p.payment_from',
-                  'p.payment_to',
-                  'p.amount',
+                  DB::raw("CONCAT(payment_from, ' to ', payment_to) as period"),
+                  DB::raw('cast(ifnull(p.amount,0) as char) as amount'),
                   'r.monthly_demand',
                   'u.name as tc_name',
+                  DB::raw("'' as mobile_no"),
                   'w.ward_name',
-                  'r.subcategory_id',
+                  DB::raw("'' as category"),
                   's.sub_category',
-                  DB::raw("'' as mobile_no")
+                  DB::raw("'' as cheque_no"),
+                  DB::raw("'' as cheque_date"),
+                  DB::raw("'' as bank_name"),
                )
                ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
                ->join('wards as w', 'r.ward_id', '=', 'w.id')
@@ -109,6 +122,9 @@ class TransactionController extends Controller
                ->leftJoin('sub_categories as s', 'r.subcategory_id', '=', 's.id')
                ->where('p.ratepayer_id', $ratepayerId)
                ->orderByDesc('p.id');
+            }
+
+
 
             $latestPayment= $query->first();
      

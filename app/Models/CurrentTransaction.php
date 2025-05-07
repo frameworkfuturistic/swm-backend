@@ -22,7 +22,24 @@ class CurrentTransaction extends Model
         'latitude',
         'vrno',
         'auto_remarks',
-        'transaction_no'
+        'transaction_no',
+
+        'rec_receiptno',
+        'rec_ward',
+        'rec_consumerno',
+        'rec_name',
+        'rec_address',
+        'rec_category',
+        'rec_subcategory',
+        'rec_monthlycharge',
+        'rec_period',
+        'rec_amount',
+        'rec_paymentmode',
+        'rec_tcname',
+        'rec_tcmobile',
+        'rec_chequeno',
+        'rec_chequedate',
+        'rec_bankname'
     ];
 
     protected $hidden = ['ulb_id', 'created_at', 'updated_at', 'verifiedby_id', 'vrno'];

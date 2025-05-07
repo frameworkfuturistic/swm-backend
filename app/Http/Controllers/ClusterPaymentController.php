@@ -68,12 +68,54 @@ class ClusterPaymentController extends Controller
             // Create transaction record
             $transaction = $this->createClusterTransaction($request, $tc_id, $ulb_id, $cluster_id, $payment->id);
             
+            // Update demands for included entities
+            $this->updateEntityDemands($request->entities, $payment->id, $tc_id, $ulb_id, $request->payment['year'],$request->payment['month']);
+            
+            $paymentOld = Payment::where('ratepayer_id', $request->input('payment.ratepayer_id'))
+               ->latest('id') // or 'created_at' if you want by date
+               ->first();
+
+            $paymentFrom = $paymentOld?->payment_to; 
+            $paymentTo = $payment->payment_from;
+
+            $data = DB::table('ratepayers as r')
+                  ->select(
+                     'w.ward_name',
+                     'r.consumer_no',
+                     'r.ratepayer_name',
+                     'r.ratepayer_address',
+                     'c.category',
+                     'sc.sub_category',
+                     'r.monthly_demand'
+                  )
+                  ->join('wards as w', 'r.ward_id', '=', 'w.id')
+                  ->leftJoin('sub_categories as sc', 'r.subcategory_id', '=', 'sc.id')
+                  ->leftJoin('categories as c', 'sc.category_id', '=', 'c.id')
+                  ->where('r.id', $request->input('payment.ratepayer_id'))
+                  ->first();
+
+            $transaction->rec_receiptno =$payment->receipt_no;
+            $transaction->rec_ward = $data->ward_name ?? '';
+            $transaction->rec_consumerno = $data->consumer_no ?? '';
+            $transaction->rec_name = $data->ratepayer_name ?? '';
+            $transaction->rec_address = $data->ratepayer_address ?? '';
+            $transaction->rec_category = $data->category ?? '';
+            $transaction->rec_subcategory = $data->sub_category ?? '';
+
+            $transaction->rec_monthlycharge = $data->monthly_demand ?? '';
+            $transaction->rec_period = $paymentFrom.' to '.$paymentTo;
+            $transaction->rec_amount = $request->input('payment.payment_amount');
+            $transaction->rec_paymentmode = $request->input('payment.payment_mode');
+            $transaction->rec_tcname = $request->user()->name;
+            $transaction->rec_tcmobile ='';
+            $transaction->rec_chequeno = $request->input('payment.cheque_no');
+            $transaction->rec_chequedate = $request->input('payment.cheque_date');
+            $transaction->rec_bankname = $request->input('payment.bank');
+            $transaction->save();
+
             // Update payment with transaction id
             $payment->tran_id = $transaction->id;
             $payment->save();
-            
-            // Update demands for included entities
-            $this->updateEntityDemands($request->entities, $payment->id, $tc_id, $ulb_id, $request->payment['year'],$request->payment['month']);
             
             DB::commit();
             
@@ -107,7 +149,7 @@ class ClusterPaymentController extends Controller
     {
          $validator = Validator::make($request->all(), [
             'payment.ratepayer_id' => 'required|exists:ratepayers,id',
-            'payment.payment_mode' => 'required|in:CASH,CARD,UPI,CHEQUE,ONLINE,WHATSAPP',
+            'payment.payment_mode' => 'required|in:CASH,CARD,UPI,CHEQUE,DD,NEFT,ONLINE,WHATSAPP',
             'payment.year' => 'required|integer|min:2021|max:2030',
             'payment.month' => 'required|integer|min:1|max:12',
             'payment.payment_amount' => 'required|integer|min:1',
@@ -264,7 +306,7 @@ class ClusterPaymentController extends Controller
             $payment->card_number = $request->input('payment.card_no');
         } elseif ($request->input('payment.payment_mode') == 'UPI') {
             $payment->upi_id = $request->input('payment.upi_id');
-        } elseif ($request->input('payment.payment_mode') == 'CHEQUE') {
+        } else {
             $payment->cheque_number = $request->input('payment.cheque_no');
             $payment->bank_name = $request->input('payment.bank');
         }
@@ -303,6 +345,25 @@ class ClusterPaymentController extends Controller
         $transaction->is_verified = false;
         $transaction->is_cancelled = false;
         $transaction->vrno = 0; // Initial VRNo is 0
+
+      //   $transaction->rec_receiptno ='anil';
+      //   $transaction->rec_ward = 'mishra ward';
+      //   $transaction->rec_consumerno = '';
+      //   $transaction->rec_name = '';
+      //   $transaction->rec_address = '';
+      //   $transaction->rec_category = '';
+      //   $transaction->rec_subcategory = '';
+
+      //   $transaction->rec_monthlycharge = '';
+      //   $transaction->rec_period ='';
+      //   $transaction->rec_amount = '';
+      //   $transaction->rec_paymentmode = '';
+      //   $transaction->rec_tcname = '';
+      //   $transaction->rec_tcmobile ='';
+      //   $transaction->rec_chequeno = '';
+      //   $transaction->rec_chequedate = '';
+      //   $transaction->rec_bankname = '';
+
         $transaction->save();
         
         return $transaction;
@@ -344,7 +405,7 @@ class ClusterPaymentController extends Controller
                 $demand->save();
                 
                 // Create entity transaction record
-                $this->createEntityTransaction($entityId['entity_id'], $entityRatepayer->id, $paymentId, $tcId, $ulbId);
+               //  $this->createEntityTransaction($entityId['entity_id'], $entityRatepayer->id, $paymentId, $tcId, $ulbId);
             }
         }
     }
