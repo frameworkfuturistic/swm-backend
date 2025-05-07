@@ -65,13 +65,57 @@ class TransactionService
             'remarks' => $validatedData['remarks'],
             'longitude' => $validatedData['longitude'],
             'latitude' => $validatedData['latitude'],
-            'vrno' => 1,
+            'is_verified' => 0,
+            'is_cancelled' => 0,
+
+            // 'rec_receiptno'
+            // 'rec_period' => $validatedData['rec_period'],
+            'vrno' => 0,
         ];
 
-        // Payment Mode
-        if (isset($validatedData['payment_mode'])) {
-            $data['payment_mode'] = $validatedData['paymentMode'];
+        if (isset($validatedData['rec_ward'])) {
+         $data['rec_ward'] = $validatedData['rec_ward'];
         }
+        if (isset($validatedData['rec_consumerno'])) {
+         $data['rec_consumerno'] = $validatedData['rec_consumerno'];
+        }
+        if (isset($validatedData['rec_name'])) {
+         $data['rec_name'] = $validatedData['rec_name'];
+        }
+        if (isset($validatedData['rec_address'])) {
+         $data['rec_address'] = $validatedData['rec_address'];
+        }
+        if (isset($validatedData['rec_category'])) {
+         $data['rec_category'] = $validatedData['rec_category'];
+        }
+        if (isset($validatedData['rec_subcategory'])) {
+         $data['rec_subcategory'] = $validatedData['rec_subcategory'];
+        }
+        if (isset($validatedData['rec_monthlycharge'])) {
+         $data['rec_monthlycharge'] = $validatedData['rec_monthlycharge'];
+        }
+        if (isset($validatedData['rec_amount'])) {
+         $data['rec_amount'] = $validatedData['rec_amount'];
+        }
+        if (isset($validatedData['rec_paymentmode'])) {
+         $data['rec_paymentmode'] = $validatedData['rec_paymentmode'];
+        }
+        if (isset($validatedData['rec_tcname'])) {
+         $data['rec_tcname'] = $validatedData['rec_tcname'];
+        }
+        if (isset($validatedData['rec_tcmobile'])) {
+         $data['rec_tcmobile'] = $validatedData['rec_tcmobile'];
+        }
+        if (isset($validatedData['rec_chequeno'])) {
+         $data['rec_chequeno'] = $validatedData['rec_chequeno'];
+        }
+        if (isset($validatedData['rec_chequedate'])) {
+         $data['rec_chequedate'] = $validatedData['rec_chequedate'];
+        }
+        if (isset($validatedData['rec_bankname'])) {
+         $data['rec_bankname'] = $validatedData['rec_bankname'];
+        }
+
         // Payment Denial
         if (isset($validatedData['denialReasonId'])) {
             $data['denial_reason_id'] = $validatedData['denialReasonId'];
@@ -130,6 +174,8 @@ class TransactionService
         $payment['payment_from'] = $billPeriod[0];
         $payment['payment_to'] = $billPeriod[1];
 
+        $payment->payment_from =$billPeriod[0];
+        $payment->payment_to =$billPeriod[1];
         $payment->save();
 
         return $payment;
@@ -145,23 +191,28 @@ class TransactionService
         $pendingDemands = $this->getPendingDemands($ratepayerId);
         $this->demandTillDate = $pendingDemands->sum('total_demand');
 
-        $firstPeriod = '';
-        $lastPeriod = '';
+      //   $firstPeriod = '';
+      //   $lastPeriod = '';
 
-        if ($pendingDemands->isNotEmpty()) {
-            $sorted = $pendingDemands->sortBy([
-                ['bill_year', 'asc'],
-                ['bill_month', 'asc'],
-            ]);
+      //   if ($pendingDemands->isNotEmpty()) {
+      //       $sorted = $pendingDemands->sortBy([
+      //           ['bill_year', 'asc'],
+      //           ['bill_month', 'asc'],
+      //       ]);
 
-            $first = $sorted->first();
-            $last = $sorted->last();
+      //       // $first = $sorted->first();
+      //       // $last = $sorted->last();
 
-            $firstPeriod = \Carbon\Carbon::createFromDate($first->bill_year, $first->bill_month)->format('M-Y');
-            $lastPeriod = \Carbon\Carbon::createFromDate($last->bill_year, $last->bill_month)->format('M-Y');
-        }
+      //       // $firstPeriod = \Carbon\Carbon::createFromDate($first->bill_year, $first->bill_month)->format('M-Y');
+      //       // $lastPeriod = \Carbon\Carbon::createFromDate($last->bill_year, $last->bill_month)->format('M-Y');
+      //   }
 
         $remainingAmount = $amount;
+
+        $mFlag = true;
+        $startMonth = "";
+        $endMonth = "";
+
 
         foreach ($pendingDemands as $demand) {
             $outstandingAmount = $demand->demand - $demand->payment;
@@ -172,8 +223,14 @@ class TransactionService
                 // Transfer record to `demand` table
                 $this->transferToDemandTable($demand);
             } else {
-
                 break; // Partial payments not allowed
+            }
+            if($mFlag){
+               $startMonth = \Carbon\Carbon::createFromDate($demand->bill_year, $demand->bill_month)->format('M-Y');
+               $endMonth = \Carbon\Carbon::createFromDate($demand->bill_year, $demand->bill_month)->format('M-Y');
+               $mFlag = false;
+            } else {
+               $endMonth = \Carbon\Carbon::createFromDate($demand->bill_year, $demand->bill_month)->format('M-Y');
             }
         }
         // dd($remainingAmount);
@@ -185,7 +242,7 @@ class TransactionService
         $ratepayer->lastpayment_date = now();
         $ratepayer->lastpayment_mode = $payment->payment_mode;
         $ratepayer->save();
-        return [$firstPeriod, $lastPeriod];
+        return [$startMonth, $endMonth];
     }
 
     /**
@@ -222,47 +279,52 @@ class TransactionService
 
         $data = [
          'ulb_id' => $validatedData['ulbId'],
-         'receipt_no' => $receiptNo,
          'ratepayer_id' => $validatedData['ratepayerId'],
-         'tc_id' => $validatedData['tcId'],
          'entity_id' => $validatedData['entityId'],
          'cluster_id' => $validatedData['clusterId'],
+         'tc_id' => $validatedData['tcId'],
          'tran_id' => $tranId,
-         'payment_status' => 'COMPLETED',
+         'receipt_no' => $receiptNo,
+         'payment_date' => now(),
+         'payment_mode' => $validatedData['paymentMode'],
+         'payment_status' => 'PENDING',
+         'amount' => $validatedData['amount'],
          'payment_verified' => false,
          'refund_initiated' => false,
          'refund_verified' => false,
-         'payment_date' => now(),
-         'payment_mode' => $validatedData['paymentMode'],
          'vrno' => 0,
-         'amount' => $validatedData['amount'],
+         // 'payment_from'
+         // 'payment_to'
      ];
      
+
+     if (isset($validatedData['rec_chequeno'])) {
+      $data['cheque_number'] = $validatedData['rec_chequeno'];
+     }
+     if (isset($validatedData['rec_upiId'])) {
+      $data['upi_id'] = $validatedData['rec_upiId'];
+     }
+
+     if (isset($validatedData['rec_bankname'])) {
+      $data['bank_name'] = $validatedData['rec_bankname'];
+     }
+     if (isset($validatedData['rec_utrNo'])) {
+      $data['neft_id'] = $validatedData['rec_utrNo'];
+      if (isset($validatedData['rec_chequedate'])) {
+         $data['neft_date'] = $validatedData['rec_chequedate'];
+        }
+     }
+
+     if (isset($validatedData['rec_chequedate'])) {
+      $data['neft_date'] = $validatedData['rec_chequedate'];
+     }
+
      // Conditionally include vendor_receipt if it exists
      if (array_key_exists('vendorReceipt', $validatedData)) {
          $data['vendor_receipt'] = $validatedData['vendorReceipt'];
      }
      
      return Payment::create($data);
-
-      //   return Payment::create([
-      //       'ulb_id' => $validatedData['ulbId'],
-      //       'receipt_no' => $receiptNo,
-      //       'vendor_receipt' => $validatedData['vendorReceipt'],
-      //       'ratepayer_id' => $validatedData['ratepayerId'],
-      //       'tc_id' => $validatedData['tcId'],
-      //       'entity_id' => $validatedData['entityId'],
-      //       'cluster_id' => $validatedData['clusterId'],
-      //       'tran_id' => $tranId,
-      //       'payment_status' => 'COMPLETED',
-      //       'payment_verified' => false,
-      //       'refund_initiated' => false,
-      //       'refund_verified' => false,
-      //       'payment_date' => now(),
-      //       'payment_mode' => $validatedData['paymentMode'],
-      //       'vrno' => 1,
-      //       'amount' => $validatedData['amount'],
-      //   ]);
     }
 
 

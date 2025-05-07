@@ -232,9 +232,9 @@ class DemandController extends Controller
             //          $join->on('rp.cluster_id', '=', 'a.cluster_id');
             //       });
 
-            $qry = DB::table(function($query) {
+            $qry = DB::table(function($query) use ($id) {  // Add 'use ($id)' here
                $query->from('ratepayers')
-                   ->where('paymentzone_id', 3)
+                   ->where('paymentzone_id', $id)
                    ->whereNotNull('cluster_id')
                    ->select('*');
                }, 'r')
@@ -244,19 +244,45 @@ class DemandController extends Controller
                      'r.consumer_no',
                      'r.ratepayer_name',
                      'r.ratepayer_address',
-                     DB::raw('cast(ifnull(a.clusterDemand,0) as char as clusterDemand')
+                     DB::raw('cast(ifnull(a.clusterDemand,0) as char) as clusterDemand')  // Fixed missing closing parenthesis
                ])
                ->leftJoinSub(
                      DB::table('current_demands as d')
                         ->join('ratepayers as r', 'd.ratepayer_id', '=', 'r.id')
                         ->join('entities as e', 'r.entity_id', '=', 'e.id')
-                        ->where('r.paymentzone_id', 3)
+                        ->where('r.paymentzone_id', $id)
                         ->whereNotNull('e.cluster_id')
                         ->groupBy('e.cluster_id')
                         ->select('e.cluster_id', DB::raw('SUM(d.demand) AS clusterDemand')),
                      'a',
                      'r.cluster_id', '=', 'a.cluster_id'
                );
+
+            // $qry = DB::table(function($query) {
+            //    $query->from('ratepayers')
+            //        ->where('paymentzone_id', $id)
+            //        ->whereNotNull('cluster_id')
+            //        ->select('*');
+            //    }, 'r')
+            //    ->select([
+            //          'r.cluster_id',
+            //          'r.id as ratepayer_id',
+            //          'r.consumer_no',
+            //          'r.ratepayer_name',
+            //          'r.ratepayer_address',
+            //          DB::raw('cast(ifnull(a.clusterDemand,0) as char as clusterDemand')
+            //    ])
+            //    ->leftJoinSub(
+            //          DB::table('current_demands as d')
+            //             ->join('ratepayers as r', 'd.ratepayer_id', '=', 'r.id')
+            //             ->join('entities as e', 'r.entity_id', '=', 'e.id')
+            //             ->where('r.paymentzone_id', $id)
+            //             ->whereNotNull('e.cluster_id')
+            //             ->groupBy('e.cluster_id')
+            //             ->select('e.cluster_id', DB::raw('SUM(d.demand) AS clusterDemand')),
+            //          'a',
+            //          'r.cluster_id', '=', 'a.cluster_id'
+            //    );
 
             $results = $qry->get();
 

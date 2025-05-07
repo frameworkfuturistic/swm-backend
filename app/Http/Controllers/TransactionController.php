@@ -178,6 +178,22 @@ class TransactionController extends Controller
         }
         $validatedData = $validator->validated();
 
+        $data = DB::table('ratepayers as r')
+            ->select(
+               'w.ward_name',
+               'r.consumer_no',
+               'r.ratepayer_name',
+               'r.ratepayer_address',
+               'c.category',
+               'sc.sub_category',
+               'r.monthly_demand'
+            )
+            ->join('wards as w', 'r.ward_id', '=', 'w.id')
+            ->leftJoin('sub_categories as sc', 'r.subcategory_id', '=', 'sc.id')
+            ->leftJoin('categories as c', 'sc.category_id', '=', 'c.id')
+            ->where('r.id', $validatedData['ratepayerId'])
+            ->first();
+
         $tranService = new TransactionService;
 
         $ratepayer = Ratepayer::find($validatedData['ratepayerId']);
@@ -186,7 +202,25 @@ class TransactionController extends Controller
         $validatedData['entityId'] = $ratepayer->entity_id;
         $validatedData['clusterId'] = $ratepayer->cluster_id;
         $validatedData['eventType'] = 'PAYMENT';
-        $validatedData['paymentMode'] = 'CASH';
+        $validatedData['paymentMode'] = $request->paymentMode;
+
+        $validatedData['rec_ward'] = $data->ward_name ?? '';
+        $validatedData['rec_consumerno'] = $data->consumer_no ?? '';
+        $validatedData['rec_name'] = $this->truncateString($data->ratepayer_name ?? '',40);
+        $validatedData['rec_address'] = $this->truncateString($data->ratepayer_address ?? '',40);
+        $validatedData['rec_category'] = $data->category ?? '';
+        $validatedData['rec_subcategory'] = $data->sub_category ?? '';
+        $validatedData['rec_monthlycharge'] = $data->monthly_demand ?? '';
+        $validatedData['rec_amount'] = $request->amount;
+        $validatedData['rec_paymentmode'] = $request->paymentMode;
+        $validatedData['rec_tcname'] = $request->user()->name;
+        $validatedData['rec_tcmobile'] ='';
+        $validatedData['rec_chequeno'] = $request->chequeNo;
+        $validatedData['rec_chequedate'] = $request->chequeDate;
+        $validatedData['rec_bankname'] = $request->bankName;
+        $validatedData['remarks'] = $request->remarks;
+        $validatedData['utrNo'] = $request->utrNo;
+        $validatedData['upiId'] = $request->upiId;
 
         // Start a transaction to ensure data integrity
 
@@ -196,7 +230,11 @@ class TransactionController extends Controller
             $tranService->extractRatepayerDetails($validatedData['ratepayerId']);
             $transaction = $tranService->createNewTransaction($validatedData);
             $payment = $tranService->createNewPayment($validatedData, $transaction->id);
+
             $transaction->payment_id = $payment->id;
+            $transaction->rec_receiptno =$payment->receipt_no;
+            $transaction->rec_period = $payment->payment_from.' to '.$payment->payment_to;
+
             $transaction->save();
 
             if ($transaction != null) {
@@ -244,6 +282,10 @@ class TransactionController extends Controller
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
+    }
+
+    function truncateString($string, $length = 45) {
+      return strlen($string) > $length ? substr($string, 0, $length) . '...' : $string;
     }
 
     /**

@@ -53,7 +53,8 @@ class Payment extends Model
         'vrno',
         'payment_from',
         'payment_to',
-        'receipt_no'
+        'receipt_no',
+        'bank_name'
     ];
     public function cluster()
     {

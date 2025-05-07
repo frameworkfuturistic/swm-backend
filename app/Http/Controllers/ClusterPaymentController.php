@@ -15,9 +15,14 @@ use App\Models\Cluster;
 use App\Models\Entity;
 use App\Services\NumberGeneratorService;
 use Carbon\Carbon;
+use Illuminate\Http\Response;
 
 class ClusterPaymentController extends Controller
 {
+   function truncateString($string, $length = 45) {
+      return strlen($string) > $length ? substr($string, 0, $length) . '...' : $string;
+    }
+
     /**
      * Process payment for a cluster ratepayer
      * 
@@ -27,11 +32,17 @@ class ClusterPaymentController extends Controller
     public function processClusterPayment(Request $request)
     {
         // Validate the request
-        $validationResult = $this->validateRequest($request);
-        if ($validationResult !== true) {
-            return $validationResult;
-        }
-        
+        $validator = $this->validateRequest($request);
+        if ($validator->fails()) {
+            $errorMessages = $validator->errors()->all();
+            return format_response(
+               'validation error',
+               $errorMessages,
+               Response::HTTP_UNPROCESSABLE_ENTITY
+         );
+     }
+
+       $validatedData = $validator->validated();
         // Get the authenticated tax collector
         $tc_id = Auth::id();
         $ulb_id = $request->user()->ulb_id;
@@ -58,15 +69,58 @@ class ClusterPaymentController extends Controller
             return $demandValidation;
         }
         
+        $data = DB::table('ratepayers as r')
+            ->select(
+               'w.ward_name',
+               'r.consumer_no',
+               'r.ratepayer_name',
+               'r.ratepayer_address',
+               'c.category',
+               'sc.sub_category',
+               'r.monthly_demand'
+            )
+            ->join('wards as w', 'r.ward_id', '=', 'w.id')
+            ->leftJoin('sub_categories as sc', 'r.subcategory_id', '=', 'sc.id')
+            ->leftJoin('categories as c', 'sc.category_id', '=', 'c.id')
+            ->where('r.id', $request->input('payment.ratepayer_id'))
+            ->first();
+
+        $ratepayer = Ratepayer::find($request->input('payment.ratepayer_id'));
+        $validatedData['ulbId'] = $request->ulb_id;
+        $validatedData['tcId'] = Auth::user()->id;
+      //   $validatedData['entityId'] = $ratepayer->entity_id;
+      //   $validatedData['clusterId'] = $ratepayer->cluster_id;
+        $validatedData['eventType'] = 'PAYMENT';
+        $validatedData['paymentMode'] = $request->input('payment.payment_mode');
+
+        $validatedData['rec_ward'] = $data->ward_name ?? '';
+        $validatedData['rec_consumerno'] = $data->consumer_no ?? '';
+        $validatedData['rec_name'] = $this->truncateString($data->ratepayer_name ?? '',40);
+        $validatedData['rec_address'] = $this->truncateString($data->ratepayer_address ?? '',40);
+        $validatedData['rec_category'] = $data->category ?? '';
+        $validatedData['rec_subcategory'] = $data->sub_category ?? '';
+        $validatedData['rec_monthlycharge'] = $data->monthly_demand ?? '';
+        $validatedData['rec_amount'] = $request->input('payment.payment_amount');
+        $validatedData['rec_paymentmode'] = $request->input('payment.payment_mode');
+        $validatedData['rec_tcname'] = $request->user()->name;
+        $validatedData['rec_tcmobile'] ='';
+        $validatedData['rec_chequeno'] = $request->input('payment.cheque_no');
+        $validatedData['rec_chequedate'] = $request->input('payment.cheque_date');
+        $validatedData['rec_bankname'] = $request->input('payment.bank');
+        $validatedData['remarks'] = $request->input('payment.remarks');
+        $validatedData['utrNo'] = $request->input('payment.utr_no');
+        $validatedData['upiId'] = $request->input('payment.upi_id');
+
+
         // Begin transaction
         DB::beginTransaction();
         
         try {
             // Create payment record
-            $payment = $this->createPayment($request, $tc_id, $ulb_id, $cluster_id,$request->payment['year'],$request->payment['month']);
+            $payment = $this->createPayment($request, $validatedData, $tc_id, $ulb_id, $cluster_id,$request->payment['year'],$request->payment['month']);
             
             // Create transaction record
-            $transaction = $this->createClusterTransaction($request, $tc_id, $ulb_id, $cluster_id, $payment->id);
+            $transaction = $this->createClusterTransaction($request,$validatedData, $tc_id, $ulb_id, $cluster_id, $payment->id);
             
             // Update demands for included entities
             $this->updateEntityDemands($request->entities, $payment->id, $tc_id, $ulb_id, $request->payment['year'],$request->payment['month']);
@@ -94,23 +148,27 @@ class ClusterPaymentController extends Controller
                   ->where('r.id', $request->input('payment.ratepayer_id'))
                   ->first();
 
-            $transaction->rec_receiptno =$payment->receipt_no;
-            $transaction->rec_ward = $data->ward_name ?? '';
-            $transaction->rec_consumerno = $data->consumer_no ?? '';
-            $transaction->rec_name = $data->ratepayer_name ?? '';
-            $transaction->rec_address = $data->ratepayer_address ?? '';
-            $transaction->rec_category = $data->category ?? '';
-            $transaction->rec_subcategory = $data->sub_category ?? '';
+            // $transaction->rec_receiptno =$payment->receipt_no;
+            // $transaction->rec_ward = $data->ward_name ?? '';
+            // $transaction->rec_consumerno = $data->consumer_no ?? '';
+            // $transaction->rec_name = $data->ratepayer_name ?? '';
+            // $transaction->rec_address = $data->ratepayer_address ?? '';
+            // $transaction->rec_category = $data->category ?? '';
+            // $transaction->rec_subcategory = $data->sub_category ?? '';
 
-            $transaction->rec_monthlycharge = $data->monthly_demand ?? '';
-            $transaction->rec_period = $paymentFrom.' to '.$paymentTo;
-            $transaction->rec_amount = $request->input('payment.payment_amount');
-            $transaction->rec_paymentmode = $request->input('payment.payment_mode');
-            $transaction->rec_tcname = $request->user()->name;
-            $transaction->rec_tcmobile ='';
-            $transaction->rec_chequeno = $request->input('payment.cheque_no');
-            $transaction->rec_chequedate = $request->input('payment.cheque_date');
-            $transaction->rec_bankname = $request->input('payment.bank');
+            // $transaction->rec_monthlycharge = $data->monthly_demand ?? '';
+            // $transaction->rec_period = $paymentFrom.' to '.$paymentTo;
+            // $transaction->rec_amount = $request->input('payment.payment_amount');
+            // $transaction->rec_paymentmode = $request->input('payment.payment_mode');
+            // $transaction->rec_tcname = $request->user()->name;
+            // $transaction->rec_tcmobile ='';
+            // $transaction->rec_chequeno = $request->input('payment.cheque_no');
+            // $transaction->rec_chequedate = $request->input('payment.cheque_date');
+            // $transaction->rec_bankname = $request->input('payment.bank');
+            // $transaction->save();
+
+            $transaction->payment_from = $paymentFrom;
+            $transaction->payment_to = $paymentTo;
             $transaction->save();
 
             // Update payment with transaction id
@@ -168,15 +226,15 @@ class ClusterPaymentController extends Controller
             'entities.*.entity_id' => 'required|exists:entities,id',
          ]);
      
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Validation error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+      //   if ($validator->fails()) {
+      //       return response()->json([
+      //           'status' => 'error',
+      //           'message' => 'Validation error',
+      //           'errors' => $validator->errors()
+      //       ], 422);
+      //   }
         
-        return true;
+        return  $validator;
     }
     
     /**
@@ -282,7 +340,7 @@ class ClusterPaymentController extends Controller
      * @param int $clusterId
      * @return Payment
      */
-    private function createPayment(Request $request, $tcId, $ulbId, $clusterId, $year, $month)
+    private function createPayment(Request $request, $validatedData, $tcId, $ulbId, $clusterId, $year, $month)
     {
         $receiptNo = app(NumberGeneratorService::class)->generate('receipt_no');
         $formattedDate = date('F-Y', mktime(0, 0, 0, $month, 1, $year));
@@ -296,20 +354,42 @@ class ClusterPaymentController extends Controller
         $payment->payment_date = Carbon::now();
         $payment->payment_mode = $request->input('payment.payment_mode');
         $payment->payment_to = $formattedDate;
-        $payment->payment_status = 'COMPLETED';
+        $payment->payment_status = 'PENDING';
         $payment->amount = $request->input('payment.payment_amount');
-        $payment->payment_verified = true;
+        $payment->payment_verified = false;
         $payment->vrno = 0; // Initial VRNo is 0
         
-        // Set payment mode specific details
-        if ($request->input('payment.payment_mode') == 'CARD') {
-            $payment->card_number = $request->input('payment.card_no');
-        } elseif ($request->input('payment.payment_mode') == 'UPI') {
-            $payment->upi_id = $request->input('payment.upi_id');
-        } else {
-            $payment->cheque_number = $request->input('payment.cheque_no');
-            $payment->bank_name = $request->input('payment.bank');
+        
+     if (isset($validatedData['rec_chequeno'])) {
+      $payment->cheque_number = $validatedData['rec_chequeno'];
+     }
+     if (isset($validatedData['rec_upiId'])) {
+      $payment->upi_id = $validatedData['rec_upiId'];
+     }
+
+     if (isset($validatedData['rec_bankname'])) {
+      $payment->bank_name = $validatedData['rec_bankname'];
+     }
+     if (isset($validatedData['rec_utrNo'])) {
+      $payment->neft_id = $validatedData['rec_utrNo'];
+      if (isset($validatedData['rec_chequedate'])) {
+         $payment->neft_date = $validatedData['rec_chequedate'];
         }
+     }
+
+     if (isset($validatedData['rec_chequedate'])) {
+      $payment->neft_date = $validatedData['rec_chequedate'];
+     }
+
+      //   // Set payment mode specific details
+      //   if ($request->input('payment.payment_mode') == 'CARD') {
+      //       $payment->card_number = $request->input('payment.card_no');
+      //   } elseif ($request->input('payment.payment_mode') == 'UPI') {
+      //       $payment->upi_id = $request->input('payment.upi_id');
+      //   } else {
+      //       $payment->cheque_number = $request->input('payment.cheque_no');
+      //       $payment->bank_name = $request->input('payment.bank');
+      //   }
         
         $payment->save();
         
@@ -326,7 +406,7 @@ class ClusterPaymentController extends Controller
      * @param int $paymentId
      * @return CurrentTransaction
      */
-    private function createClusterTransaction(Request $request, $tcId, $ulbId, $clusterId, $paymentId)
+    private function createClusterTransaction(Request $request, $validatedData, $tcId, $ulbId, $clusterId, $paymentId)
     {
         $transactionNo = app(NumberGeneratorService::class)->generate('transaction_no');
         $transaction = new CurrentTransaction();
@@ -346,23 +426,49 @@ class ClusterPaymentController extends Controller
         $transaction->is_cancelled = false;
         $transaction->vrno = 0; // Initial VRNo is 0
 
-      //   $transaction->rec_receiptno ='anil';
-      //   $transaction->rec_ward = 'mishra ward';
-      //   $transaction->rec_consumerno = '';
-      //   $transaction->rec_name = '';
-      //   $transaction->rec_address = '';
-      //   $transaction->rec_category = '';
-      //   $transaction->rec_subcategory = '';
-
-      //   $transaction->rec_monthlycharge = '';
-      //   $transaction->rec_period ='';
-      //   $transaction->rec_amount = '';
-      //   $transaction->rec_paymentmode = '';
-      //   $transaction->rec_tcname = '';
-      //   $transaction->rec_tcmobile ='';
-      //   $transaction->rec_chequeno = '';
-      //   $transaction->rec_chequedate = '';
-      //   $transaction->rec_bankname = '';
+        if (isset($validatedData['rec_ward'])) {
+         $transaction->rec_ward = $validatedData['rec_ward'];
+        }
+        if (isset($validatedData['rec_consumerno'])) {
+         $transaction->rec_consumerno = $validatedData['rec_consumerno'];
+        }
+        if (isset($validatedData['rec_name'])) {
+         $transaction->rec_name = $validatedData['rec_name'];
+        }
+        if (isset($validatedData['rec_address'])) {
+         $transaction->rec_address = $validatedData['rec_address'];
+        }
+        if (isset($validatedData['rec_category'])) {
+         $transaction->rec_category = $validatedData['rec_category'];
+        }
+        if (isset($validatedData['rec_subcategory'])) {
+         $transaction->rec_subcategory = $validatedData['rec_subcategory'];
+        }
+        if (isset($validatedData['rec_monthlycharge'])) {
+         $transaction->rec_monthlycharge = $validatedData['rec_monthlycharge'];
+        }
+        if (isset($validatedData['rec_amount'])) {
+         $transaction->rec_amount = $validatedData['rec_amount'];
+        }
+        if (isset($validatedData['rec_paymentmode'])) {
+         $transaction->rec_paymentmode = $validatedData['rec_paymentmode'];
+        }
+        if (isset($validatedData['rec_tcname'])) {
+         $transaction->rec_tcname = $validatedData['rec_tcname'];
+        }
+        if (isset($validatedData['rec_tcmobile'])) {
+         $transaction->rec_tcmobile = $validatedData['rec_tcmobile'];
+        }
+        if (isset($validatedData['rec_chequeno'])) {
+         $transaction->rec_chequeno = $validatedData['rec_chequeno'];
+        }
+        if (isset($validatedData['rec_chequedate'])) {
+         $transaction->rec_chequedate = $validatedData['rec_chequedate'];
+        }
+        if (isset($validatedData['rec_bankname'])) {
+         $transaction->rec_bankname = $validatedData['rec_bankname'];
+        }
+        
 
         $transaction->save();
         
