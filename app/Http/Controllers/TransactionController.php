@@ -89,7 +89,7 @@ class TransactionController extends Controller
                ->select(
                   'r.ratepayer_name',
                   'r.ratepayer_address',
-                  'r.consumer_no',
+                  DB::raw('IFNULL(r.consumer_no, "") as consumer_no'), 
                   'p.payment_date',
                   'p.payment_mode',
                   'p.receipt_no',

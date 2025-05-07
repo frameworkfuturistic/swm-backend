@@ -16,6 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('ulb_id');
             $table->unsignedBigInteger('ratepayer_id');
             $table->unsignedBigInteger('tran_id');
+            $table->enum('payment_mode', ['CHEQUE', 'DD', 'NEFT']);
             $table->string('cheque_no', 50);
             $table->date('cheque_date');
             $table->string('bank_name', 50);
@@ -25,10 +26,6 @@ return new class extends Migration
             $table->boolean('is_returned')->default(false);
             $table->string('return_reason', 255)->nullable();
             $table->timestamps();
-
-            $table->foreign('ulb_id')->references('id')->on('ulbs')->onDelete('cascade');
-            $table->foreign('ratepayer_id')->references('id')->on('ratepayers')->onDelete('cascade');
-            // $table->foreign('tran_id')->references('id')->on('transactions')->onDelete('cascade');
         });
     }
 

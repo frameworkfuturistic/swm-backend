@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountsController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ChequeController;
 use App\Http\Controllers\ClusterController;
 use App\Http\Controllers\ClusterPaymentController;
 use App\Http\Controllers\Dashboard\AccountController;
@@ -292,7 +293,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('transactions')
     //Transactions - API-ID: TRAN-006
     Route::post('deferred', [TransactionController::class, 'deferred']);
     //Transactions - API-ID: TRAN-007
-    Route::post('cheque-collection', [TransactionController::class, 'chequeCollection']);
+   //  Route::post('cheque-collection', [TransactionController::class, 'chequeCollection']);
     //Transactions - API-ID: TRAN-008
     Route::post('cancel', [TransactionController::class, 'cancellation']);
     //Transactions - API-ID: TRAN-009
@@ -301,6 +302,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('transactions')
     Route::get('receipt/{ratepayerId}', [TransactionController::class, 'getReceipt']);
     //Transactions - API-ID: TRAN-011
     Route::get('ratepayer-transactions/{id}', [TransactionController::class, 'getTransactionsByRatepayer']);
+    //Cheque Collection - API-ID: TRAN-012
+    Route::post('save-cheque', [ChequeController::class, 'store']);
 
     //Done
 
