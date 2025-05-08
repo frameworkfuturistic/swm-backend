@@ -132,21 +132,21 @@ class ClusterPaymentController extends Controller
             $paymentFrom = $paymentOld?->payment_to; 
             $paymentTo = $payment->payment_from;
 
-            $data = DB::table('ratepayers as r')
-                  ->select(
-                     'w.ward_name',
-                     'r.consumer_no',
-                     'r.ratepayer_name',
-                     'r.ratepayer_address',
-                     'c.category',
-                     'sc.sub_category',
-                     'r.monthly_demand'
-                  )
-                  ->join('wards as w', 'r.ward_id', '=', 'w.id')
-                  ->leftJoin('sub_categories as sc', 'r.subcategory_id', '=', 'sc.id')
-                  ->leftJoin('categories as c', 'sc.category_id', '=', 'c.id')
-                  ->where('r.id', $request->input('payment.ratepayer_id'))
-                  ->first();
+            // $data = DB::table('ratepayers as r')
+            //       ->select(
+            //          'w.ward_name',
+            //          'r.consumer_no',
+            //          'r.ratepayer_name',
+            //          'r.ratepayer_address',
+            //          'c.category',
+            //          'sc.sub_category',
+            //          'r.monthly_demand'
+            //       )
+            //       ->join('wards as w', 'r.ward_id', '=', 'w.id')
+            //       ->leftJoin('sub_categories as sc', 'r.subcategory_id', '=', 'sc.id')
+            //       ->leftJoin('categories as c', 'sc.category_id', '=', 'c.id')
+            //       ->where('r.id', $request->input('payment.ratepayer_id'))
+            //       ->first();
 
             // $transaction->rec_receiptno =$payment->receipt_no;
             // $transaction->rec_ward = $data->ward_name ?? '';
@@ -167,8 +167,9 @@ class ClusterPaymentController extends Controller
             // $transaction->rec_bankname = $request->input('payment.bank');
             // $transaction->save();
 
-            $transaction->payment_from = $paymentFrom;
-            $transaction->payment_to = $paymentTo;
+            // $transaction->payment_from = $paymentFrom;
+            // $transaction->payment_to = $paymentTo;
+            $transaction->rec_period = $paymentFrom . $paymentTo;
             $transaction->save();
 
             // Update payment with transaction id

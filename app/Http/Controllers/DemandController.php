@@ -232,33 +232,47 @@ class DemandController extends Controller
             //          $join->on('rp.cluster_id', '=', 'a.cluster_id');
             //       });
 
-            $qry = DB::table(function($query) use ($id) {  // Add 'use ($id)' here
-               $query->from('ratepayers')
-                   ->where('paymentzone_id', $id)
-                   ->whereNotNull('cluster_id')
-                   ->select('*');
-               }, 'r')
-               ->select([
-                     'r.cluster_id',
-                     'r.id as ratepayer_id',
-                     'r.consumer_no',
-                     'r.ratepayer_name',
-                     'r.ratepayer_address',
-                     DB::raw('cast(ifnull(a.clusterDemand,0) as char) as clusterDemand')  // Fixed missing closing parenthesis
-               ])
-               ->leftJoinSub(
-                     DB::table('current_demands as d')
-                        ->join('ratepayers as r', 'd.ratepayer_id', '=', 'r.id')
-                        ->join('entities as e', 'r.entity_id', '=', 'e.id')
-                        ->where('r.paymentzone_id', $id)
-                        ->whereNotNull('e.cluster_id')
-                        ->groupBy('e.cluster_id')
-                        ->select('e.cluster_id', DB::raw('SUM(d.demand) AS clusterDemand')),
-                     'a',
-                     'r.cluster_id', '=', 'a.cluster_id'
-               );
 
-            // $qry = DB::table(function($query) {
+            // select r.cluster_id,r.id as ratepayer_id, r.consumer_no, r.ratepayer_name,r.ratepayer_address, cast(ifnull(a.totalDemand,0) as char) as clusterDemand
+            // from ratepayers r
+            // left join (select e.cluster_id, sum(ifnull(d.total_demand,0)) as totalDemand
+            //   from current_demands d
+            //   inner join ratepayers r on d.ratepayer_id=r.id
+            //   inner join entities e on r.entity_id=e.id
+            //   where e.cluster_id is not null and r.paymentzone_id=3 and d.is_active=1
+            //   and (ifnull(d.total_demand,0) - ifnull(d.payment,0)) > 0
+            //   group by e.cluster_id) a on r.cluster_id=a.cluster_id
+            // where r.paymentzone_id=3 and r.cluster_id is not null
+
+            $qry = DB::table('ratepayers AS r')
+               ->select(
+                  'r.cluster_id',
+                  'r.id AS ratepayer_id',
+                  'r.consumer_no',
+                  'r.ratepayer_name',
+                  'r.ratepayer_address',
+                  DB::raw('CAST(IFNULL(a.totalDemand, 0) AS CHAR) AS clusterDemand')
+               )
+               ->leftJoin(
+                  DB::raw('(SELECT 
+                           e.cluster_id, 
+                           SUM(IFNULL(d.total_demand, 0)) AS totalDemand
+                        FROM current_demands d
+                        INNER JOIN ratepayers r ON d.ratepayer_id = r.id
+                        INNER JOIN entities e ON r.entity_id = e.id
+                        WHERE e.cluster_id IS NOT NULL 
+                           AND r.paymentzone_id = 3 
+                           AND d.is_active = 1
+                           AND (IFNULL(d.total_demand, 0) - IFNULL(d.payment, 0)) > 0
+                        GROUP BY e.cluster_id) AS a'),
+                  'r.cluster_id', '=', 'a.cluster_id'
+               )
+               ->where('r.paymentzone_id', $id)
+               ->whereNotNull('r.cluster_id')
+               ->orderBy('r.ratepayer_name');
+
+               
+            // $qry = DB::table(function($query) use ($id) {  // Add 'use ($id)' here
             //    $query->from('ratepayers')
             //        ->where('paymentzone_id', $id)
             //        ->whereNotNull('cluster_id')
@@ -270,7 +284,7 @@ class DemandController extends Controller
             //          'r.consumer_no',
             //          'r.ratepayer_name',
             //          'r.ratepayer_address',
-            //          DB::raw('cast(ifnull(a.clusterDemand,0) as char as clusterDemand')
+            //          DB::raw('cast(ifnull(a.clusterDemand,0) as char) as clusterDemand')  // Fixed missing closing parenthesis
             //    ])
             //    ->leftJoinSub(
             //          DB::table('current_demands as d')
@@ -283,6 +297,8 @@ class DemandController extends Controller
             //          'a',
             //          'r.cluster_id', '=', 'a.cluster_id'
             //    );
+
+           
 
             $results = $qry->get();
 
