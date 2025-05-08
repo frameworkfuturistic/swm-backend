@@ -120,7 +120,7 @@ class ClusterPaymentController extends Controller
             $payment = $this->createPayment($request, $validatedData, $tc_id, $ulb_id, $cluster_id,$request->payment['year'],$request->payment['month']);
             
             // Create transaction record
-            $transaction = $this->createClusterTransaction($request,$validatedData, $tc_id, $ulb_id, $cluster_id, $payment->id);
+            $transaction = $this->createClusterTransaction($request,$validatedData, $tc_id, $ulb_id, $cluster_id, $payment->id, $payment->receipt_no);
             
             // Update demands for included entities
             $this->updateEntityDemands($request->entities, $payment->id, $tc_id, $ulb_id, $request->payment['year'],$request->payment['month']);
@@ -407,12 +407,13 @@ class ClusterPaymentController extends Controller
      * @param int $paymentId
      * @return CurrentTransaction
      */
-    private function createClusterTransaction(Request $request, $validatedData, $tcId, $ulbId, $clusterId, $paymentId)
+    private function createClusterTransaction(Request $request, $validatedData, $tcId, $ulbId, $clusterId, $paymentId, $receiptNo)
     {
         $transactionNo = app(NumberGeneratorService::class)->generate('transaction_no');
         $transaction = new CurrentTransaction();
         $transaction->ulb_id = $ulbId;
         $transaction->tc_id = $tcId;
+        $transaction->rec_receiptno = $receiptNo;
         $transaction->ratepayer_id = $request->input('payment.ratepayer_id');
         $transaction->entity_id = null;
         $transaction->cluster_id = $clusterId;
