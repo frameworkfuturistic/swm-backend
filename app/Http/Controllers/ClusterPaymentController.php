@@ -77,7 +77,8 @@ class ClusterPaymentController extends Controller
                'r.ratepayer_address',
                'c.category',
                'sc.sub_category',
-               'r.monthly_demand'
+               'r.monthly_demand',
+               'r.no_of_tenants'
             )
             ->join('wards as w', 'r.ward_id', '=', 'w.id')
             ->leftJoin('sub_categories as sc', 'r.subcategory_id', '=', 'sc.id')
@@ -107,6 +108,7 @@ class ClusterPaymentController extends Controller
         $validatedData['rec_chequeno'] = $request->input('payment.cheque_no');
         $validatedData['rec_chequedate'] = $request->input('payment.cheque_date');
         $validatedData['rec_bankname'] = $request->input('payment.bank');
+        $validatedData['rec_nooftenants'] = $ratepayer->no_of_tenants;
         $validatedData['remarks'] = $request->input('payment.remarks');
         $validatedData['utrNo'] = $request->input('payment.utr_no');
         $validatedData['upiId'] = $request->input('payment.upi_id');
@@ -170,6 +172,7 @@ class ClusterPaymentController extends Controller
             // $transaction->payment_from = $paymentFrom;
             // $transaction->payment_to = $paymentTo;
             $transaction->rec_period = $paymentFrom . $paymentTo;
+            $transaction->rec_nooftenants = $ratepayer->no_of_tenants;
             $transaction->save();
 
             // Update payment with transaction id

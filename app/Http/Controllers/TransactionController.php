@@ -47,6 +47,57 @@ class TransactionController extends Controller
         $this->numberGenerator = $numberGenerator;
     }
 
+    public function getTCPaymentRecords(Request $request)
+    {
+        // Validate the date parameter
+        $validator = Validator::make($request->all(), [
+            'date' => 'required|date_format:Y-m-d',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid date format. Please use YYYY-MM-DD format.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Get date from request and use authenticated user's ID as tc_id
+            $date = $request->input('date');
+            $tcId = Auth::id();
+            
+            // Query to fetch payment records
+            $payments = DB::table('payments as p')
+                ->select(
+                    'p.ratepayer_id',
+                    'p.id as payment_id',
+                    'r.ratepayer_name',
+                    'r.ratepayer_address',
+                    'r.mobile_no',
+                    DB::raw("IFNULL(p.receipt_no, 'NA') as receipt_no"),
+                    'p.payment_mode',
+                    DB::raw("DATE_FORMAT(p.payment_date, '%h:%i %p') as payment_time"),
+                    'p.amount'
+                )
+                ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
+                ->where('p.tc_id', $tcId)
+                ->whereRaw('DATE(payment_date) = ?', [$date])
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $payments,
+                'message' => 'Payment records retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error retrieving payment records: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Usage
      *  // Generate a transaction number
@@ -83,7 +134,8 @@ class TransactionController extends Controller
                    'rec_receiptno as receipt_no',
                    'rec_period as period',
                    'rec_amount as amount',
-                   DB::raw("0 as monthly_demand"),
+                   DB::raw("rec_monthlycharge as monthly_demand"),
+                  //  DB::raw("cast(rec_monthlycharge as char) as monthly_demand"),
                    'rec_tcname as tc_name',
                    'rec_tcmobile as tc_mobile',
                    'rec_ward as ward_name',
@@ -92,6 +144,7 @@ class TransactionController extends Controller
                    'rec_chequeno as cheque_no',
                    'rec_chequedate as cheque_date',
                    'rec_bankname as bank_name',
+                   'rec_nooftenants'
                ])
                ->where('ratepayer_id', $ratepayerId)
                ->orderByDesc('id');
@@ -106,7 +159,7 @@ class TransactionController extends Controller
                   'p.receipt_no',
                   DB::raw("CONCAT(payment_from, ' to ', payment_to) as period"),
                   DB::raw('cast(ifnull(p.amount,0) as char) as amount'),
-                  'r.monthly_demand',
+                  DB::raw('cast(ifnull(r.monthly_demand,0) as char) as monthly_demand'),
                   'u.name as tc_name',
                   DB::raw("'' as mobile_no"),
                   'w.ward_name',
@@ -115,6 +168,7 @@ class TransactionController extends Controller
                   DB::raw("'' as cheque_no"),
                   DB::raw("'' as cheque_date"),
                   DB::raw("'' as bank_name"),
+                  DB::raw("'1' as rec_nooftenants"),
                )
                ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
                ->join('wards as w', 'r.ward_id', '=', 'w.id')
@@ -234,6 +288,7 @@ class TransactionController extends Controller
             $transaction->payment_id = $payment->id;
             $transaction->rec_receiptno =$payment->receipt_no;
             $transaction->rec_period = $payment->payment_from.' to '.$payment->payment_to;
+            $transaction->rec_nooftenants = "1";
 
             $transaction->save();
 
