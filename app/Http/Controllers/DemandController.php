@@ -198,7 +198,7 @@ class DemandController extends Controller
                ->join('categories as ct', 'sc.category_id', '=', 'ct.id')
                ->whereRaw('IFNULL(c.total_demand, 0) - IFNULL(c.payment, 0) > 0')
                ->whereRaw('(c.bill_month + (c.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
-               ->where('r.paymentzone_id', 3)
+               ->where('r.paymentzone_id', $zone->id)
                ->whereNull('cluster_id')
                ->groupBy(
                   'c.ratepayer_id',
