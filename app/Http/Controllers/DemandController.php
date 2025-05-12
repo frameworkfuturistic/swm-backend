@@ -19,10 +19,11 @@ class DemandController extends Controller
     {
         try {
             $year = $request->CURRENT_YEAR;
+            $month = 5;
             $ulb_id = $request->ulb_id;
             $tcId = Auth::user()->id;
             $service = new DemandService;
-            $stats = $service->generateYearlyDemands($year, $ulb_id, $tcId);
+            $stats = $service->generateYearlyDemands($year, $month, $ulb_id, $tcId);
 
             return format_response(
                 'Demand Generated Successfully',
@@ -177,7 +178,7 @@ class DemandController extends Controller
 
             // $results = $query->get();
 
-            $results = DB::table('current_demands as c')
+            $qry = DB::table('current_demands as c')
                ->select([
                   'c.ratepayer_id',
                   'r.consumer_no',
@@ -215,8 +216,9 @@ class DemandController extends Controller
                   'r.latitude',
                   'r.longitude'
                )
-               ->orderBy('r.ratepayer_name', 'asc')
-               ->get();
+               ->orderBy('r.ratepayer_name', 'asc');
+
+               $results = $qry->get();
 
 
             return format_response(

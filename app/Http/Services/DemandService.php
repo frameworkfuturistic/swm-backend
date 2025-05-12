@@ -39,13 +39,13 @@ class DemandService
      * @param  int|null  $ulbId  Optional ULB ID filter
      * @return array Statistics of the generation process
      */
-    public function generateYearlyDemands(int $year, ?int $ulbId = null): array
+    public function generateYearlyDemands(int $year, $month, ?int $ulbId = null): array
     {
         $this->ulbId = $ulbId;
 
         try {
-            DB::transaction(function () use ($year) {
-                $this->generateCurrentDemands($year);
+            DB::transaction(function () use ($year, $month) {
+                $this->generateCurrentDemands($year, $month);
             });
         } catch (Exception $e) {
             Log::error('Yearly demand generation failed', [
@@ -63,7 +63,7 @@ class DemandService
      * ========================================================================
      * Generate current demands for active ratepayers
      */
-    protected function generateCurrentDemands(int $year): void
+    protected function generateCurrentDemands(int $year, $month): void
     {
       DB::enableQueryLog();
       // $rp = Ratepayer::where('is_active', true)->get();
@@ -76,9 +76,9 @@ class DemandService
             ->where('ulb_id', $this->ulbId)
             ->whereNull('cluster_id')
             ->whereNotNull('entity_id')
-            ->chunk(100, function ($ratepayers) use ($year) {
+            ->chunk(100, function ($ratepayers) use ($year, $month) {
                 foreach ($ratepayers as $ratepayer) {
-                    $this->processRatepayerDemand($ratepayer, $year);
+                    $this->processRatepayerDemand($ratepayer, $year, $month);
                 }
          });
     }
@@ -87,11 +87,11 @@ class DemandService
      * ========================================================================
      * Process individual ratepayer demand
      */
-    protected function processRatepayerDemand(Ratepayer $ratepayer, int $year): void
+    protected function processRatepayerDemand(Ratepayer $ratepayer, int $year, int $month): void
     {
         try {
             $monthlyDemand = $this->calculateMonthlyDemand($ratepayer);
-            $this->createMonthlyDemands($ratepayer, $year, $monthlyDemand);
+            $this->createMonthlyDemands($ratepayer, $year, $month, $monthlyDemand);
             $this->stats['demands_generated'] += 12;
         } catch (Exception $e) {
             $this->handleDemandGenerationError($ratepayer, $e);
@@ -120,24 +120,24 @@ class DemandService
      * ========================================================================
      * Create monthly demands for a ratepayer
      */
-    protected function createMonthlyDemands(Ratepayer $ratepayer, int $year, float $monthlyDemand): void
+    protected function createMonthlyDemands(Ratepayer $ratepayer, int $year, int $startMonth, float $monthlyDemand): void
     {
-        for ($month = 1; $month <= 12; $month++) {
+        //for ($month = $startMonth; $startMonth <= 12; $startMonth++) {
             CurrentDemand::updateOrCreate(
                 [
                     'ulb_id' => $ratepayer->ulb_id,
                     'ratepayer_id' => $ratepayer->id,
-                    'bill_month' => $month,
+                    'bill_month' => 5, //$startMonth,
                     'bill_year' => $year,
                 ],
                 [
-                    'vrno' => 1,
+                    'vrno' => 0,
                     'demand' => $monthlyDemand,
                     'total_demand' => $monthlyDemand,
                     'payment' => 0,
                 ]
             );
-        }
+      //   }
     }
 
     /** Method 1.1.1.3
