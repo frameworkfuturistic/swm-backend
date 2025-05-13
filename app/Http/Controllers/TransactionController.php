@@ -215,7 +215,7 @@ class TransactionController extends Controller
         $validator = Validator::make($request->all(), [
             'ratepayerId' => 'required|integer|exists:ratepayers,id', // Ensures the ID is valid and exists in the 'ratepayers' table
             'remarks' => 'nullable|string|max:255',
-            'amount' => 'required|numeric|between:0,50000',
+            'amount' => 'required|numeric|between:0,5000000',
             'scheduleDate' => 'nullable|date|date_format:Y-m-d|after_or_equal:today',
             'longitude' => 'required|numeric|between:-180,180',      // Required, valid longitude
             'latitude' => 'required|numeric|between:-90,90',         // Required, valid latitude
@@ -310,9 +310,9 @@ class TransactionController extends Controller
                 DB::commit();
 
                 //Broadcast transaction to Dashboard
-                broadcast(new SiteVisitedEvent(
-                    $responseData,
-                ))->toOthers();
+               //  broadcast(new SiteVisitedEvent(
+               //      $responseData,
+               //  ))->toOthers();
 
                 return format_response(
                     'success',

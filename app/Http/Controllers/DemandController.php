@@ -155,7 +155,7 @@ class DemandController extends Controller
             }
 
             // $qry = DB::table('current_demands as c')
-            //    ->select([
+            //    ->select(
             //       'c.ratepayer_id',
             //       'r.consumer_no',
             //       'r.ratepayer_name',
@@ -166,16 +166,22 @@ class DemandController extends Controller
             //       'sc.sub_category',
             //       'r.reputation',
             //       'r.lastpayment_amt',
-            //       DB::raw('IF(((latitude IS NOT NULL) AND (longitude IS NOT NULL) AND (latitude BETWEEN -90 AND 90) AND (longitude BETWEEN -180 AND 180)), true, false) as validCoordinates'),
+            //       DB::raw('IF(
+            //             ((r.latitude IS NOT NULL) AND (r.longitude IS NOT NULL)
+            //             AND (r.latitude BETWEEN -90 AND 90)
+            //             AND (r.longitude BETWEEN -180 AND 180)),
+            //             true,
+            //             false
+            //       ) as validCoordinates'),
             //       DB::raw('DATE_FORMAT(r.lastpayment_date, "%d/%m/%Y") as lastpayment_date'),
-            //       DB::raw('SUM(c.total_demand) as totalDemand'),
-            //    ])
+            //       DB::raw('SUM(c.total_demand) as totalDemand')
+            //    )
             //    ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
             //    ->join('sub_categories as sc', 'r.subcategory_id', '=', 'sc.id')
             //    ->join('categories as ct', 'sc.category_id', '=', 'ct.id')
             //    ->whereRaw('IFNULL(c.total_demand, 0) - IFNULL(c.payment, 0) > 0')
             //    ->whereRaw('(c.bill_month + (c.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
-            //    ->where('r.paymentzone_id', $zone->id)
+            //    ->where('r.paymentzone_id', $id)
             //    ->whereNull('cluster_id')
             //    ->groupBy(
             //       'c.ratepayer_id',
@@ -192,11 +198,19 @@ class DemandController extends Controller
             //       'r.latitude',
             //       'r.longitude'
             //    )
-            //    ->orderBy('r.ratepayer_name', 'asc');
+            //    ->orderBy('r.ratepayer_name');
 
-            $qry = DB::table('current_demands as c')
-               ->select(
-                  'c.ratepayer_id',
+            $qry = DB::table('entities as e')
+               ->join('ratepayers as r', 'e.ratepayer_id', '=', 'r.id')
+               ->join('sub_categories as sc', 'r.subcategory_id', '=', 'sc.id')
+               ->join('categories as ct', 'sc.category_id', '=', 'ct.id')
+               ->leftJoin('current_demands as c', function($join) {
+                  $join->on('r.id', '=', 'c.ratepayer_id')
+                        ->whereRaw('(c.bill_month + (c.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))');
+               })
+               ->where('r.paymentzone_id', $id)
+               ->select([
+                  'r.id as ratepayer_id',
                   'r.consumer_no',
                   'r.ratepayer_name',
                   'r.ratepayer_address',
@@ -206,25 +220,12 @@ class DemandController extends Controller
                   'sc.sub_category',
                   'r.reputation',
                   'r.lastpayment_amt',
-                  DB::raw('IF(
-                        ((r.latitude IS NOT NULL) AND (r.longitude IS NOT NULL)
-                        AND (r.latitude BETWEEN -90 AND 90)
-                        AND (r.longitude BETWEEN -180 AND 180)),
-                        true,
-                        false
-                  ) as validCoordinates'),
+                  DB::raw('IF(((r.latitude IS NOT NULL) AND (r.longitude IS NOT NULL) AND (r.latitude BETWEEN -90 AND 90) AND (r.longitude BETWEEN -180 AND 180)), true, false) as validCoordinates'),
                   DB::raw('DATE_FORMAT(r.lastpayment_date, "%d/%m/%Y") as lastpayment_date'),
-                  DB::raw('SUM(c.total_demand) as totalDemand')
-               )
-               ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
-               ->join('sub_categories as sc', 'r.subcategory_id', '=', 'sc.id')
-               ->join('categories as ct', 'sc.category_id', '=', 'ct.id')
-               ->whereRaw('IFNULL(c.total_demand, 0) - IFNULL(c.payment, 0) > 0')
-               ->whereRaw('(c.bill_month + (c.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
-               ->where('r.paymentzone_id', $id)
-               ->whereNull('cluster_id')
-               ->groupBy(
-                  'c.ratepayer_id',
+                  DB::raw('SUM(IFNULL(c.total_demand, 0)) - SUM(IFNULL(c.payment, 0)) as totalDemand')
+               ])
+               ->groupBy([
+                  'r.id', // Use r.id instead of c.ratepayer_id
                   'r.consumer_no',
                   'r.ratepayer_name',
                   'r.ratepayer_address',
@@ -235,12 +236,11 @@ class DemandController extends Controller
                   'r.reputation',
                   'r.lastpayment_amt',
                   'r.lastpayment_date',
-                  'r.latitude',
-                  'r.longitude'
-               )
+                  'validCoordinates' // Add the calculated field
+               ])
                ->orderBy('r.ratepayer_name');
-               // ->get();
-                           
+
+            
                $results = $qry->get();
 
 
