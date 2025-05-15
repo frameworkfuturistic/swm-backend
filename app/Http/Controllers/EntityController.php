@@ -6,13 +6,18 @@ use App\Http\Requests\EntityGeolocationRequest;
 use App\Http\Requests\EntityRatepayerRequest;
 use App\Http\Requests\EntityRequest;
 use App\Models\Cluster;
+use App\Models\CurrentDemand;
 use App\Models\Entity;
 use App\Models\Ratepayer;
+use App\Models\SubCategory;
+use App\Services\NumberGeneratorService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 /**
  * Created on 06/12/2024
@@ -518,4 +523,124 @@ class EntityController extends Controller
             );
         }
     }
+
+    public function addEntityWithDemands(Request $request)
+    {
+      $validator = Validator::make($request->all(), [
+         'ulb_id' => 'required|integer',
+         'ward_id' => 'required|integer|exists:wards,id',
+         // 'paymentzone_id' => [
+         //    'required',
+         //    'integer',
+         //    'exists:wards,id',
+         //    function ($attribute, $value, $fail) use ($request) {
+         //          if ($value !== (int)$request->ward_id) {
+         //             $fail('The ' . $attribute . ' must be the same as ward_id.');
+         //          }
+         //    },
+         // ],
+         'cluster_id' => 'nullable|integer',
+         'subcategory_id' => 'required|exists:sub_categories,id',
+         'entity_name' => 'required|string',
+         'consumer_no' => 'required|string',
+         'entity_address' => 'required|string',
+         'mobile_no' => 'required|string',
+         'inclusion_date' => 'nullable|date_format:Y-m-d',
+         'verification_date' => 'nullable|date_format:Y-m-d',
+         'usage_type' => ['required', Rule::in(['Residential', 'Commercial', 'Industrial', 'Institutional'])],
+         'status' => ['required', Rule::in(['verified', 'pending', 'suspended', 'closed'])],
+         'from_month' => 'required|integer|min:1|max:12',
+         'from_year' => 'required|integer|min:2000',
+         'to_month' => 'required|integer|min:1|max:12',
+         'to_year' => 'required|integer|min:2000',
+      ]);
+
+      if ($validator->fails()) {
+         return response()->json(['errors' => $validator->errors()], 422);
+      }
+
+
+      DB::beginTransaction();
+
+       try {
+        // Fetch monthly rate from sub_categories
+         $subCategory = SubCategory::findOrFail($request->subcategory_id);
+         $monthlyRate = $subCategory->rate;
+         // $consumerNo = app(NumberGeneratorService::class)->generate('consumer_no');
+
+         // Create Entity
+         $entity = Entity::create([
+               'ulb_id' => $request->ulb_id,
+               'ward_id' => $request->ward_id,
+               'cluster_id' => $request->cluster_id,
+               'subcategory_id' => $request->subcategory_id,
+               'entity_name' => $request->entity_name,
+               'entity_address' => $request->entity_address,
+               'mobile_no' => $request->mobile_no,
+               'inclusion_date' => $request->inclusion_date,
+               'verification_date' => $request->verification_date,
+               'usage_type' => $request->usage_type,
+               'status' => $request->status,
+               'monthly_demand' => $monthlyRate,
+               'is_active' => true,
+               'is_verified' => false,
+               'vrno' => 0,
+         ]);
+
+         // Create Ratepayer (with back reference to entity)
+         $ratepayer = Ratepayer::create([
+               'ulb_id' => $request->ulb_id,
+               'ward_id' => $request->ward_id,
+               'paymentzone_id' => $request->ward_id,
+               'cluster_id' => $request->cluster_id,
+               'entity_id' => $entity->id,
+               'subcategory_id' => $request->subcategory_id,
+               'consumer_no' => $request->consumer_no,
+               'ratepayer_name' => $request->entity_name,
+               'ratepayer_address' => $request->entity_address,
+               'mobile_no' => $request->mobile_no,
+               'usage_type' => $request->usage_type,
+               'no_of_tenants' => 1,
+               'status' => $request->status,
+               'monthly_demand' => $monthlyRate,
+               'vrno' => 0,
+         ]);
+
+         // Update entity with ratepayer_id
+         $entity->update(['ratepayer_id' => $ratepayer->id]);
+
+         // Generate demand rows
+         $start = \Carbon\Carbon::createFromDate($request->from_year, $request->from_month, 1);
+         $end = \Carbon\Carbon::createFromDate($request->to_year, $request->to_month, 1);
+
+         while ($start <= $end) {
+               CurrentDemand::create([
+                  'ulb_id' => $request->ulb_id,
+                  'ratepayer_id' => $ratepayer->id,
+                  'bill_month' => $start->month,
+                  'bill_year' => $start->year,
+                  'demand' => $monthlyRate,
+                  'total_demand' => $monthlyRate,
+                  'vrno' => 0
+               ]);
+               $start->addMonth();
+         }
+
+         DB::commit();
+
+         return format_response(
+            'Successfully added Ratepayer with Demands',
+            $ratepayer,
+            Response::HTTP_CREATED
+         );
+      } catch (\Exception $e) {
+        DB::rollBack();
+        return format_response(
+            'Successfully added Ratepayer with Demands',
+            $ratepayer,
+            Response::HTTP_BAD_REQUEST
+         );
+      }
+   }
+
 }

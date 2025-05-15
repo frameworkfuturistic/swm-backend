@@ -306,6 +306,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('transactions')
     Route::post('save-cheque', [ChequeController::class, 'store']);
     //Payment Records - API-ID: TRAN-013
     Route::get('payment-records', [TransactionController::class, 'getTCPaymentRecords']);
+    //Payment Records - API-ID: TRAN-014
+    Route::post('create-ratepayer', [EntityController::class, 'addEntityWithDemands']);
 
     //Done
 

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Services\DemandService;
 use App\Models\CurrentDemand;
-use App\Models\Demand;
 use App\Models\PaymentZone;
 use App\Models\Ratepayer;
 use Illuminate\Http\Request;
@@ -154,63 +153,12 @@ class DemandController extends Controller
               );
             }
 
-            $qry = DB::table('current_demands as c')
-               ->select(
-                  'c.ratepayer_id',
-                  'r.consumer_no',
-                  'r.ratepayer_name',
-                  'r.ratepayer_address',
-                  'r.mobile_no',
-                  'r.holding_no',
-                  'ct.category',
-                  'sc.sub_category',
-                  'r.reputation',
-                  'r.lastpayment_amt',
-                  DB::raw('IF(
-                        ((r.latitude IS NOT NULL) AND (r.longitude IS NOT NULL)
-                        AND (r.latitude BETWEEN -90 AND 90)
-                        AND (r.longitude BETWEEN -180 AND 180)),
-                        true,
-                        false
-                  ) as validCoordinates'),
-                  DB::raw('DATE_FORMAT(r.lastpayment_date, "%d/%m/%Y") as lastpayment_date'),
-                  DB::raw('SUM(c.total_demand) as totalDemand')
-               )
-               ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
-               ->join('sub_categories as sc', 'r.subcategory_id', '=', 'sc.id')
-               ->join('categories as ct', 'sc.category_id', '=', 'ct.id')
-               ->whereRaw('IFNULL(c.total_demand, 0) - IFNULL(c.payment, 0) > 0')
-               ->whereRaw('(c.bill_month + (c.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
-               ->where('r.paymentzone_id', $id)
-               ->whereNull('cluster_id')
-               ->groupBy(
-                  'c.ratepayer_id',
-                  'r.consumer_no',
-                  'r.ratepayer_name',
-                  'r.ratepayer_address',
-                  'r.mobile_no',
-                  'r.holding_no',
-                  'ct.category',
-                  'sc.sub_category',
-                  'r.reputation',
-                  'r.lastpayment_amt',
-                  'r.lastpayment_date',
-                  'r.latitude',
-                  'r.longitude'
-               )
-               ->orderBy('r.ratepayer_name');
-
-            // $qry = DB::table('entities as e')
-            //    ->join('ratepayers as r', 'e.ratepayer_id', '=', 'r.id')
-            //    ->join('sub_categories as sc', 'r.subcategory_id', '=', 'sc.id')
-            //    ->join('categories as ct', 'sc.category_id', '=', 'ct.id')
-            //    ->leftJoin('current_demands as c', function($join) {
-            //       $join->on('r.id', '=', 'c.ratepayer_id')
-            //             ->whereRaw('(c.bill_month + (c.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))');
-            //    })
-            //    ->where('r.paymentzone_id', $id)
-            //    ->select([
-            //       'r.id as ratepayer_id',
+            // Working Fine
+            // =============================
+            $startsWith = $request->query('starts-with');
+            // $qry = DB::table('current_demands as c')
+            //    ->select(
+            //       'c.ratepayer_id',
             //       'r.consumer_no',
             //       'r.ratepayer_name',
             //       'r.ratepayer_address',
@@ -220,12 +168,26 @@ class DemandController extends Controller
             //       'sc.sub_category',
             //       'r.reputation',
             //       'r.lastpayment_amt',
-            //       DB::raw('IF(((r.latitude IS NOT NULL) AND (r.longitude IS NOT NULL) AND (r.latitude BETWEEN -90 AND 90) AND (r.longitude BETWEEN -180 AND 180)), true, false) as validCoordinates'),
+            //       DB::raw('IF(
+            //             ((r.latitude IS NOT NULL) AND (r.longitude IS NOT NULL)
+            //             AND (r.latitude BETWEEN -90 AND 90)
+            //             AND (r.longitude BETWEEN -180 AND 180)),
+            //             true,
+            //             false
+            //       ) as validCoordinates'),
             //       DB::raw('DATE_FORMAT(r.lastpayment_date, "%d/%m/%Y") as lastpayment_date'),
-            //       DB::raw('SUM(IFNULL(c.total_demand, 0)) - SUM(IFNULL(c.payment, 0)) as totalDemand')
-            //    ])
-            //    ->groupBy([
-            //       'r.id', // Use r.id instead of c.ratepayer_id
+            //       DB::raw('SUM(c.total_demand) as totalDemand')
+            //    )
+            //    ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
+            //    ->join('sub_categories as sc', 'r.subcategory_id', '=', 'sc.id')
+            //    ->join('categories as ct', 'sc.category_id', '=', 'ct.id')
+            //    ->whereRaw('IFNULL(c.total_demand, 0) - IFNULL(c.payment, 0) > 0')
+            //    ->whereRaw('(c.bill_month + (c.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
+            //    ->where('r.paymentzone_id', $id)
+            //    ->where('r.ratepayer_name', 'LIKE', $startsWith . '%')
+            //    ->whereNull('cluster_id')
+            //    ->groupBy(
+            //       'c.ratepayer_id',
             //       'r.consumer_no',
             //       'r.ratepayer_name',
             //       'r.ratepayer_address',
@@ -236,15 +198,61 @@ class DemandController extends Controller
             //       'r.reputation',
             //       'r.lastpayment_amt',
             //       'r.lastpayment_date',
-            //       'validCoordinates' // Add the calculated field
-            //    ])
+            //       'r.latitude',
+            //       'r.longitude'
+            //    )
             //    ->orderBy('r.ratepayer_name');
 
+               // Algorithm for Alternate Screen
+            $qry = DB::table('entities as e')
+               ->select([
+                  'e.ratepayer_id',
+                  'r.consumer_no',
+                  'r.ratepayer_name',
+                  'r.ratepayer_address',
+                  'r.mobile_no',
+                  'r.holding_no',
+                  'c.category',
+                  's.sub_category',
+                  'r.reputation',
+                  'r.lastpayment_amt',
+                  DB::raw('
+                        IF(
+                           (r.latitude IS NOT NULL AND r.longitude IS NOT NULL AND 
+                           r.latitude BETWEEN -90 AND 90 AND 
+                           r.longitude BETWEEN -180 AND 180),
+                           TRUE, FALSE
+                        ) as validCoordinates
+                  '),
+                  DB::raw('DATE_FORMAT(r.lastpayment_date, "%d/%m/%Y") as lastpayment_date'),
+                  DB::raw('SUM(IFNULL(d.total_demand, 0)) as totalDemand')
+               ])
+               ->join('ratepayers as r', 'e.ratepayer_id', '=', 'r.id')
+               ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+               ->join('categories as c', 's.category_id', '=', 'c.id')
+               ->leftJoin('current_demands as d', 'e.ratepayer_id', '=', 'd.ratepayer_id')
+               ->where('r.paymentzone_id', $id)
+               ->where('r.ratepayer_name', 'LIKE', $startsWith . '%')
+               ->groupBy([
+                  'e.ratepayer_id',
+                  'r.consumer_no',
+                  'r.ratepayer_name',
+                  'r.ratepayer_address',
+                  'r.mobile_no',
+                  'r.holding_no',
+                  'c.category',
+                  's.sub_category',
+                  'r.reputation',
+                  'r.lastpayment_amt',
+                  'r.latitude',
+                  'r.longitude',
+                  'r.lastpayment_date',
+               ])
+               ->orderBy('r.ratepayer_name');
             
                $results = $qry->get();
 
-
-            return format_response(
+               return format_response(
                 'Show Pending Demands from '.$zone->payment_zone,
                 $results,
                 Response::HTTP_OK
