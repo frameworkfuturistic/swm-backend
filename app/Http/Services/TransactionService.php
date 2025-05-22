@@ -109,6 +109,9 @@ class TransactionService
         if (isset($validatedData['rec_chequeno'])) {
          $data['rec_chequeno'] = $validatedData['rec_chequeno'];
         }
+        if (isset($validatedData['utrNo'])) {
+         $data['rec_chequeno'] = $validatedData['utrNo'];
+        }
         if (isset($validatedData['rec_chequedate'])) {
          $data['rec_chequedate'] = $validatedData['rec_chequedate'];
         }
