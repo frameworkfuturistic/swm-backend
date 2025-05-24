@@ -150,6 +150,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
     // API-ID: ADMIN-046 [All Masters]
     Route::post('demands/generate/{id}', [DemandController::class, 'generateRatepayerDemands']);
 
+    
     //  -- Verify New Entities and Create Ratepayers
     //  -- Modify Transaction Records
     //  -- Verify Transactions (Comment on Transaction)
@@ -246,6 +247,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('operations')->
 //Demand
 Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('demand')->group(function () {
     // API-ID: DEMAND-001 [Get pending demands of zone]
+    Route::get('pending-demandnotices', [DemandController::class, 'pendingDemandNotices']);
+   //  Route::get('pending-demandnotices', [DemandController::class, 'pendingDemandNotices']);
     Route::get('zone/{id}', [DemandController::class, 'zoneCurrentDemands']);
 
     // API-ID: DEMAND-003 [Get pending cluster demands of zone]
@@ -262,6 +265,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('demand')->grou
 
     // API-ID: DEMAND-005 [ZoneRatepayerDemands]
     Route::get('ratepayers', [DemandController::class, 'zoneCurrentDemands']);
+
+
     //Done
 
 });

@@ -449,4 +449,50 @@ class DemandController extends Controller
         }
     }
 
+ public function pendingDemandNotices(Request $request)
+    {
+      try 
+      {
+         $data = DB::table('demand_notices as d')
+            ->join('ratepayers as r', 'd.ratepayer_id', '=', 'r.id')
+            ->select(
+               'd.id',
+               'r.ratepayer_name',
+               'r.ratepayer_address',
+               'r.mobile_no',
+               'd.demand_no',
+               'd.generated_on',
+               'd.demand_amount'
+            )
+            ->whereNull('d.served_on')
+            ->get();
+
+             return format_response(
+                'Show Pending Cluster Demand Notices ',
+                $data,
+                Response::HTTP_OK
+            );
+      } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+    
+   public function test()
+   {
+      
+   }
 }
