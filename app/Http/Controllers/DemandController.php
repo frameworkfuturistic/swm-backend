@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Services\DemandService;
 use App\Models\CurrentDemand;
+use App\Models\DemandNotice;
 use App\Models\PaymentZone;
 use App\Models\Ratepayer;
 use Illuminate\Http\Request;
@@ -135,6 +136,74 @@ class DemandController extends Controller
     public function showZoneWiseCurrentDemand(int $ratePayerId, $year, $month, $zone)
     {
         //   return response()->json($demand->load('ratepayer'));
+    }
+
+    public function printableDemandNotice(Request $request, $id)
+    {
+      try {
+         $notice = DemandNotice::find($id);
+            if ($notice == null) {
+               return format_response(
+                  'Invalid Notice No',
+                  null,
+                  Response::HTTP_NOT_FOUND
+              );
+            }
+
+         $data = DB::table('demand_notices as d')
+            ->join('ratepayers as r', 'r.id', '=', 'd.ratepayer_id')
+            ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+            ->join('categories as c', 's.category_id', '=', 'c.id')
+            ->join('wards as w', 'r.ward_id', '=', 'w.id')
+            ->select([
+               'r.ratepayer_name as name',
+               'r.mobile_no as mobile_no',
+               'r.ratepayer_address as address',
+               's.sub_category',
+               'd.demand_no',
+               DB::raw("DATE_FORMAT(d.generated_on, '%d %M, %Y %h:%i %p') as demand_date"),
+               'r.consumer_no',
+               'w.ward_name as ward_no',
+               'r.holding_no',
+               's.sub_category as type',
+               'd.demand_amount as amount',
+            ])
+            ->where('d.id', $id)
+            ->first(); // or ->get() for multiple results
+
+         $data->transactions = DB::table('demand_noticedetails as d')
+            ->where('d.demandnotice_id', $id)
+            ->select([
+               'd.bill_month',
+               'd.rate as rate_per_month',
+               'd.amount',
+            ])
+            ->get();
+
+
+         return format_response(
+               'Demand Notice Details',
+               $data,
+               Response::HTTP_OK
+         );
+      } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_NOT_FOUND
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+
     }
 
     public function zoneCurrentDemands(Request $request, $id )

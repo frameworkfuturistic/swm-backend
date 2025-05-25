@@ -247,8 +247,6 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('operations')->
 //Demand
 Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('demand')->group(function () {
     // API-ID: DEMAND-001 [Get pending demands of zone]
-    Route::get('pending-demandnotices', [DemandController::class, 'pendingDemandNotices']);
-   //  Route::get('pending-demandnotices', [DemandController::class, 'pendingDemandNotices']);
     Route::get('zone/{id}', [DemandController::class, 'zoneCurrentDemands']);
 
     // API-ID: DEMAND-003 [Get pending cluster demands of zone]
@@ -265,6 +263,12 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('demand')->grou
 
     // API-ID: DEMAND-005 [ZoneRatepayerDemands]
     Route::get('ratepayers', [DemandController::class, 'zoneCurrentDemands']);
+
+    // API-ID: DEMAND-006 [Get pending demands of zone]
+    Route::get('pending-demandnotices', [DemandController::class, 'pendingDemandNotices']);
+
+    // API-ID: DEMAND-007 [printable demand notice]
+    Route::get('demand-notice/{id}', [DemandController::class, 'printableDemandNotice']);
 
 
     //Done
