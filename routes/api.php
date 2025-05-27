@@ -20,6 +20,7 @@ use App\Http\Controllers\MasterController;
 use App\Http\Controllers\PaymentZoneController;
 use App\Http\Controllers\RateListController;
 use App\Http\Controllers\RatepayerController;
+use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\SubCategoryController;
 use App\Http\Controllers\TCController;
 use App\Http\Controllers\TransactionController;
@@ -318,6 +319,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('transactions')
     //Payment Records - API-ID: TRAN-014
     Route::post('create-ratepayer', [EntityController::class, 'addEntityWithDemands']);
 
+
     //Done
 
     //  Route::post('payments/upi-qr', [TransactionController::class, 'generateUpiQr']);
@@ -487,6 +489,15 @@ Route::middleware(['auth:sanctum', 'api', 'admin'])->prefix('admin/masters')->gr
 Route::get('/tp/demand', [RateTransactionController::class, 'getCurrentBill']);
 // API-ID: RTRANS-002 [RateTransaction]
 Route::post('/tp/payment', [RateTransactionController::class, 'postPayment']);
+
+//Payment Records - API-ID: OPEN-015 [Download PDF receipt by receipt number]
+Route::get('receipts/{receipt_no}', [ReceiptController::class, 'generateReceipt'])
+   ->name('receipts.download');
+
+//Payment Receipt - API-ID: OPEN-016 [Download PDF receipt by receipt number]
+Route::get('receipts/{receipt_no}/pdf', [ReceiptController::class, 'downloadPdf'])
+   ->name('receipts.pdf');
+
 
 
 Route::get('/debug-headers', function (Request $request) {

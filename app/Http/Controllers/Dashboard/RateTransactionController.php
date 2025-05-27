@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Http\Services\TransactionService;
 use App\Models\CurrentDemand;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
@@ -317,4 +318,57 @@ class RateTransactionController extends Controller
             );
         }
     }
+
+    public function getReceipt($receipt_id)
+    {
+        // Fetch payment and related data
+        $payment = Payment::with([
+            'ratepayer.subcategory.category',
+            'ratepayer.ward'
+        ])
+        ->where('receipt_no', $receipt_id)
+        ->firstOrFail();
+
+        $receiptService = new ReceiptService();
+
+        $ratepayer = $payment->ratepayer;
+        $subcategory = $ratepayer->subcategory;
+        $category = $subcategory->category;
+        $ward = $ratepayer->ward;
+
+        // Build data array
+        $paymentData = [
+            'name'           => $ratepayer->ratepayer_name,
+            'mobile'         => $ratepayer->mobile_no,
+            'address'        => $ratepayer->ratepayer_address,
+            'receipt_no'     => $payment->receipt_no,
+            'consumer_no'    => $ratepayer->consumer_no,
+            'category'       => $category->name,
+            'ward_no'        => $ward->ward_name,
+            'holding_no'     => $ratepayer->holding_no,
+            'type'           => $category->name,
+            'payment_from'   => $payment->payment_from,
+            'payment_to'     => $payment->payment_to,
+            'rate_per_month' => $subcategory->rate,
+            'amount'         => $payment->amount,
+            'total'          => $payment->amount,
+            'payment_mode'   => $payment->payment_mode,
+            'gst_no'         => $ratepayer->gst_no ?? '',
+            'pan_no'         => $ratepayer->pan_no ?? '',
+            'customer_remarks' => $payment->remarks ?? '',
+        ];
+
+        // Generate PDF content
+        $receipt = $receiptService->generateReceipt($paymentData);
+        $pdfContent = $receipt['content'];
+
+        // Return as streamed PDF download
+        return Response::streamDownload(function () use ($pdfContent) {
+            echo $pdfContent;
+        }, "receipt_{$payment->receipt_no}.pdf", [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="receipt_{$payment->receipt_no}.pdf"'
+        ]);
+    }
+
 }
