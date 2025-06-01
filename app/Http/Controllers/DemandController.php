@@ -7,24 +7,50 @@ use App\Models\CurrentDemand;
 use App\Models\DemandNotice;
 use App\Models\PaymentZone;
 use App\Models\Ratepayer;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class DemandController extends Controller
 {
     public function generateYearlyDemand(Request $request)
     {
+      $validator = Validator::make($request->all(), [
+         'paramYear' => 'required|integer',
+         'paramMonth' => 'required|integer|min:1|max:12',
+      ]);
+
+      $validator->after(function ($validator) use ($request) {
+         $year = (int) $request->input('paramYear');
+         $month = (int) $request->input('paramMonth');
+
+         $now = Carbon::now();
+         $currentYear = (int) $now->year;
+         $currentMonth = (int) $now->month;
+
+         if ($year < $currentYear || ($year === $currentYear && $month < $currentMonth)) {
+               $validator->errors()->add('paramMonth', 'The provided year and month must not be in the past.');
+         }
+         });
+
+         if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+       }
+      
         try {
-            $year = $request->CURRENT_YEAR;
-            $month = 5;
+            // $year = $request->CURRENT_YEAR;
+            $year = $request->paramYear;
+            $month = $request->paramMonth;
             $ulb_id = $request->ulb_id;
             $tcId = Auth::user()->id;
             $service = new DemandService;
             $stats = $service->generateYearlyDemands($year, $month, $ulb_id, $tcId);
 
+            Log::info('Monthly demand generated for Year '.$request->paramYear.' Month '.$request->paramMonth);
             return format_response(
                 'Demand Generated Successfully',
                 $stats,

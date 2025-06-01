@@ -229,11 +229,11 @@ class TransactionService
                 break; // Partial payments not allowed
             }
             if($mFlag){
-               $startMonth = \Carbon\Carbon::createFromDate($demand->bill_year, $demand->bill_month)->format('M-Y');
-               $endMonth = \Carbon\Carbon::createFromDate($demand->bill_year, $demand->bill_month)->format('M-Y');
+               $startMonth = \Carbon\Carbon::createFromDate($demand->bill_year, $demand->bill_month, 1)->format('M-Y');
+               $endMonth = \Carbon\Carbon::createFromDate($demand->bill_year, $demand->bill_month, 1)->format('M-Y');
                $mFlag = false;
             } else {
-               $endMonth = \Carbon\Carbon::createFromDate($demand->bill_year, $demand->bill_month)->format('M-Y');
+               $endMonth = \Carbon\Carbon::createFromDate($demand->bill_year, $demand->bill_month, 1)->format('M-Y');
             }
         }
         // dd($remainingAmount);

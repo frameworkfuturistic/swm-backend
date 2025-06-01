@@ -41,8 +41,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 
 // API-ID: PUBLIC-1 [Public Masters]
 Route::get('/public-masters', [FrontpageController::class, 'getPublicMasters']);
-// API-ID: OPER-006 [Add Temp Entity]
-Route::post('new-entities', [TransactionController::class, 'createTempEntity']);  
+// // API-ID: OPER-006 [Add Temp Entity]
+// Route::post('new-entities', [TransactionController::class, 'createTempEntity']);  
 
 //Admin Masters [completed] *************************************************************
 //*
@@ -223,7 +223,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('operations')->
     // API-ID: OPER-005 [Set Ratepayer geolocation]
     Route::put('ratepayers/geo-location/{id}', [RatepayerController::class, 'updateGeoLocation']); //Done
    //  // API-ID: OPER-006 [Add Temp Entity]
-   //  Route::post('new-entities', [TransactionController::class, 'createTempEntity']);                                   //Done
+    Route::post('new-entities', [TransactionController::class, 'createTempEntity']);                                   //Done
     // API-ID: OPER-007 [Change Password]
     Route::post('change-password', [AuthController::class, 'changePassword'])->middleware('auth:sanctum');
     // API-ID: OPER-008 [Entity Map]

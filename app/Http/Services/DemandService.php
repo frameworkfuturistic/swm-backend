@@ -91,8 +91,8 @@ class DemandService
     {
         try {
             $monthlyDemand = $this->calculateMonthlyDemand($ratepayer);
-            $this->createMonthlyDemands($ratepayer, $year, $month, $monthlyDemand);
-            $this->stats['demands_generated'] += 12;
+            $this->createMonthlyDemands($ratepayer, $year, $month, 1, $monthlyDemand);
+            $this->stats['demands_generated'] += 1;
         } catch (Exception $e) {
             $this->handleDemandGenerationError($ratepayer, $e);
         }
@@ -120,14 +120,14 @@ class DemandService
      * ========================================================================
      * Create monthly demands for a ratepayer
      */
-    protected function createMonthlyDemands(Ratepayer $ratepayer, int $year, int $startMonth, float $monthlyDemand): void
+    protected function createMonthlyDemands(Ratepayer $ratepayer, int $year, int $month, int $startMonth, float $monthlyDemand): void
     {
         //for ($month = $startMonth; $startMonth <= 12; $startMonth++) {
             CurrentDemand::updateOrCreate(
                 [
                     'ulb_id' => $ratepayer->ulb_id,
                     'ratepayer_id' => $ratepayer->id,
-                    'bill_month' => 5, //$startMonth,
+                    'bill_month' => $month, //$startMonth,
                     'bill_year' => $year,
                 ],
                 [
