@@ -39,6 +39,7 @@ class Entity extends Model
         'usage_type',
         'status',
         'vrno',
+        'ratepayer_id',
     ];
 
     protected $hidden = [

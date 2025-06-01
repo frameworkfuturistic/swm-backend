@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Events\SiteVisitedEvent;
 use App\Http\Services\TransactionService;
+use App\Models\CurrentDemand;
 use App\Models\CurrentTransaction;
+use App\Models\Entity;
 use App\Models\Payment;
 use App\Models\Ratepayer;
+use App\Models\SubCategory;
 use App\Models\TempEntities;
 use App\Models\Transaction;
 use App\Services\NumberGeneratorService;
@@ -941,69 +944,235 @@ class TransactionController extends Controller
         }
     }
 
-    public function createTempEntity(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'ulb_id' => 'required|exists:ulbs,id',
-                'zone_id' => 'nullable|numeric',
-                 'tc_id' => 'nullable|numeric',
-                'subcategory_id' => 'required|numeric',
-                //  'entity_id' => 'nullable|numeric',
-                //  'cluster_id' => 'nullable|numeric',
-                'holding_no' => 'nullable|string|max:255',
-                'entity_name' => 'required|string|max:255',
-                'entity_address' => 'required|string',
-                'pincode' => 'nullable|string|size:6',
-                'mobile_no' => 'nullable|string|max:15',
-                'landmark' => 'nullable|string|max:100',
-                'whatsapp_no' => 'nullable|string|max:12',
-                'longitude' => 'nullable|numeric|between:-180,180',
-                'latitude' => 'nullable|numeric|between:-90,90',
-                //  'verification_date' => 'nullable|date',
-                //  'is_verified' => 'boolean',
-                //  'is_rejected' => 'boolean',
-                'usage_type' => ['required', Rule::in(['Residential', 'Commercial', 'Industrial', 'Institutional'])],
-            ]);
 
-            if ($validator->fails()) {
-                $errorMessages = $validator->errors()->all();
+   public function createTempEntity(Request $request)
+   {
+      $currentYear = date('Y');
+      $currentMonth = date('n'); // 1–12 for Jan–Dec
 
-                return format_response(
-                    'validation error',
-                    $errorMessages,
-                    Response::HTTP_UNPROCESSABLE_ENTITY
-                );
-            }
+      $validator = Validator::make($request->all(), [
+         'ulb_id' => 'required|exists:ulbs,id',
+         'ward_id' => 'nullable|numeric',
+         'subcategory_id' => 'required|numeric|exists:sub_categories,id',
+         'holding_no' => 'nullable|string|max:255',
+         'entity_name' => 'required|string|max:255',
+         'entity_address' => 'required|string',
+         'pincode' => 'nullable|string|size:6',
+         'mobile_no' => 'nullable|string|max:15',
+         'landmark' => 'nullable|string|max:100',
+         'whatsapp_no' => 'nullable|string|max:12',
+         'longitude' => 'nullable|numeric|between:-180,180',
+         'latitude' => 'nullable|numeric|between:-90,90',
+         'from_month' => 'required|integer|between:1,12',
+         'from_year' => "required|integer|between:2020,{$currentYear}",
+         'to_month' => 'required|integer|between:1,12',
+         'to_year' => "required|integer|between:2020,{$currentYear}",
+      ]);
+
+      $validator->after(function ($validator) use ($request, $currentYear, $currentMonth) {
+         $fromYear = (int) $request->input('from_year');
+         $fromMonth = (int) $request->input('from_month');
+         $toYear = (int) $request->input('to_year');
+         $toMonth = (int) $request->input('to_month');
+
+         if ($toYear > $currentYear || ($toYear === $currentYear && $toMonth > $currentMonth)) {
+               $validator->errors()->add('to_month', 'The “To” month/year can’t be later than the current month.');
+         }
+
+         if ($toYear < $fromYear || ($toYear === $fromYear && $toMonth < $fromMonth)) {
+               $validator->errors()->add('to_month', 'The “To” month/year must be the same as or after the “From” month/year.');
+         }
+      });
+
+      if ($validator->fails()) {
+         return format_response(
+               'validation error',
+               $validator->errors()->all(),
+               Response::HTTP_UNPROCESSABLE_ENTITY
+         );
+      }
+
+      DB::beginTransaction();
+
+      try {
+         $subCategory = SubCategory::findOrFail($request->subcategory_id);
+         $monthlyRate = $subCategory->rate;
+
+         // Create Entity
+         $entity = Entity::create([
+               'ulb_id' => $request->ulb_id,
+               'ward_id' => $request->ward_id,
+               'subcategory_id' => $request->subcategory_id,
+               'holding_no' => $request->holding_no,
+               'entity_name' => $request->entity_name,
+               'entity_address' => $request->entity_address,
+               'pincode' => $request->pincode,
+               'mobile_no' => $request->mobile_no,
+               'landmark' => $request->landmark,
+               'whatsapp_no' => $request->whatsapp_no,
+               'longitude' => $request->longitude,
+               'latitude' => $request->latitude,
+               'monthly_demand' => $monthlyRate,
+               'is_active' => true,
+               'is_verified' => false,
+               'vrno' => 0,
+         ]);
+
+         // Create Ratepayer
+         $ratepayer = Ratepayer::create([
+               'ulb_id' => $request->ulb_id,
+               'ward_id' => $request->ward_id,
+               'subcategory_id' => $request->subcategory_id,
+               'holding_no' => $request->holding_no,
+               'ratepayer_name' => $request->entity_name,
+               'ratepayer_address' => $request->entity_address,
+               'pincode' => $request->pincode,
+               'mobile_no' => $request->mobile_no,
+               'landmark' => $request->landmark,
+               'whatsapp_no' => $request->whatsapp_no,
+               'longitude' => $request->longitude,
+               'latitude' => $request->latitude,
+               'monthly_demand' => $monthlyRate,
+               'vrno' => 0,
+               'entity_id' => $entity->id,
+         ]);
+
+         // Link entity with ratepayer
+         $entity->update(['ratepayer_id' => $ratepayer->id]);
+
+         // Generate demand rows
+         $start = \Carbon\Carbon::createFromDate($request->from_year, $request->from_month, 1);
+         $end = \Carbon\Carbon::createFromDate($request->to_year, $request->to_month, 1);
+
+         while ($start <= $end) {
+               CurrentDemand::create([
+                  'ulb_id' => $request->ulb_id,
+                  'ratepayer_id' => $ratepayer->id,
+                  'bill_month' => $start->month,
+                  'bill_year' => $start->year,
+                  'demand' => $monthlyRate,
+                  'total_demand' => $monthlyRate,
+                  'vrno' => 0
+               ]);
+               $start->addMonth();
+         }
+
+         DB::commit();
+
+         return format_response(
+               'Successfully added Ratepayer with Demands',
+               $ratepayer,
+               Response::HTTP_CREATED
+         );
+      } catch (\Exception $e) {
+         DB::rollBack();
+         return format_response(
+               'Error while adding Ratepayer with Demands',
+               ['error' => $e->getMessage()],
+               Response::HTTP_BAD_REQUEST
+         );
+      }
+   }
+
+
+   //  public function createTempEntity(Request $request)
+   //  {
+   //      try {
+   //          $currentYear  = date('Y');
+   //          $currentMonth = date('n'); // 1–12 for Jan–Dec
+
+   //          $validator = Validator::make($request->all(), [
+   //              'ulb_id' => 'required|exists:ulbs,id',
+   //              'ward_id' => 'nullable|numeric',
+   //              'subcategory_id' => 'required|numeric',
+   //              'holding_no' => 'nullable|string|max:255',
+   //              'entity_name' => 'required|string|max:255',
+   //              'entity_address' => 'required|string',
+   //              'pincode' => 'nullable|string|size:6',
+   //              'mobile_no' => 'nullable|string|max:15',
+   //              'landmark' => 'nullable|string|max:100',
+   //              'whatsapp_no' => 'nullable|string|max:12',
+   //              'longitude' => 'nullable|numeric|between:-180,180',
+   //              'latitude' => 'nullable|numeric|between:-90,90',
+   //             'from_month' => 'required|integer|between:1,12',
+   //             'from_year'  => "required|integer|between:2020,{$currentYear}",
+   //             'to_month' => 'required|integer|between:1,12',
+   //             'to_year'  => "required|integer|between:2020,{$currentYear}",
+   //          ]);
+
+   //          $validator->after(function ($validator) use ($request, $currentYear, $currentMonth) {
+   //          $fromYear  = (int) $request->input('from_year');
+   //          $fromMonth = (int) $request->input('from_month');
+   //          $toYear    = (int) $request->input('to_year');
+   //          $toMonth   = (int) $request->input('to_month');
+
+   //          // (A) Ensure "From" is not before Jan 2020
+   //          //     — This is effectively guaranteed by from_year ≥ 2020 and from_month ≥ 1.
+   //          //       So you don’t need an extra check here unless you want a custom error message.
+
+   //          // (B) Ensure To‐date is not in the future (i.e. > current month/year)
+   //          if ($toYear > $currentYear
+   //                || ($toYear === $currentYear && $toMonth > $currentMonth)
+   //          ) {
+   //                $validator->errors()->add(
+   //                   'to_month',
+   //                   'The “To” month/year can’t be later than the current month.'
+   //                );
+   //          }
+
+   //          // (C) Ensure To‐date ≥ From‐date
+   //          if (
+   //                $toYear < $fromYear
+   //                || ($toYear === $fromYear && $toMonth < $fromMonth)
+   //             ) {
+   //                   $validator->errors()->add(
+   //                      'to_month',
+   //                      'The “To” month/year must be the same as or after the “From” month/year.'
+   //                   );
+   //             }
+   //          });
+         
+
+   //          if ($validator->fails()) {
+   //              $errorMessages = $validator->errors()->all();
+
+   //              return format_response(
+   //                  'validation error',
+   //                  $errorMessages,
+   //                  Response::HTTP_UNPROCESSABLE_ENTITY
+   //              );
+   //          }
             
-            $validatedData = $validator->validated();
-            if ($request->zone_id == null)
-            {
-               $validatedData['zone_id'] =1;
-            }            
+   //          $validatedData = $validator->validated();
+   //          if ($request->zone_id == null)
+   //          {
+   //             $validatedData['zone_id'] =1;
+   //          }            
 
-            // $tcId = Auth::user()->id;
-            $tcId = Auth::check() ? Auth::user()->id : 0;
+   //          // $tcId = Auth::user()->id;
+   //          $tcId = Auth::check() ? Auth::user()->id : 0;
 
-            $validatedData['tc_id'] = $tcId;
+   //          $validatedData['tc_id'] = $tcId;
 
-            $tempEntity = TempEntities::create($validatedData);
+   //          $tempEntity = TempEntities::create($validatedData);
 
-            return format_response(
-                'Success',
-                $tempEntity,
-                Response::HTTP_CREATED
-            );
-        } catch (Exception $e) {
-            DB::rollBack();
+   //          return format_response(
+   //              'Success',
+   //              $tempEntity,
+   //              Response::HTTP_CREATED
+   //          );
 
-            return format_response(
-                'An error occurred during insertion. ',
-                null,
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
-    }
+
+   //      } catch (Exception $e) {
+   //          DB::rollBack();
+
+   //          return format_response(
+   //              'An error occurred during insertion. ',
+   //              null,
+   //              Response::HTTP_INTERNAL_SERVER_ERROR
+   //          );
+   //      }
+   //  }
 
     public function cancellation(Request $request)
     {
