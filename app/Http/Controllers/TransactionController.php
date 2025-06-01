@@ -1363,4 +1363,191 @@ class TransactionController extends Controller
         }
     }
 
+   public function getAllTransactions(Request $request)
+    {
+        try {
+            // Validate request parameters
+            $request->validate([
+                'event_date' => 'nullable|date_format:Y-m-d',
+                'ward_id' => 'nullable|integer|min:1',
+                'tc_id' => 'nullable|integer|min:1',
+                'subcategory_id' => 'nullable|integer|min:1',
+                'ratepayer_type' => 'nullable|in:CLUSTER,ENTITY',
+                'event_type' => 'nullable|string|max:100',
+                'payment_mode' => 'nullable|string|max:50',
+                'page' => 'nullable|integer|min:1',
+                'per_page' => 'nullable|integer|min:1|max:100'
+            ]);
+
+            // Build the query
+            $query = DB::table('current_transactions as t')
+                ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
+                ->select([
+                    't.id as tran_id',
+                    DB::raw("IF(r.cluster_id IS NOT NULL AND r.entity_id IS NULL, 'CLUSTER', 'ENTITY') as ratepayer_type"),
+                    DB::raw("DATE_FORMAT(t.event_time, '%d-%m/%Y %h:%i %p') as event_time"),
+                    'r.ratepayer_name',
+                    'r.ratepayer_address',
+                    't.event_type',
+                    't.remarks',
+                    't.rec_category as category',
+                    't.rec_subcategory as sub_category',
+                    't.rec_monthlycharge as monthly_rate',
+                    't.rec_period as period',
+                    't.rec_amount as amount',
+                    't.rec_paymentmode as payment_mode',
+                    't.rec_chequeno as cheque_no',
+                    't.rec_chequedate as cheque_date',
+                    't.rec_bankname as bank_name',
+                    't.rec_tcname'
+                ]);
+
+            // Apply filters only if provided
+            if ($request->filled('event_date')) {
+                $query->whereDate('t.event_time', $request->event_date);
+            }
+
+            if ($request->filled('ward_id')) {
+                $query->where('r.ward_id', $request->ward_id);
+            }
+
+            if ($request->filled('tc_id')) {
+                $query->where('t.tc_id', $request->tc_id);
+            }
+
+            if ($request->filled('subcategory_id')) {
+                $query->where('r.subcategory_id', $request->subcategory_id);
+            }
+
+            // Filter by ratepayer type if provided
+            if ($request->filled('ratepayer_type')) {
+                if ($request->ratepayer_type === 'CLUSTER') {
+                    $query->whereNotNull('r.cluster_id')
+                          ->whereNull('r.entity_id');
+                } else if ($request->ratepayer_type === 'ENTITY') {
+                    $query->where(function($q) {
+                        $q->whereNull('r.cluster_id')
+                          ->orWhereNotNull('r.entity_id');
+                    });
+                }
+            }
+
+            if ($request->filled('event_type')) {
+                $query->where('t.event_type', 'LIKE', '%' . $request->event_type . '%');
+            }
+
+            if ($request->filled('payment_mode')) {
+                $query->where('t.rec_paymentmode', 'LIKE', '%' . $request->payment_mode . '%');
+            }
+
+            // Order by latest transactions first
+            $query->orderBy('t.event_time', 'desc');
+
+            // Pagination
+            $perPage = $request->get('per_page', 15);
+            $page = $request->get('page', 1);
+            
+            $total = $query->count();
+            $transactions = $query->skip(($page - 1) * $perPage)
+                                 ->take($perPage)
+                                 ->get();
+
+
+            return format_response(
+                "Transactions retrieved successfully",
+                [
+                    'transactions' => $transactions,
+                    'pagination' => [
+                        'current_page' => (int) $page,
+                        'per_page' => (int) $perPage,
+                        'total' => $total,
+                        'last_page' => ceil($total / $perPage),
+                        'from' => (($page - 1) * $perPage) + 1,
+                        'to' => min($page * $perPage, $total)
+                    ]
+                ],
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return format_response(
+                $e->getMessage(),
+                null,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+
+        } catch (\Exception $e) {
+            return format_response(
+                $e->getMessage(),
+                null,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+    }
+
+    /**
+     * Get transaction summary/statistics
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getTransactionSummary(Request $request)
+    {
+        try {
+            $request->validate([
+                'event_date' => 'nullable|date_format:Y-m-d',
+                'ward_id' => 'nullable|integer|min:1',
+                'tc_id' => 'nullable|integer|min:1',
+                'subcategory_id' => 'nullable|integer|min:1'
+            ]);
+
+            $query = DB::table('current_transactions as t')
+                ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id');
+
+            // Apply same filters
+            if ($request->filled('event_date')) {
+                $query->whereDate('t.event_time', $request->event_date);
+            }
+
+            if ($request->filled('ward_id')) {
+                $query->where('r.ward_id', $request->ward_id);
+            }
+
+            if ($request->filled('tc_id')) {
+                $query->where('t.tc_id', $request->tc_id);
+            }
+
+            if ($request->filled('subcategory_id')) {
+                $query->where('r.subcategory_id', $request->subcategory_id);
+            }
+
+            $summary = $query->select([
+                DB::raw('COUNT(*) as total_transactions'),
+                DB::raw('SUM(t.rec_amount) as total_amount'),
+                DB::raw('AVG(t.rec_amount) as average_amount'),
+                DB::raw('COUNT(DISTINCT r.id) as unique_ratepayers'),
+                DB::raw('COUNT(CASE WHEN r.cluster_id IS NOT NULL AND r.entity_id IS NULL THEN 1 END) as cluster_transactions'),
+                DB::raw('COUNT(CASE WHEN r.cluster_id IS NULL OR r.entity_id IS NOT NULL THEN 1 END) as entity_transactions')
+            ])->first();
+
+            // return response()->json([
+            //     'success' => true,
+            //     'message' => 'Transaction summary retrieved successfully',
+            //     'data' => $summary
+            // ], 200);
+            return format_response(
+                "Transaction summary retrieved successfully",
+                $summary,
+                Response::HTTP_OK
+            );
+
+        } catch (\Exception $e) {
+            return format_response(
+                $e->getMessage(),
+                null,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+    }
+    
 }

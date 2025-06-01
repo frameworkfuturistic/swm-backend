@@ -150,6 +150,10 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
     //****** Generate Demand */
     // API-ID: ADMIN-046 [All Masters]
     Route::post('demands/generate/{id}', [DemandController::class, 'generateRatepayerDemands']);
+    // API-ID: ADMIN-047 [Daily Transaction by Zone]
+    Route::get('all-transactions', [TransactionController::class, 'getAllTransactions']);
+    // API-ID: ADMIN-048 [Daily Transaction by Zone]
+    Route::get('transaction-summary', [TransactionController::class, 'getTransactionSummary']);
 
     
     //  -- Verify New Entities and Create Ratepayers
@@ -179,7 +183,6 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'force-json', 'api'])->prefix('
     Route::get('cancelled-transactions', [AccountsController::class, 'showCancelledTransactions']);
     // API-ID: ACCOUNTS-006 [ULB Demand Summary]
     Route::post('cheque-realized', [AccountsController::class, 'realizeCheque']);
-
     //  -- Modify Payment Records
     //  -- Verify Cancellations
     //  -- Collect Cash
