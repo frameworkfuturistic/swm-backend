@@ -1466,7 +1466,7 @@ class TransactionController extends Controller
                         'to' => min($page * $perPage, $total)
                     ]
                 ],
-                Response::HTTP_UNPROCESSABLE_ENTITY
+                Response::HTTP_OK
             );
 
         } catch (\Illuminate\Validation\ValidationException $e) {
