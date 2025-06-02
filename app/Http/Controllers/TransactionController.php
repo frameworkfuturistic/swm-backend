@@ -107,6 +107,62 @@ class TransactionController extends Controller
      *  $transactionNumber = $this->numberGenerator->generateTransactionNumber();
      */
 
+     public function getReceiptData(Request $request, $tranId)
+     {
+         $request->validate([
+            'tran_id' => 'required|exists:current_transactions,tran_id',
+         ]);
+
+         try {
+            $query = DB::table('current_transactions')
+               ->select([
+                  'rec_name as ratepayer_name',
+                  'rec_address as ratepayer_address',
+                  'rec_consumerno as consumer_no',
+                  DB::raw("DATE_FORMAT(event_time, '%d/%m/%Y') as payment_date"),
+                  'rec_paymentmode as payment_mode',
+                  'rec_receiptno as receipt_no',
+                  'rec_period as period',
+                  'rec_amount as amount',
+                  DB::raw("rec_monthlycharge as monthly_demand"),
+               //  DB::raw("cast(rec_monthlycharge as char) as monthly_demand"),
+                  'rec_tcname as tc_name',
+                  'rec_tcmobile as tc_mobile',
+                  'rec_ward as ward_name',
+                  'rec_category as category',
+                  'rec_subcategory as sub_category',
+                  'rec_chequeno as cheque_no',
+                  'rec_chequedate as cheque_date',
+                  'rec_bankname as bank_name',
+                  'rec_nooftenants'
+               ])
+               ->where('id', $tranId);
+
+            $latestPayment= $query->first();
+     
+             if (!$latestPayment) {
+               return format_response(
+                  'Could not fetch data',
+                  null,
+                  Response::HTTP_NOT_FOUND
+               );
+   
+            }else {
+                  return format_response(
+                     'Success',
+                     $latestPayment,
+                     Response::HTTP_OK
+                  );
+             }
+         } catch (\Exception $e) {
+            return format_response(
+               'Could not fetch data',
+               null,
+               Response::HTTP_NOT_FOUND
+            );
+         }
+     }
+
      public function getReceipt(Request $request, $ratepayerId)
      {
          $isLastPayment = $request->query('is_lastpayment');
@@ -1002,6 +1058,7 @@ class TransactionController extends Controller
          $entity = Entity::create([
                'ulb_id' => $request->ulb_id,
                'ward_id' => $request->ward_id,
+               'paymentzone_id' => $request->ward_id,
                'subcategory_id' => $request->subcategory_id,
                'holding_no' => $request->holding_no,
                'entity_name' => $request->entity_name,
