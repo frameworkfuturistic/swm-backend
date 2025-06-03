@@ -107,11 +107,24 @@ class TransactionController extends Controller
      *  $transactionNumber = $this->numberGenerator->generateTransactionNumber();
      */
 
-     public function getReceiptData(Request $request, $tranId)
+     public function getReceiptData($tranId)
      {
-         $request->validate([
-            'tran_id' => 'required|exists:current_transactions,tran_id',
+         $validator = Validator::make(['tranId' => $tranId], [
+           'tranId' => 'required|integer|exists:current_transactions,id', // Customize this as needed
          ]);
+
+         if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error retrieving payment records: ' . $e->getMessage()
+            ], Response::HTTP_NOT_FOUND);
+         }
+
+         
+
+         //    $request->validate([
+         //    'tran_id' => 'required|exists:current_transactions,id',
+         // ]);
 
          try {
             $query = DB::table('current_transactions')
