@@ -77,7 +77,7 @@ class TransactionController extends Controller
                     'p.tran_id as payment_id',
                     'r.ratepayer_name',
                     'r.ratepayer_address',
-                    'r.mobile_no',
+                    DB::raw("IFNULL(r.mobile_no, 'NA') as mobile_no"),
                     DB::raw("IFNULL(p.receipt_no, 'NA') as receipt_no"),
                     'p.payment_mode',
                     DB::raw("DATE_FORMAT(p.payment_date, '%h:%i %p') as payment_time"),
