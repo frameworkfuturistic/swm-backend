@@ -6,6 +6,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ChequeController;
 use App\Http\Controllers\ClusterController;
 use App\Http\Controllers\ClusterPaymentController;
+use App\Http\Controllers\ClusterPmtController;
 use App\Http\Controllers\Dashboard\AccountController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
 use App\Http\Controllers\Dashboard\ClusterDemandController;
@@ -259,6 +260,9 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('demand')->grou
     // API-ID: DEMAND-002 [Get pending demands of a ratepayer]
     Route::get('current/ratepayer/{id}', [DemandController::class, 'showRatepayerCurrentDemand']);
 
+    // API-ID: DEMAND-002 [Get pending demands of a ratepayer]
+    Route::get('current/cluster-ratepayer/{id}', [DemandController::class, 'showClusterRatepayerCurrentDemand']);
+
     // API-ID: DEMAND-004 [Get pending demands of a cluster where summary of all pending entity ratepayers is listed]
     Route::get('current/cluster/{id}', [DemandController::class, 'clusterDemands']);
 
@@ -299,6 +303,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('transactions')
     Route::get('ratepayer/{id}', [TransactionController::class, 'ratepayerTransactions']);
     //Transactions - API-ID: TRAN-003
     Route::post('cash-payment', [TransactionController::class, 'cashPayment']);
+    //Transactions - API-ID: TRAN-003
+    Route::post('cluster-cash-payment', [ClusterPmtController::class, 'makePayment']);
     //Transactions - API-ID: TRAN-004
     Route::post('denial', [TransactionController::class, 'denial']);
     //Transactions - API-ID: TRAN-005

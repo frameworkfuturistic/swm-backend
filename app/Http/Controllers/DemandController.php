@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Services\DemandService;
+use App\Models\ClusterCurrentDemand;
 use App\Models\CurrentDemand;
 use App\Models\DemandNotice;
 use App\Models\PaymentZone;
@@ -148,6 +149,39 @@ class DemandController extends Controller
         }
     }
 
+    public function showClusterRatepayerCurrentDemand(int $id)
+    {
+        try {
+            $ratepayers = ClusterCurrentDemand::where('ratepayer_id', $id)
+                ->where('is_active', true)
+                ->whereRaw('(bill_month + (bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
+               ->get();
+
+            return format_response(
+                'Current Demand',
+                $ratepayers,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
     /**
      * Display the specified resource.
      */
@@ -254,54 +288,7 @@ class DemandController extends Controller
             if ($startsWith == 'all') {
                $startsWith = '';
             }
-            // $qry = DB::table('current_demands as c')
-            //    ->select(
-            //       'c.ratepayer_id',
-            //       'r.consumer_no',
-            //       'r.ratepayer_name',
-            //       'r.ratepayer_address',
-            //       'r.mobile_no',
-            //       'r.holding_no',
-            //       'ct.category',
-            //       'sc.sub_category',
-            //       'r.reputation',
-            //       'r.lastpayment_amt',
-            //       DB::raw('IF(
-            //             ((r.latitude IS NOT NULL) AND (r.longitude IS NOT NULL)
-            //             AND (r.latitude BETWEEN -90 AND 90)
-            //             AND (r.longitude BETWEEN -180 AND 180)),
-            //             true,
-            //             false
-            //       ) as validCoordinates'),
-            //       DB::raw('DATE_FORMAT(r.lastpayment_date, "%d/%m/%Y") as lastpayment_date'),
-            //       DB::raw('SUM(c.total_demand) as totalDemand')
-            //    )
-            //    ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
-            //    ->join('sub_categories as sc', 'r.subcategory_id', '=', 'sc.id')
-            //    ->join('categories as ct', 'sc.category_id', '=', 'ct.id')
-            //    ->whereRaw('IFNULL(c.total_demand, 0) - IFNULL(c.payment, 0) > 0')
-            //    ->whereRaw('(c.bill_month + (c.bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
-            //    ->where('r.paymentzone_id', $id)
-            //    ->where('r.ratepayer_name', 'LIKE', $startsWith . '%')
-            //    ->whereNull('cluster_id')
-            //    ->groupBy(
-            //       'c.ratepayer_id',
-            //       'r.consumer_no',
-            //       'r.ratepayer_name',
-            //       'r.ratepayer_address',
-            //       'r.mobile_no',
-            //       'r.holding_no',
-            //       'ct.category',
-            //       'sc.sub_category',
-            //       'r.reputation',
-            //       'r.lastpayment_amt',
-            //       'r.lastpayment_date',
-            //       'r.latitude',
-            //       'r.longitude'
-            //    )
-            //    ->orderBy('r.ratepayer_name');
 
-               // Algorithm for Alternate Screen
             $qry = DB::table('entities as e')
                ->select([
                   'e.ratepayer_id',
@@ -329,6 +316,8 @@ class DemandController extends Controller
                ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
                ->join('categories as c', 's.category_id', '=', 'c.id')
                ->leftJoin('current_demands as d', 'e.ratepayer_id', '=', 'd.ratepayer_id')
+               ->whereNotNull('r.entity_id')
+               ->whereNull('r.cluster_id')
                ->where('r.paymentzone_id', $id)
                ->where('r.ratepayer_name', 'LIKE', $startsWith . '%')
                ->groupBy([
@@ -375,8 +364,147 @@ class DemandController extends Controller
         }
     }
 
+    public function zoneCurrentClusterDemands(Request $request, $id )
+    {
+        try {
+         //   $request->validate([
+         //       'zoneId' => ['required', 'exists:payment_zones,id'],
+         //   ]);
+
+            $zone = PaymentZone::find($id);
+            if ($zone == null) {
+               return format_response(
+                  'Database error occurred',
+                  null,
+                  Response::HTTP_NOT_FOUND
+              );
+            }
+
+            // Working Fine
+            // =============================
+            $startsWith = $request->query('starts-with');
+            if ($startsWith == 'all') {
+               $startsWith = '';
+            }
+
+            $qry = DB::table('ratepayers as r')
+               ->select([
+                  'r.id as ratepayer_id',
+                  'r.consumer_no',
+                  'r.ratepayer_name',
+                  'r.ratepayer_address',
+                  'r.mobile_no',
+                  'r.holding_no',
+                  DB::raw("'Apartment' as category"),
+                  DB::raw("'' as sub_category"),
+                  'r.reputation',
+                  'r.lastpayment_amt',
+                  DB::raw("
+                        IF(
+                           (r.latitude IS NOT NULL AND r.longitude IS NOT NULL AND
+                           r.latitude BETWEEN -90 AND 90 AND
+                           r.longitude BETWEEN -180 AND 180),
+                           TRUE, FALSE
+                        ) AS validCoordinates
+                  "),
+                  DB::raw('DATE_FORMAT(r.lastpayment_date, "%d/%m/%Y") AS lastpayment_date'),
+                  DB::raw('SUM(IFNULL(d.total_demand, 0)) AS totalDemand')
+               ])
+               ->leftJoin('cluster_current_demands as d', 'r.id', '=', 'd.ratepayer_id')
+               ->where('r.paymentzone_id', $id)
+               ->where('r.ratepayer_name', 'LIKE', $startsWith . '%')
+               ->whereNull('r.entity_id')
+               ->whereNotNull('r.cluster_id')
+               ->groupBy([
+                  'r.id',
+                  'r.consumer_no',
+                  'r.ratepayer_name',
+                  'r.ratepayer_address',
+                  'r.mobile_no',
+                  'r.holding_no',
+                  'r.reputation',
+                  'r.lastpayment_amt',
+                  'r.latitude',
+                  'r.longitude',
+                  'r.lastpayment_date',
+               ])
+               ->orderBy('r.ratepayer_name');
+                           
+            // $qry = DB::table('entities as e')
+            //    ->select([
+            //       'e.ratepayer_id',
+            //       'r.consumer_no',
+            //       'r.ratepayer_name',
+            //       'r.ratepayer_address',
+            //       'r.mobile_no',
+            //       'r.holding_no',
+            //       'c.category',
+            //       's.sub_category',
+            //       'r.reputation',
+            //       'r.lastpayment_amt',
+            //       DB::raw('
+            //             IF(
+            //                (r.latitude IS NOT NULL AND r.longitude IS NOT NULL AND 
+            //                r.latitude BETWEEN -90 AND 90 AND 
+            //                r.longitude BETWEEN -180 AND 180),
+            //                TRUE, FALSE
+            //             ) as validCoordinates
+            //       '),
+            //       DB::raw('DATE_FORMAT(r.lastpayment_date, "%d/%m/%Y") as lastpayment_date'),
+            //       DB::raw('SUM(IFNULL(d.total_demand, 0)) as totalDemand')
+            //    ])
+            //    ->join('ratepayers as r', 'e.ratepayer_id', '=', 'r.id')
+            //    ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+            //    ->join('categories as c', 's.category_id', '=', 'c.id')
+            //    ->leftJoin('current_demands as d', 'e.ratepayer_id', '=', 'd.ratepayer_id')
+            //    ->where('r.paymentzone_id', $id)
+            //    ->where('r.ratepayer_name', 'LIKE', $startsWith . '%')
+            //    ->groupBy([
+            //       'e.ratepayer_id',
+            //       'r.consumer_no',
+            //       'r.ratepayer_name',
+            //       'r.ratepayer_address',
+            //       'r.mobile_no',
+            //       'r.holding_no',
+            //       'c.category',
+            //       's.sub_category',
+            //       'r.reputation',
+            //       'r.lastpayment_amt',
+            //       'r.latitude',
+            //       'r.longitude',
+            //       'r.lastpayment_date',
+            //    ])
+            //    ->orderBy('r.ratepayer_name');
+            
+               $results = $qry->get();
+
+               return format_response(
+                'Show Pending Demands from '.$zone->payment_zone,
+                $results,
+                Response::HTTP_OK
+            );
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_NOT_FOUND
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
     //
-    public function zoneCurrentClusterDemands(Request $request, $id)
+    public function zoneCurrentClusterDemandsDiscarded(Request $request, $id)
     {
         try {
 
@@ -396,26 +524,6 @@ class DemandController extends Controller
             }
 
             DB::enableQueryLog();
-
-            // $currentMonth = now()->month;
-            // $currentYear = now()->year;
-            
-            // $qry = DB::table('clusters as c')
-            //    ->select(
-            //       'c.id as cluster_id',
-            //       'c.ratepayer_id',
-            //       'r.consumer_no',
-            //       'r.ratepayer_name',
-            //       'r.ratepayer_address',
-            //       DB::raw('cast(SUM(IFNULL(d.total_demand, 0)) as char) as clusterDemand')
-            //    )
-            //    ->join('ratepayers as r', 'c.ratepayer_id', '=', 'r.id')
-            //    ->join('entities as e', 'c.id', '=', 'e.cluster_id')
-            //    ->leftJoin('current_demands as d', 'e.ratepayer_id', '=', 'd.ratepayer_id')
-            //    ->where('r.paymentzone_id', $id)
-            //    ->where('r.is_active', true)
-            //    ->groupBy('c.id', 'c.ratepayer_id', 'r.consumer_no', 'r.ratepayer_name', 'r.ratepayer_address')
-            //    ->orderBy('r.ratepayer_name');
 
             $qry = DB::table('clusters as c')
                ->select(
