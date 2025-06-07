@@ -70,6 +70,7 @@ class RatepayerService
             ->select([
                 'r.id',
                 DB::raw("IF(r.entity_id IS NOT NULL, 'Entity', 'Cluster') AS ratepayerType"),
+                'cl.cluster_name',
                 'r.consumer_no as consumerNo',
                 'r.ratepayer_name as ratepayerName',
                 'r.ratepayer_address as ratepayerAddress',
@@ -83,15 +84,28 @@ class RatepayerService
                 'r.status',
                 'r.is_active',
                 'r.reputation',
+                'c.category',
                 's.sub_category as subCategory',
+                'r.monthly_demand',
             ])
             ->join('wards as w', 'r.ward_id', '=', 'w.id') // INNER JOIN
             ->leftJoin('payment_zones as z', 'r.paymentzone_id', '=', 'z.id') // LEFT JOIN
-            ->leftJoin('sub_categories as s', 'r.subcategory_id', '=', 's.id'); // LEFT JOIN
+            ->leftJoin('sub_categories as s', 'r.subcategory_id', '=', 's.id') // LEFT JOIN
+            ->leftJoin('categories as c', 's.category_id', '=', 'c.id') // LEFT JOIN
+            ->leftJoin('clusters as cl', 'r.cluster_id', '=', 'cl.id'); // LEFT JOIN
 
         //   $results = $query->get(); // Execute the query
 
         // Conditional filters
+        if ($request->filled('showCluster')) {
+            $query->whereNotNull('r.cluster_id');
+            $query->whereNull('r.entity_id');
+        }
+         else {
+            $query->whereNull('r.cluster_id');
+            $query->whereNotNull('r.entity_id');
+        }
+
         if ($request->filled('wardId')) {
             $query->where('r.ward_id', $request->input('wardId'));
         }
@@ -257,4 +271,5 @@ class RatepayerService
 
         return $results;
     }
+
 }

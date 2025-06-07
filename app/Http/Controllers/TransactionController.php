@@ -1373,7 +1373,7 @@ class TransactionController extends Controller
                ->join('payments as p', 't.id', '=', 'p.tran_id')
                ->where('p.ratepayer_id', $ratepayerId)
                ->select(
-                  't.transaction_no',
+                  't.id as tran_id,t.transaction_no',
                   't.event_type',
                   't.event_time',
                   't.schedule_date',

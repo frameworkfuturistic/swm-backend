@@ -156,6 +156,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
     // API-ID: ADMIN-048 [Daily Transaction by Zone]
     Route::get('transaction-summary', [TransactionController::class, 'getTransactionSummary']);
 
+    // API-ID: ADMIN-049 [Daily Transaction by Zone]
+    Route::put('update-ratepayer/{id}', [RatepayerController::class, 'updateRatepayer']);
     
     //  -- Verify New Entities and Create Ratepayers
     //  -- Modify Transaction Records

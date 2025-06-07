@@ -596,4 +596,60 @@ class RatepayerController extends Controller
             );
         }
     }
+
+public function updateRatepayer(Request $request, $id)
+    {
+         $ratepayer = Ratepayer::find($id);
+
+         if (!$ratepayer) {
+            return response()->json(['message' => 'Ratepayer not found.'], 404);
+         }
+
+         $validated = $request->validate([
+            'ward_id' => 'sometimes|integer|exists:wards,id',
+            'entity_id' => 'nullable|integer',
+            'cluster_id' => 'nullable|integer',
+            'ratepayer_id' => 'nullable|integer',
+            'paymentzone_id' => 'nullable|integer',
+            'subcategory_id' => 'sometimes|integer|exists:sub_categories,id',
+            'ratepayer_name' => 'nullable|string|max:250',
+            'ratepayer_address' => 'nullable|string|max:255',
+            'consumer_no' => 'nullable|string|max:50',
+            'holding_no' => 'nullable|string|max:50',
+            'mobile_no' => 'nullable|string|max:250',
+            'landmark' => 'nullable|string|max:100',
+            'whatsapp_no' => 'nullable|string|max:12',
+            'usage_type' => 'nullable|in:Residential,Commercial,Industrial,Institutional',
+            'status' => 'nullable|in:verified,pending,suspended,closed',
+            'reputation' => 'nullable|integer',
+            'schedule_date' => 'nullable|date',
+            'current_demand' => 'nullable|integer',
+            'monthly_demand' => 'nullable|integer',
+            'is_active' => 'nullable|boolean',
+         ]);
+
+         $oldSubcategoryId = $ratepayer->subcategory_id;
+
+         $ratepayer->fill($validated);
+
+         // Increment vrno
+         $ratepayer->vrno = ($ratepayer->vrno ?? 0) + 1;
+         $ratepayer->save();
+
+         // If subcategory_id changed, update current_demands
+         if (isset($validated['subcategory_id']) && $validated['subcategory_id'] != $oldSubcategoryId) {
+            DB::statement("
+                  UPDATE current_demands d
+                  INNER JOIN ratepayers r ON d.ratepayer_id = r.id
+                  INNER JOIN sub_categories s ON s.id = r.subcategory_id
+                  SET d.demand = s.rate, d.total_demand = s.rate
+                  WHERE d.ratepayer_id = ?
+            ", [$ratepayer->id]);
+         }
+
+         return response()->json([
+            'message' => 'Ratepayer updated successfully.',
+            'data' => $ratepayer
+         ]);
+      }    
 }
