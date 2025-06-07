@@ -647,9 +647,10 @@ public function updateRatepayer(Request $request, $id)
             ", [$ratepayer->id]);
          }
 
-         return response()->json([
-            'message' => 'Ratepayer updated successfully.',
-            'data' => $ratepayer
-         ]);
+         return format_response(
+                'List of Ratepayer in a Cluster',
+                $ratepayer,
+                Response::HTTP_OK
+         );
       }    
 }

@@ -248,6 +248,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('operations')->
     Route::get('tc-dashboard', [TCController::class, 'tcDashboard']);                                  //Done
 
     //  Route::get('/ping/{id}', [AuthController::class, 'ping']);
+    // API-ID: OPER-015 [Ping from TC]
+    Route::get('clusters/{id}/ratepayers', [ClusterController::class, 'showClusterRatepayers']);                                  //Done
 
 });
 

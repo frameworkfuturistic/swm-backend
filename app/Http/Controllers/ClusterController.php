@@ -426,4 +426,73 @@ class ClusterController extends Controller
             );
         }
     }
+
+    public function showClusterRatepayers(Request $request, $id)
+    {
+      try {
+         $ratepayer = DB::table('ratepayers as r')
+         ->join('wards as w', 'r.ward_id', '=', 'w.id')
+         ->leftJoin('payment_zones as z', 'r.paymentzone_id', '=', 'z.id')
+         ->leftJoin('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+         ->leftJoin('categories as c', 's.category_id', '=', 'c.id')
+         ->select(
+            'r.ward_id',
+            'w.ward_name',
+            'r.entity_id',
+            'r.cluster_id',
+            'r.paymentzone_id',
+            'z.payment_zone',
+            'r.last_payment_id',
+            'r.subcategory_id',
+            's.sub_category',
+            's.category_id',
+            'c.category',
+            'r.rate_id',
+            'r.last_transaction_id',
+            'r.ratepayer_name',
+            'r.ratepayer_address',
+            'r.consumer_no',
+            'r.holding_no',
+            'r.longitude',
+            'r.latitude',
+            'r.mobile_no',
+            'r.landmark',
+            'r.whatsapp_no',
+            'r.usage_type',
+            'r.status',
+            'r.reputation',
+            'r.lastpayment_amt',
+            'r.lastpayment_date',
+            'r.lastpayment_mode',
+            'r.schedule_date',
+            'r.is_active'
+         )
+         ->where('r.cluster_id', $id)
+         ->get();
+
+         return format_response(
+                'Showing All ratepayers in the cluster',
+                $ratepayer,
+                Response::HTTP_OK
+         );         
+
+      } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+
+    }
 }
