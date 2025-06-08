@@ -104,6 +104,13 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('masters')->gro
     Route::get('payment-zones/{id}', [PaymentZoneController::class, 'show']);
 });
 
+Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('mobile')->group(function () {
+    // API-ID: MOBILE-001 [Show Ratepayer demands for a particular Cluster Demand for a month and year]
+    Route::get('cluster-member-demands', [DemandController::class, 'showClusterMemberMonthDemands']);
+
+});
+
+
 //Admin - API-ID: ADMIN-006
 Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin')->group(function () {
     // API-ID: ADMIN-001 [Reset Password for Anyone]
@@ -282,6 +289,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('demand')->grou
     // API-ID: DEMAND-007 [printable demand notice]
     Route::get('demand-notice/{id}', [DemandController::class, 'printableDemandNotice']);
 
+    // API-ID: DEMAND-008 [new demand notice]
+    Route::post('new-demand-notice', [DemandController::class, 'generateDemandNotice']);
 
     //Done
 

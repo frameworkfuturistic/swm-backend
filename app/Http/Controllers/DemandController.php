@@ -6,8 +6,10 @@ use App\Http\Services\DemandService;
 use App\Models\ClusterCurrentDemand;
 use App\Models\CurrentDemand;
 use App\Models\DemandNotice;
+use App\Models\DemandNoticeDetail;
 use App\Models\PaymentZone;
 use App\Models\Ratepayer;
+use App\Services\NumberGeneratorService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -15,6 +17,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class DemandController extends Controller
 {
@@ -652,7 +655,7 @@ class DemandController extends Controller
         }
     }
 
- public function pendingDemandNotices(Request $request)
+    public function pendingDemandNotices(Request $request)
     {
       try 
       {
@@ -693,9 +696,195 @@ class DemandController extends Controller
             );
         }
     }
-    
-   public function test()
-   {
-      
+   
+
+    public function showClusterMemberMonthDemands(Request $request)
+    {
+         $validator = Validator::make($request->all(), [
+            'ratepayer_id' => ['required', 'integer', Rule::exists('ratepayers', 'id')],
+            'bill_month'   => ['required', 'integer', 'between:1,12'],
+            'bill_year'    => ['required', 'integer', 'digits:4', 'between:2000,2100'],
+         ]);
+
+         if ($validator->fails()) {
+               return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_BAD_REQUEST
+            );
+         }
+
+         try {
+
+                     // Safe to retrieve after validation
+         $ratepayer = Ratepayer::find($request->ratepayer_id);
+
+         $clusterId = $ratepayer->cluster_id;
+
+         $demands = DB::table('current_demands as d')
+            ->join('entities as e', 'd.ratepayer_id', '=', 'e.ratepayer_id')
+            ->leftJoin('ratepayers as r', 'e.ratepayer_id', '=', 'r.id')
+            ->select(
+                  'd.id as demand_id',
+                  'r.id as ratepayer_id',
+                  'r.ratepayer_name',
+                  'r.ratepayer_address',
+                  'd.demand',
+                  'd.is_active',
+                  DB::raw('if(r.cluster_id is null,0,1) as is_attached')
+            )
+            ->where('e.cluster_id', $clusterId)
+            ->where('d.bill_year', $request->bill_year)
+            ->where('d.bill_month', $request->bill_month)
+            ->get();
+
+             return format_response(
+                'An unexpected error occurred',
+                $demands,
+                Response::HTTP_OK
+            );
+
+         } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+     }
+
+
+     public function generateDemandNotice(Request $request)
+      {
+         $validator = Validator::make($request->all(), [
+            'ratepayer_id' => 'required|integer|exists:ratepayers,id',
+         ]);
+
+         if ($validator->fails()) {
+            return format_response(
+                $validator->errors(),
+                null,
+                Response::HTTP_NOT_FOUND
+            );
+         }
+
+         $ratepayer = Ratepayer::find($request->ratepayer_id);
+
+         // Choose demand table
+         $demands = null;
+
+         if ($ratepayer->entity_id !== null && $ratepayer->cluster_id === null) {
+            $demands = CurrentDemand::where('ratepayer_id', $ratepayer->id)->where('is_active', 1)->get();
+         }
+         if ($ratepayer->entity_id === null && $ratepayer->cluster_id !== null) {
+            $demands = ClusterCurrentDemand::where('ratepayer_id', $ratepayer->id)->where('is_active', 1)->get();
+         }
+
+         if ($demands === null) {
+           return format_response(
+                'No Active Demands found, Ratepayer is part of a cluster',
+                null,
+                Response::HTTP_NOT_FOUND
+            );
+
+         }
+
+         DB::beginTransaction();
+
+         try {
+            $demandNo = app(NumberGeneratorService::class)->generate('demand_no');
+            // Insert into demand_notices
+            $notice = DemandNotice::create([
+                  'ratepayer_id'   => $ratepayer->id,
+                  'demand_no'      => $demandNo,
+                  'served_on'      => now(),
+                  'generated_on'   => now(),
+                  'demand_amount'  => $demands->sum('total_demand'),
+            ]);
+
+            // Insert details
+            foreach ($demands as $demand) {
+               $monthYear = \Carbon\Carbon::createFromDate($demand->bill_year, $demand->bill_month, 1)->format('F, Y');
+
+               DemandNoticeDetail::create([
+                  'demandnotice_id' => $notice->id,
+                  'demand_id'       => $demand->id,
+                  'bill_month'      => $monthYear,
+                  'rate'            => $demand->demand,
+                  'amount'          => $demand->total_demand,
+               ]);
+            }
+
+
+            DB::commit();
+
+            $data = DB::table('demand_notices as d')
+               ->join('ratepayers as r', 'r.id', '=', 'd.ratepayer_id')
+               ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+               ->join('categories as c', 's.category_id', '=', 'c.id')
+               ->join('wards as w', 'r.ward_id', '=', 'w.id')
+               ->select([
+                  'r.ratepayer_name as name',
+                  'r.mobile_no as mobile_no',
+                  'r.ratepayer_address as address',
+                  's.sub_category',
+                  'd.demand_no',
+                  DB::raw("DATE_FORMAT(d.generated_on, '%d %M, %Y %h:%i %p') as demand_date"),
+                  'r.consumer_no',
+                  'w.ward_name as ward_no',
+                  'r.holding_no',
+                  's.sub_category as type',
+                  'd.demand_amount as amount',
+               ])
+               ->where('d.id', $notice->id)
+               ->first(); // or ->get() for multiple results
+
+            $data->transactions = DB::table('demand_noticedetails as d')
+               ->where('d.demandnotice_id', $notice->id)
+               ->select([
+                  'd.bill_month',
+                  'd.rate as rate_per_month',
+                  'd.amount',
+               ])
+               ->get();
+
+            return format_response(
+               'Demand Notice Generated',
+               $data,
+               Response::HTTP_OK
+            );
+
+
+            } catch (\Illuminate\Database\QueryException $e) {
+                  Log::error('Database error during entity update: '.$e->getMessage());
+
+                  return format_response(
+                     'Database error occurred',
+                     null,
+                     Response::HTTP_INTERNAL_SERVER_ERROR
+                  );
+            } catch (\Exception $e) {
+                  Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+                  return format_response(
+                     'An unexpected error occurred',
+                     null,
+                     Response::HTTP_INTERNAL_SERVER_ERROR
+                  );
+            }
+
+         }
+
+
+
    }
-}
