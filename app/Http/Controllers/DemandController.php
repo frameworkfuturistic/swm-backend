@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Services\DemandService;
+use App\Models\Cluster;
 use App\Models\ClusterCurrentDemand;
 use App\Models\CurrentDemand;
 use App\Models\DemandNotice;
@@ -698,75 +699,9 @@ class DemandController extends Controller
     }
    
 
-    public function showClusterMemberMonthDemands(Request $request)
-    {
-         $validator = Validator::make($request->all(), [
-            'ratepayer_id' => ['required', 'integer', Rule::exists('ratepayers', 'id')],
-            'bill_month'   => ['required', 'integer', 'between:1,12'],
-            'bill_year'    => ['required', 'integer', 'digits:4', 'between:2000,2100'],
-         ]);
-
-         if ($validator->fails()) {
-               return format_response(
-                'An unexpected error occurred',
-                null,
-                Response::HTTP_BAD_REQUEST
-            );
-         }
-
-         try {
-
-                     // Safe to retrieve after validation
-         $ratepayer = Ratepayer::find($request->ratepayer_id);
-
-         $clusterId = $ratepayer->cluster_id;
-
-         $demands = DB::table('current_demands as d')
-            ->join('entities as e', 'd.ratepayer_id', '=', 'e.ratepayer_id')
-            ->leftJoin('ratepayers as r', 'e.ratepayer_id', '=', 'r.id')
-            ->select(
-                  'd.id as demand_id',
-                  'r.id as ratepayer_id',
-                  'r.ratepayer_name',
-                  'r.ratepayer_address',
-                  'd.demand',
-                  'd.is_active',
-                  DB::raw('if(r.cluster_id is null,0,1) as is_attached')
-            )
-            ->where('e.cluster_id', $clusterId)
-            ->where('d.bill_year', $request->bill_year)
-            ->where('d.bill_month', $request->bill_month)
-            ->get();
-
-             return format_response(
-                'An unexpected error occurred',
-                $demands,
-                Response::HTTP_OK
-            );
-
-         } catch (\Illuminate\Database\QueryException $e) {
-            Log::error('Database error during entity update: '.$e->getMessage());
-
-            return format_response(
-                'Database error occurred',
-                null,
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        } catch (\Exception $e) {
-            Log::error('Unexpected error during entity update: '.$e->getMessage());
-
-            return format_response(
-                'An unexpected error occurred',
-                null,
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
-     }
-
-
      public function generateDemandNotice(Request $request)
-      {
-         $validator = Validator::make($request->all(), [
+     {
+               $validator = Validator::make($request->all(), [
             'ratepayer_id' => 'required|integer|exists:ratepayers,id',
          ]);
 
@@ -849,20 +784,20 @@ class DemandController extends Controller
                ->where('d.id', $notice->id)
                ->first(); // or ->get() for multiple results
 
-            $data->transactions = DB::table('demand_noticedetails as d')
-               ->where('d.demandnotice_id', $notice->id)
-               ->select([
-                  'd.bill_month',
-                  'd.rate as rate_per_month',
-                  'd.amount',
-               ])
-               ->get();
+               $data->transactions = DB::table('demand_noticedetails as d')
+                  ->where('d.demandnotice_id', $notice->id)
+                  ->select([
+                     'd.bill_month',
+                     'd.rate as rate_per_month',
+                     'd.amount',
+                  ])
+                  ->get();
 
-            return format_response(
-               'Demand Notice Generated',
-               $data,
-               Response::HTTP_OK
-            );
+               return format_response(
+                  'Demand Notice Generated',
+                  $data,
+                  Response::HTTP_OK
+               );
 
 
             } catch (\Illuminate\Database\QueryException $e) {
@@ -883,8 +818,309 @@ class DemandController extends Controller
                   );
             }
 
+     }
+
+
+      public function attachToCluster(Request $request)
+      {
+         // Step 1: Validate input
+         $validator = Validator::make($request->all(), [
+            'ratepayer_id' => 'required|integer|exists:ratepayers,id',
+         ]);
+
+         if ($validator->fails()) {
+            return format_response(
+                  $validator->errors(),
+                  null,
+                  Response::HTTP_UNPROCESSABLE_ENTITY
+            );
          }
 
+         $ratepayerId = $request->ratepayer_id;
+
+         try {
+            // Step 2: Get the cluster_id from entities table
+            $clusterId = DB::table('entities')
+                  ->where('ratepayer_id', $ratepayerId)
+                  ->value('cluster_id');
+
+            if (is_null($clusterId)) {
+                  return format_response(
+                     'Cluster ID not found in entities table for the given ratepayer',
+                     null,
+                     Response::HTTP_NOT_FOUND
+                  );
+            }
+
+            // Step 3: Update the ratepayer's cluster_id
+            $updated = Ratepayer::where('id', $ratepayerId)->update(['cluster_id' => $clusterId]);
+
+            if (!$updated) {
+                  return format_response(
+                     'Ratepayer update failed',
+                     null,
+                     Response::HTTP_INTERNAL_SERVER_ERROR
+                  );
+            }
+
+            // Step 4: Use any one ratepayer from the cluster to update cluster-level demand
+            $clusterRatepayer = Cluster::find($clusterId);
+
+            if ($clusterRatepayer) {
+                  $this->calculateUpdateClusterDemand($clusterRatepayer->ratepayer_id);
+            }
+
+            return format_response(
+                  'Cluster attached and demand recalculated successfully',
+                  null,
+                  Response::HTTP_OK
+            );
+
+         } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during attachToCluster: ' . $e->getMessage());
+
+            return format_response(
+                  'Database error occurred',
+                  null,
+                  Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+
+         } catch (\Exception $e) {
+            Log::error('Unexpected error during attachToCluster: ' . $e->getMessage());
+
+            return format_response(
+                  'An unexpected error occurred',
+                  null,
+                  Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+         }
+      }
+         
+      public function detachCluster(Request $request)
+      {
+         // Step 1: Validate request
+         $validator = Validator::make($request->all(), [
+            'ratepayer_id' => 'required|integer|exists:ratepayers,id',
+         ]);
+
+         if ($validator->fails()) {
+            return format_response(
+                  $validator->errors(),
+                  null,
+                  Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+         }
+
+         $ratepayerId = $request->ratepayer_id;
+
+         try {
+            DB::beginTransaction();
+
+            // Step 2: Find the ratepayer
+            $ratepayer = Ratepayer::findOrFail($ratepayerId);
+
+            // Store cluster_id before detaching
+            $clusterId = $ratepayer->cluster_id;
+
+            // Step 3: Detach the cluster
+            $ratepayer->update(['cluster_id' => null]);
+
+            // Step 4: Get the cluster (if needed for demand calculation)
+            $clusterRatepayer = Cluster::find($clusterId);
+
+            if ($clusterRatepayer) {
+                  // Step 5: Recalculate cluster demand
+                  $this->calculateUpdateClusterDemand($clusterRatepayer->ratepayer_id);
+            }
+
+            DB::commit();
+
+            return format_response(
+                  'Cluster detached and demand updated successfully',
+                  null,
+                  Response::HTTP_OK
+            );
+
+         } catch (\Illuminate\Database\QueryException $e) {
+            DB::rollBack();
+            Log::error('Database error during cluster detachment: ' . $e->getMessage());
+
+            return format_response(
+                  'Database error occurred',
+                  null,
+                  Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+         } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Unexpected error during cluster detachment: ' . $e->getMessage());
+
+            return format_response(
+                  'An unexpected error occurred',
+                  null,
+                  Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+         }
+      }
+
+      public function deactivateClusterRatepayerDemand(Request $request)
+      {
+         // Step 1: Validate request
+         $validator = Validator::make($request->all(), [
+            'demand_id' => 'required|integer|exists:current_demands,id',
+         ]);
+
+         if ($validator->fails()) {
+            return format_response(
+                  $validator->errors(),
+                  null,
+                  Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+         }
+
+         $demandId = $request->demand_id;
+
+         try {
+            DB::beginTransaction();
+
+            $demand = CurrentDemand::findOrFail($demandId);
+            $ratepayer = Ratepayer::find($demand->ratepayer_id);
+            $clusterRatepayer = Cluster::find($ratepayer->cluster_id);
+
+            $demand->update(['is_active' => 0]);
+
+            $this->calculateUpdateClusterDemand($clusterRatepayer->ratepayer_id);
+
+            DB::commit();
+
+            return format_response(
+                  'Demand Deactivated Successfully',
+                  null,
+                  Response::HTTP_OK
+            );
+
+         } catch (\Illuminate\Database\QueryException $e) {
+            DB::rollBack();
+            Log::error('Database error during cluster detachment: ' . $e->getMessage());
+
+            return format_response(
+                  'Database error occurred',
+                  null,
+                  Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+         } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Unexpected error during cluster detachment: ' . $e->getMessage());
+
+            return format_response(
+                  'An unexpected error occurred',
+                  null,
+                  Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+         }
+      }
+
+      public function calculateUpdateClusterDemand(int $clusterRatepayerID)
+      {
+
+         $ratepayer = Ratepayer::find($clusterRatepayerID);
+         $clusterDemands = DB::table('cluster_current_demands')
+            ->where('ratepayer_id', $clusterRatepayerID)
+            ->get();
+
+         foreach ($clusterDemands as $clusterDemand) {
+            $billMonth = $clusterDemand->bill_month;
+            $billYear = $clusterDemand->bill_year;
+
+            // Step 4: Calculate total demand for the cluster
+            $totalDemand = DB::table('current_demands as d')
+                  ->join('ratepayers as r', 'd.ratepayer_id', '=', 'r.id')
+                  ->where('r.cluster_id', $ratepayer->cluster_id)
+                  ->whereNotNull('r.entity_id')
+                  ->where('r.is_active', 1)
+                  ->where('d.bill_month', $billMonth)
+                  ->where('d.bill_year', $billYear)
+                  ->sum('d.demand');
+
+            // Step 5: Update the cluster_current_demands row
+            $updated = DB::table('cluster_current_demands')
+                  ->where('id', $clusterDemand->id)
+                  ->update([
+                     'demand' => $totalDemand,
+                     'total_demand' => $totalDemand
+                  ]);
+            }
+        
+      }
 
 
-   }
+      public function showClusterMemberMonthDemands(Request $request)
+      {
+
+         $validator = Validator::make($request->all(), [
+            'ratepayer_id' => ['required', 'integer', Rule::exists('ratepayers', 'id')],
+            'bill_month'   => ['required', 'integer', 'between:1,12'],
+            'bill_year'    => ['required', 'integer', 'digits:4', 'between:2000,2100'],
+         ]);
+
+         if ($validator->fails()) {
+               return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_BAD_REQUEST
+            );
+         }
+
+         try {
+
+                     // Safe to retrieve after validation
+         $ratepayer = Ratepayer::find($request->ratepayer_id);
+
+         $clusterId = $ratepayer->cluster_id;
+
+         $qry = DB::table('current_demands as d')
+            ->join('entities as e', 'd.ratepayer_id', '=', 'e.ratepayer_id')
+            ->leftJoin('ratepayers as r', 'e.ratepayer_id', '=', 'r.id')
+            ->select(
+                  'd.id as demand_id',
+                  'r.id as ratepayer_id',
+                  'r.ratepayer_name',
+                  'r.ratepayer_address',
+                  'd.demand',
+                  'd.is_active',
+                  DB::raw('if(r.cluster_id is null,0,1) as is_attached')
+            )
+            ->where('e.cluster_id', $clusterId)
+            ->where('d.bill_year', $request->bill_year)
+            ->where('d.bill_month', $request->bill_month)
+            ->where('d.is_active', 1);
+
+            $demands= $qry->get();
+
+             return format_response(
+                'An unexpected error occurred',
+                $demands,
+                Response::HTTP_OK
+            );
+
+         } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'Database error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during entity update: '.$e->getMessage());
+
+            return format_response(
+                'An unexpected error occurred',
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+
+      }
+
+}
+

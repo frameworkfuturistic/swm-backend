@@ -107,6 +107,12 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('masters')->gro
 Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('mobile')->group(function () {
     // API-ID: MOBILE-001 [Show Ratepayer demands for a particular Cluster Demand for a month and year]
     Route::get('cluster-member-demands', [DemandController::class, 'showClusterMemberMonthDemands']);
+    // API-ID: MOBILE-002 [Show Ratepayer demands for a particular Cluster Demand for a month and year]
+    Route::post('attach-cluster', [DemandController::class, 'attachToCluster']);
+    // API-ID: MOBILE-003 [Show Ratepayer demands for a particular Cluster Demand for a month and year]
+    Route::post('detach-cluster', [DemandController::class, 'detachCluster']);
+    // API-ID: MOBILE-004 [Show Ratepayer demands for a particular Cluster Demand for a month and year]
+    Route::post('deactivate-clusterratepayer_demand', [DemandController::class, 'deactivateClusterRatepayerDemand']);
 
 });
 
