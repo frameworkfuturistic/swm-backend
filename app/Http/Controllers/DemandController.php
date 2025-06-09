@@ -6,6 +6,7 @@ use App\Http\Services\DemandService;
 use App\Models\Cluster;
 use App\Models\ClusterCurrentDemand;
 use App\Models\CurrentDemand;
+use App\Models\Demand;
 use App\Models\DemandNotice;
 use App\Models\DemandNoticeDetail;
 use App\Models\PaymentZone;
@@ -986,7 +987,12 @@ class DemandController extends Controller
             $ratepayer = Ratepayer::find($demand->ratepayer_id);
             $clusterRatepayer = Cluster::find($ratepayer->cluster_id);
 
-            $demand->update(['is_active' => 0]);
+            $data = $demand->toArray();
+            $data['is_active'] = false;
+
+            Demand::create($data);
+
+            $demand->delete();
 
             $this->calculateUpdateClusterDemand($clusterRatepayer->ratepayer_id);
 
