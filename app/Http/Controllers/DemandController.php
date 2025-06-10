@@ -9,6 +9,7 @@ use App\Models\CurrentDemand;
 use App\Models\Demand;
 use App\Models\DemandNotice;
 use App\Models\DemandNoticeDetail;
+use App\Models\Entity;
 use App\Models\PaymentZone;
 use App\Models\Ratepayer;
 use App\Services\NumberGeneratorService;
@@ -830,73 +831,48 @@ class DemandController extends Controller
          ]);
 
          if ($validator->fails()) {
-            return format_response(
-                  $validator->errors(),
-                  null,
-                  Response::HTTP_UNPROCESSABLE_ENTITY
-            );
+            throw new \Illuminate\Validation\ValidationException($validator);
          }
 
          $ratepayerId = $request->ratepayer_id;
 
          try {
+            DB::beginTransaction();
+
             // Step 2: Get the cluster_id from entities table
-            $clusterId = DB::table('entities')
-                  ->where('ratepayer_id', $ratepayerId)
-                  ->value('cluster_id');
+            $clusterId = Entity::where('ratepayer_id', $ratepayerId)->value('cluster_id');
 
             if (is_null($clusterId)) {
-                  return format_response(
-                     'Cluster ID not found in entities table for the given ratepayer',
-                     null,
-                     Response::HTTP_NOT_FOUND
-                  );
+                  throw new \RuntimeException('Cluster ID not found in entities table for the given ratepayer', Response::HTTP_NOT_FOUND);
             }
 
             // Step 3: Update the ratepayer's cluster_id
-            $updated = Ratepayer::where('id', $ratepayerId)->update(['cluster_id' => $clusterId]);
+            $ratepayer = Ratepayer::findOrFail($ratepayerId);
+            $ratepayer->cluster_id = $clusterId;
+            $ratepayer->save();
 
-            if (!$updated) {
-                  return format_response(
-                     'Ratepayer update failed',
-                     null,
-                     Response::HTTP_INTERNAL_SERVER_ERROR
-                  );
-            }
+            // Step 4: Recalculate cluster-level demand
+            $this->calculateUpdateClusterDemand($clusterId);
 
-            // Step 4: Use any one ratepayer from the cluster to update cluster-level demand
-            $clusterRatepayer = Cluster::find($clusterId);
+            DB::commit();
 
-            if ($clusterRatepayer) {
-                  $this->calculateUpdateClusterDemand($clusterRatepayer->ratepayer_id);
-            }
-
-            return format_response(
-                  'Cluster attached and demand recalculated successfully',
-                  null,
-                  Response::HTTP_OK
-            );
+            return format_response('Cluster attached and demand recalculated successfully', null, Response::HTTP_OK);
 
          } catch (\Illuminate\Database\QueryException $e) {
+            DB::rollBack();
             Log::error('Database error during attachToCluster: ' . $e->getMessage());
 
-            return format_response(
-                  'Database error occurred',
-                  null,
-                  Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-
+            throw new \RuntimeException('Database error occurred', Response::HTTP_INTERNAL_SERVER_ERROR);
          } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Unexpected error during attachToCluster: ' . $e->getMessage());
 
-            return format_response(
-                  'An unexpected error occurred',
-                  null,
-                  Response::HTTP_INTERNAL_SERVER_ERROR
-            );
+            throw new \RuntimeException('An unexpected error occurred', Response::HTTP_INTERNAL_SERVER_ERROR);
          }
       }
-         
+
+
+               
       public function detachCluster(Request $request)
       {
          // Step 1: Validate request
@@ -905,11 +881,7 @@ class DemandController extends Controller
          ]);
 
          if ($validator->fails()) {
-            return format_response(
-                  $validator->errors(),
-                  null,
-                  Response::HTTP_UNPROCESSABLE_ENTITY
-            );
+            throw new \Illuminate\Validation\ValidationException($validator);
          }
 
          $ratepayerId = $request->ratepayer_id;
@@ -924,44 +896,31 @@ class DemandController extends Controller
             $clusterId = $ratepayer->cluster_id;
 
             // Step 3: Detach the cluster
-            $ratepayer->update(['cluster_id' => null]);
+            $ratepayer->cluster_id = null;
+            $ratepayer->save();
 
-            // Step 4: Get the cluster (if needed for demand calculation)
-            $clusterRatepayer = Cluster::find($clusterId);
-
-            if ($clusterRatepayer) {
-                  // Step 5: Recalculate cluster demand
-                  $this->calculateUpdateClusterDemand($clusterRatepayer->ratepayer_id);
+            // Step 4: Recalculate cluster demand
+            if ($clusterId) {
+                  $this->calculateUpdateClusterDemand($clusterId);
             }
 
             DB::commit();
 
-            return format_response(
-                  'Cluster detached and demand updated successfully',
-                  null,
-                  Response::HTTP_OK
-            );
+            return format_response('Cluster detached and demand updated successfully', null, Response::HTTP_OK);
 
          } catch (\Illuminate\Database\QueryException $e) {
             DB::rollBack();
             Log::error('Database error during cluster detachment: ' . $e->getMessage());
 
-            return format_response(
-                  'Database error occurred',
-                  null,
-                  Response::HTTP_INTERNAL_SERVER_ERROR
-            );
+            throw new \RuntimeException('Database error occurred', Response::HTTP_INTERNAL_SERVER_ERROR);
          } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Unexpected error during cluster detachment: ' . $e->getMessage());
 
-            return format_response(
-                  'An unexpected error occurred',
-                  null,
-                  Response::HTTP_INTERNAL_SERVER_ERROR
-            );
+            throw new \RuntimeException('An unexpected error occurred', Response::HTTP_INTERNAL_SERVER_ERROR);
          }
       }
+
 
       public function deactivateClusterRatepayerDemand(Request $request)
       {
@@ -971,11 +930,7 @@ class DemandController extends Controller
          ]);
 
          if ($validator->fails()) {
-            return format_response(
-                  $validator->errors(),
-                  null,
-                  Response::HTTP_UNPROCESSABLE_ENTITY
-            );
+            throw new \Illuminate\Validation\ValidationException($validator);
          }
 
          $demandId = $request->demand_id;
@@ -984,79 +939,80 @@ class DemandController extends Controller
             DB::beginTransaction();
 
             $demand = CurrentDemand::findOrFail($demandId);
-            $ratepayer = Ratepayer::find($demand->ratepayer_id);
-            $clusterRatepayer = Cluster::find($ratepayer->cluster_id);
+            $ratepayer = Ratepayer::findOrFail($demand->ratepayer_id);
+            $clusterRatepayer = Cluster::findOrFail($ratepayer->cluster_id);
 
-            $data = $demand->toArray();
-            $data['is_active'] = false;
+            // Archive the demand to `demands` table
+            $archivedData = $demand->toArray();
+            $archivedData['is_active'] = false;
+            Demand::create($archivedData);
 
-            Demand::create($data);
-
+            // Delete from current_demands
             $demand->delete();
 
-            $this->calculateUpdateClusterDemand($clusterRatepayer->ratepayer_id);
+            // Recalculate total cluster demand
+            $this->calculateUpdateClusterDemand($ratepayer->cluster_id);
 
             DB::commit();
 
-            return format_response(
-                  'Demand Deactivated Successfully',
-                  null,
-                  Response::HTTP_OK
-            );
+            return format_response('Demand Deactivated Successfully', null, Response::HTTP_OK);
 
          } catch (\Illuminate\Database\QueryException $e) {
             DB::rollBack();
-            Log::error('Database error during cluster detachment: ' . $e->getMessage());
+            Log::error('Database error during cluster demand deactivation: ' . $e->getMessage());
 
-            return format_response(
-                  'Database error occurred',
-                  null,
-                  Response::HTTP_INTERNAL_SERVER_ERROR
-            );
+            throw new \RuntimeException('Database error occurred', Response::HTTP_INTERNAL_SERVER_ERROR);
          } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Unexpected error during cluster detachment: ' . $e->getMessage());
+            Log::error('Unexpected error during cluster demand deactivation: ' . $e->getMessage());
 
-            return format_response(
-                  'An unexpected error occurred',
-                  null,
-                  Response::HTTP_INTERNAL_SERVER_ERROR
-            );
+            throw new \RuntimeException('An unexpected error occurred', Response::HTTP_INTERNAL_SERVER_ERROR);
          }
       }
 
-      public function calculateUpdateClusterDemand(int $clusterRatepayerID)
+
+      public function calculateUpdateClusterDemand(int $clusterId)
       {
+      // Step 1: Get cluster-level ratepayer (entity_id is null)
+         $clusterRatepayer = Ratepayer::where('cluster_id', $clusterId)
+            ->whereNull('entity_id')
+            ->first();
 
-         $ratepayer = Ratepayer::find($clusterRatepayerID);
-         $clusterDemands = DB::table('cluster_current_demands')
-            ->where('ratepayer_id', $clusterRatepayerID)
-            ->get();
+         if (!$clusterRatepayer) {
+            Log::warning("No cluster-level ratepayer found for cluster_id = $clusterId");
+            return;
+         }
 
-         foreach ($clusterDemands as $clusterDemand) {
-            $billMonth = $clusterDemand->bill_month;
-            $billYear = $clusterDemand->bill_year;
+         $clusterRatepayerId = $clusterRatepayer->id;
 
-            // Step 4: Calculate total demand for the cluster
+         // Step 2: Fetch summary rows from cluster_current_demands for that ratepayer
+         $summaryRows = DB::table('cluster_current_demands')
+            ->where('ratepayer_id', $clusterRatepayerId)
+            ->where('is_active', 1)
+            ->get(['id', 'bill_month', 'bill_year']);
+
+         foreach ($summaryRows as $row) {
+            $month = $row->bill_month;
+            $year = $row->bill_year;
+
+            // Step 3: Calculate total demand from current_demands for the cluster
             $totalDemand = DB::table('current_demands as d')
                   ->join('ratepayers as r', 'd.ratepayer_id', '=', 'r.id')
-                  ->where('r.cluster_id', $ratepayer->cluster_id)
-                  ->whereNotNull('r.entity_id')
-                  ->where('r.is_active', 1)
-                  ->where('d.bill_month', $billMonth)
-                  ->where('d.bill_year', $billYear)
+                  ->where('r.cluster_id', $clusterId)
+                  ->where('d.bill_month', $month)
+                  ->where('d.bill_year', $year)
                   ->sum('d.demand');
 
-            // Step 5: Update the cluster_current_demands row
-            $updated = DB::table('cluster_current_demands')
-                  ->where('id', $clusterDemand->id)
+            // Step 4: Update the cluster summary record
+            DB::table('cluster_current_demands')
+                  ->where('id', $row->id)
                   ->update([
                      'demand' => $totalDemand,
-                     'total_demand' => $totalDemand
+                     'total_demand' => $totalDemand,
                   ]);
-            }
-        
+         }        
       }
+     
 
 
       public function showClusterMemberMonthDemands(Request $request)
