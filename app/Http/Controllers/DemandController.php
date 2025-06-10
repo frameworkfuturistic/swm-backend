@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Services\DemandService;
 use App\Models\Cluster;
 use App\Models\ClusterCurrentDemand;
+use App\Models\ClusterDemand;
 use App\Models\CurrentDemand;
 use App\Models\Demand;
 use App\Models\DemandNotice;
@@ -971,9 +972,63 @@ class DemandController extends Controller
       }
 
 
+      // public function calculateUpdateClusterDemand(int $clusterId)
+      // {
+      // // Step 1: Get cluster-level ratepayer (entity_id is null)
+      //    $clusterRatepayer = Ratepayer::where('cluster_id', $clusterId)
+      //       ->whereNull('entity_id')
+      //       ->first();
+
+      //    if (!$clusterRatepayer) {
+      //       Log::warning("No cluster-level ratepayer found for cluster_id = $clusterId");
+      //       return;
+      //    }
+
+      //    $clusterRatepayerId = $clusterRatepayer->id;
+
+      //    // Step 2: Fetch summary rows from cluster_current_demands for that ratepayer
+      //    $summaryRows = DB::table('cluster_current_demands')
+      //       ->where('ratepayer_id', $clusterRatepayerId)
+      //       ->where('is_active', 1)
+      //       ->get(['id', 'bill_month', 'bill_year']);
+
+      //    foreach ($summaryRows as $row) {
+      //       $month = $row->bill_month;
+      //       $year = $row->bill_year;
+
+      //       // Step 3: Calculate total demand from current_demands for the cluster
+      //       $totalDemand = DB::table('current_demands as d')
+      //             ->join('ratepayers as r', 'd.ratepayer_id', '=', 'r.id')
+      //             ->where('r.cluster_id', $clusterId)
+      //             ->where('d.bill_month', $month)
+      //             ->where('d.bill_year', $year)
+      //             ->sum('d.demand');
+
+      //       if ($totalDemand == 0){
+      //          $currentDemand = ClusterCurrentDemand::find($row->id);
+      //          $archivedData = $currentDemand->toArray();
+      //          $archivedData['is_active'] = false;
+      //          $archivedData['deactivation_reason'] = 'all demands are deactivated';
+      //          $archivedData['demand'] = 0;
+      //          $archivedData['total_demand'] = 0;
+      //          ClusterDemand::create($archivedData);
+      //          $currentDemand->delete();
+      //       }
+      //       else {
+      //          // Step 4: Update the cluster summary record
+      //          DB::table('cluster_current_demands')
+      //             ->where('id', $row->id)
+      //             ->update([
+      //                'demand' => $totalDemand,
+      //                'total_demand' => $totalDemand,
+      //             ]);
+      //       }
+      //    }        
+      // }
+     
+
       public function calculateUpdateClusterDemand(int $clusterId)
       {
-      // Step 1: Get cluster-level ratepayer (entity_id is null)
          $clusterRatepayer = Ratepayer::where('cluster_id', $clusterId)
             ->whereNull('entity_id')
             ->first();
@@ -983,36 +1038,37 @@ class DemandController extends Controller
             return;
          }
 
-         $clusterRatepayerId = $clusterRatepayer->id;
-
-         // Step 2: Fetch summary rows from cluster_current_demands for that ratepayer
-         $summaryRows = DB::table('cluster_current_demands')
-            ->where('ratepayer_id', $clusterRatepayerId)
+         $summaryRows = ClusterCurrentDemand::where('ratepayer_id', $clusterRatepayer->id)
             ->where('is_active', 1)
-            ->get(['id', 'bill_month', 'bill_year']);
+            ->get();
 
-         foreach ($summaryRows as $row) {
-            $month = $row->bill_month;
-            $year = $row->bill_year;
+         foreach ($summaryRows as $summary) {
+            $totalDemand = CurrentDemand::join('ratepayers', 'current_demands.ratepayer_id', '=', 'ratepayers.id')
+               ->where('ratepayers.cluster_id', $clusterId)
+               ->where('current_demands.bill_month', $summary->bill_month)
+               ->where('current_demands.bill_year', $summary->bill_year)
+               ->sum('current_demands.demand');
 
-            // Step 3: Calculate total demand from current_demands for the cluster
-            $totalDemand = DB::table('current_demands as d')
-                  ->join('ratepayers as r', 'd.ratepayer_id', '=', 'r.id')
-                  ->where('r.cluster_id', $clusterId)
-                  ->where('d.bill_month', $month)
-                  ->where('d.bill_year', $year)
-                  ->sum('d.demand');
+            if ($totalDemand == 0) {
+               DB::transaction(function () use ($summary) {
+                  $archived = $summary->replicate();
+                  $summary->is_active = false;
+                  $summary->deactivation_reason = 'all demands are deactivated';
+                  $summary->demand = 0;
+                  $summary->total_demand = 0;
+                  $summary->save();
 
-            // Step 4: Update the cluster summary record
-            DB::table('cluster_current_demands')
-                  ->where('id', $row->id)
-                  ->update([
-                     'demand' => $totalDemand,
-                     'total_demand' => $totalDemand,
-                  ]);
-         }        
+                  ClusterDemand::create($summary->toArray());
+                  $summary->delete();
+               });
+            } else {
+               $summary->update([
+                  'demand' => $totalDemand,
+                  'total_demand' => $totalDemand,
+               ]);
+            }
+         }
       }
-     
 
 
       public function showClusterMemberMonthDemands(Request $request)
