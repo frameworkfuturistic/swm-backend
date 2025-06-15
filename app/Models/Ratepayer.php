@@ -18,6 +18,7 @@ class Ratepayer extends Model
         'ratepayer_name',
         'ratepayer_address',
         'consumer_no',
+        'holding_no',
         'longitude',
         'latitude',
         'mobile_no',

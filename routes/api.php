@@ -113,7 +113,10 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('mobile')->grou
     Route::post('detach-cluster', [DemandController::class, 'detachCluster']);
     // API-ID: MOBILE-004 [Show Ratepayer demands for a particular Cluster Demand for a month and year]
     Route::post('deactivate-clusterratepayer_demand', [DemandController::class, 'deactivateClusterRatepayerDemand']);
-
+    // API-ID: MOBILE-005 [Show Ratepayer demands for a particular Cluster Demand for a month and year]
+    Route::get('ratepayerinfo-fortc/{id}', [RatepayerController::class, 'getRatepayerInfoForTC']);
+    // API-ID: MOBILE-006 [Show Ratepayer demands for a particular Cluster Demand for a month and year]
+    Route::put('update-ratepayerinfo-fortc/{id}', [RatepayerController::class, 'updateRatepayerInfoForTC']);
 });
 
 

@@ -597,7 +597,7 @@ class RatepayerController extends Controller
         }
     }
 
-public function updateRatepayer(Request $request, $id)
+    public function updateRatepayer(Request $request, $id)
     {
          $ratepayer = Ratepayer::find($id);
 
@@ -652,5 +652,66 @@ public function updateRatepayer(Request $request, $id)
                 $ratepayer,
                 Response::HTTP_OK
          );
-      }    
+   }    
+
+   public function getRatepayerInfoForTC($id)
+   {
+      try {
+         $ratepayer = Ratepayer::select('id', 'ratepayer_name', 'ratepayer_address', 'mobile_no', 'holding_no')
+               ->findOrFail($id);
+
+         return format_response(
+               'Ratepayer info fetched successfully.',
+               $ratepayer,
+               Response::HTTP_OK
+         );
+      } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+         return format_response(
+               'Ratepayer not found.',
+               null,
+               Response::HTTP_NOT_FOUND
+         );
+      }
+   }
+
+   public function updateRatepayerInfoForTC(Request $request, $id)
+   {
+      $request->validate([
+         'ratepayer_name' => 'nullable|string|max:250',
+         'ratepayer_address' => 'nullable|string|max:255',
+         'mobile_no' => 'nullable|string|max:250',
+         'holding_no' => 'nullable|string|max:50',
+      ]);
+
+      try {
+         $ratepayer = Ratepayer::findOrFail($id);
+         $ratepayer->update($request->only([
+            'ratepayer_name',
+            'ratepayer_address',
+            'mobile_no',
+            'holding_no'
+         ]));
+
+         return format_response(
+            'Ratepayer Updated Successfully',
+            null,
+            Response::HTTP_OK
+         );
+      } catch (\Illuminate\Database\QueryException $e) {
+         return format_response(
+               'Database error occurred',
+               null,
+               Response::HTTP_INTERNAL_SERVER_ERROR
+         );
+      } catch (\Exception $e) {
+         return format_response(
+               'An unexpected error occurred',
+               null,
+               Response::HTTP_INTERNAL_SERVER_ERROR
+         );
+      }
+   }
+
+
+
 }

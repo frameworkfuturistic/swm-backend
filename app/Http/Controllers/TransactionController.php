@@ -1090,6 +1090,7 @@ class TransactionController extends Controller
 
          // Create Ratepayer
          $ratepayer = Ratepayer::create([
+               'consumer_no' => $this->assignConsumerNo($request->ward_id,$subCategory->category_id,$subCategory->id),
                'ulb_id' => $request->ulb_id,
                'ward_id' => $request->ward_id,
                'subcategory_id' => $request->subcategory_id,
@@ -1142,6 +1143,36 @@ class TransactionController extends Controller
                Response::HTTP_BAD_REQUEST
          );
       }
+   }
+
+
+   public function assignConsumerNo($wardId, $categoryId, $subcategoryId)
+   {
+      // Lock the row for update and increment last_number
+      $sequence = DB::table('sequence_generators')
+         ->where('type', 'consumer_no')
+         ->lockForUpdate()
+         ->first();
+
+      if (!$sequence) {
+         DB::table('sequence_generators')->insert([
+               'type' => 'consumer_no',
+               'last_number' => 1
+         ]);
+         $nextNumber = 1;
+      } else {
+         $nextNumber = $sequence->last_number + 1;
+         DB::table('sequence_generators')
+               ->where('type', 'consumer_no')
+               ->update(['last_number' => $nextNumber]);
+      }
+
+      $wardCode = str_pad($wardId, 2, '0', STR_PAD_LEFT);
+      $categoryCode = str_pad($categoryId, 2, '0', STR_PAD_LEFT);
+      $subcategoryCode = str_pad($subcategoryId, 2, '0', STR_PAD_LEFT);
+      $counter = str_pad($nextNumber, 7, '0', STR_PAD_LEFT);
+
+      return $wardCode . $categoryCode . $subcategoryCode . $counter;
    }
 
 
