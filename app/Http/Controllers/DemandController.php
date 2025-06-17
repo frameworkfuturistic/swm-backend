@@ -129,7 +129,9 @@ class DemandController extends Controller
             $ratepayers = CurrentDemand::where('ratepayer_id', $id)
                 ->where('is_active', true)
                 ->whereRaw('(bill_month + (bill_year * 12)) <= (MONTH(CURRENT_DATE) + (YEAR(CURRENT_DATE) * 12))')
-               ->get();
+                ->orderBy('bill_year')
+                ->orderBy('bill_month')
+                ->get();
 
             return format_response(
                 'Current Demand',

@@ -1023,6 +1023,7 @@ class TransactionController extends Controller
          'ulb_id' => 'required|exists:ulbs,id',
          'ward_id' => 'nullable|numeric',
          'subcategory_id' => 'required|numeric|exists:sub_categories,id',
+         'cluster_id'     => 'nullable|exists:clusters,id',
          'holding_no' => 'nullable|string|max:255',
          'entity_name' => 'required|string|max:255',
          'entity_address' => 'required|string',
