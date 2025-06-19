@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Events\SiteVisitedEvent;
 use App\Http\Services\TransactionService;
+use App\Models\Cluster;
 use App\Models\CurrentDemand;
 use App\Models\CurrentTransaction;
 use App\Models\Entity;
@@ -193,10 +194,6 @@ class TransactionController extends Controller
             ]
          );
 
-         // $validator = Validator::make(['ratepayer_id' => $ratepayerId], [
-         //     'ratepayer_id' => 'required|integer|exists:ratepayers,id',
-         // ]);
-     
          if ($validator->fails()) {
              return response()->json([
                  'status' => 'error',
@@ -283,6 +280,203 @@ class TransactionController extends Controller
             );
          }
      }
+
+     public function getReceiptNew(Request $request, $id)
+      {
+         $queryType = $request->query('query_type', 'ratepayer_id'); // enum: ratepayer_id, receipt_id, transaction_id
+
+         // Step 1: Determine table and column
+         $mapping = [
+            'ratepayer_id' => ['table' => 'ratepayers', 'column' => 'id'],
+            'receipt_id' => ['table' => 'current_transactions', 'column' => 'id'],
+            'transaction_id' => ['table' => 'transactions', 'column' => 'id'],
+         ];
+
+         if (!array_key_exists($queryType, $mapping)) {
+            return response()->json([
+                  'status' => 'error',
+                  'message' => 'Invalid query type. Allowed: ratepayer_id, receipt_id, transaction_id.',
+            ], 400);
+         }
+
+         $tableInfo = $mapping[$queryType];
+
+         // Step 2: Validate ID existence
+         $validator = Validator::make(
+            ['input_id' => $id],
+            ['input_id' => ['required', 'integer', Rule::exists($tableInfo['table'], $tableInfo['column'])]]
+         );
+
+         if ($validator->fails()) {
+            return format_response(
+                  'Validation Error',
+                  $validator->errors(),
+                  Response::HTTP_NOT_FOUND
+            );
+         }
+
+         try {
+            $data = null;
+
+            // Step 3: Query the corresponding table
+            switch ($queryType) {
+                  case 'ratepayer_id':
+                     $qry = DB::table('current_transactions')
+                        ->select([
+                           'rec_name as ratepayer_name',
+                           'rec_address as ratepayer_address',
+                           'rec_consumerno as consumer_no',
+                           DB::raw("DATE_FORMAT(event_time, '%d/%m/%Y %h:%i %p') as payment_date"),
+                           'rec_paymentmode as payment_mode',
+                           'rec_receiptno as receipt_no',
+                           'rec_period as period',
+                           'rec_amount as amount',
+                           DB::raw("rec_monthlycharge as monthly_demand"),
+                        //  DB::raw("cast(rec_monthlycharge as char) as monthly_demand"),
+                           'rec_tcname as tc_name',
+                           'rec_tcmobile as tc_mobile',
+                           'rec_ward as ward_name',
+                           'rec_category as category',
+                           'rec_subcategory as sub_category',
+                           'rec_chequeno as cheque_no',
+                           'rec_chequedate as cheque_date',
+                           'rec_bankname as bank_name',
+                           'rec_nooftenants'
+                        ])
+                        ->where('ratepayer_id', $id)
+                        ->orderByDesc('id');
+
+                     break;
+
+                  case 'receipt_id':
+                     // $data = DB::table('current_transactions')
+                     //    ->select([
+                     //          'rec_name as ratepayer_name',
+                     //          'rec_address as ratepayer_address',
+                     //          'rec_consumerno as consumer_no',
+                     //          DB::raw("DATE_FORMAT(event_time, '%d/%m/%Y %h:%i %p') as payment_date"),
+                     //          'rec_paymentmode as payment_mode',
+                     //          'rec_receiptno as receipt_no',
+                     //          'rec_period as period',
+                     //          'rec_amount as amount',
+                     //          DB::raw("rec_monthlycharge as monthly_demand"),
+                     //          'rec_tcname as tc_name',
+                     //          'rec_tcmobile as tc_mobile',
+                     //          'rec_ward as ward_name',
+                     //          'rec_category as category',
+                     //          'rec_subcategory as sub_category',
+                     //          'rec_chequeno as cheque_no',
+                     //          'rec_chequedate as cheque_date',
+                     //          'rec_bankname as bank_name',
+                     //          'rec_nooftenants as no_of_tenants'
+                     //    ])
+                     //    ->where('id', $id)
+                     //    ->first();
+
+                  $qry = DB::table('current_transactions')
+                     ->select([
+                        'rec_name as ratepayer_name',
+                        'rec_address as ratepayer_address',
+                        'rec_consumerno as consumer_no',
+                        DB::raw("DATE_FORMAT(event_time, '%d/%m/%Y') as payment_date"),
+                        'rec_paymentmode as payment_mode',
+                        'rec_receiptno as receipt_no',
+                        'rec_period as period',
+                        'rec_amount as amount',
+                        DB::raw("rec_monthlycharge as monthly_demand"),
+                     //  DB::raw("cast(rec_monthlycharge as char) as monthly_demand"),
+                        'rec_tcname as tc_name',
+                        'rec_tcmobile as tc_mobile',
+                        'rec_ward as ward_name',
+                        'rec_category as category',
+                        'rec_subcategory as sub_category',
+                        'rec_chequeno as cheque_no',
+                        'rec_chequedate as cheque_date',
+                        'rec_bankname as bank_name',
+                        'rec_nooftenants'
+                     ])
+                     ->where('id', $id);
+
+                     break;
+
+                  case 'transaction_id':
+                     $qry = DB::table('transactions as t')
+                        ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
+                        ->leftJoin('payments as p', 'p.tran_id', '=', 't.id')
+                        ->select([
+                           'r.ratepayer_name as ratepayer_name',
+                           'r.ratepayer_address',
+                           'r.consumer_no',
+                           DB::raw("DATE_FORMAT(t.event_time, '%d/%m/%Y %h:%i %p') as payment_date"),
+                           'p.payment_mode',
+                           't.transaction_no as receipt_no',
+                           DB::raw("CONCAT(DATE_FORMAT(p.payment_from,'%m-%Y'), ' to ', DATE_FORMAT(p.payment_to,'%m-%Y')) as period"),
+                           DB::raw('CAST(p.amount as char) as amount'),
+                           DB::raw("'0' as monthly_demand"),
+                           DB::raw("'' as tc_name"),
+                           DB::raw("'' as tc_mobile"),
+                           DB::raw("CAST(r.ward_id AS CHAR) as ward_name"),
+                           DB::raw("'' as category"),
+                           DB::raw("'' as sub_category"),
+                           'p.card_number as cheque_no',
+                           DB::raw("DATE_FORMAT(p.neft_date, '%d/%m/%Y') as cheque_date"),
+                           'p.bank_name',
+                           DB::raw('1 as no_of_tenants')
+                        ])
+                        ->where('t.id', $id);
+
+                     // $data = DB::table('transaction_collections as t')
+                     //    ->join('consumers_details as d', 't.consumer_id', '=', 'd.id')
+                     //    ->select([
+                     //       't.consumer_name as ratepayer_name',
+                     //       'd.address as ratepayer_address',
+                     //       't.consumer_no',
+                     //       DB::raw("DATE_FORMAT(t.created_at, '%d/%m/%Y %h:%i %p') as payment_date"),
+                     //       't.transaction_mode as payment_mode',
+                     //       't.transaction_no as receipt_no',
+                     //       DB::raw("CONCAT(DATE_FORMAT(t.demand_from,'%m-%Y'), ' to ', DATE_FORMAT(t.demand_upto,'%m-%Y')) as period"),
+                     //       't.amount',
+                     //       DB::raw('t.amount as monthly_demand'),
+                     //       DB::raw("'' as tc_name"),
+                     //       DB::raw("'' as tc_mobile"),
+                     //       'd.ward_master_id as ward_name',
+                     //       DB::raw("'' as category"),
+                     //       DB::raw("'' as sub_category"),
+                     //       't.cheque_dd_no as cheque_no',
+                     //       DB::raw("DATE_FORMAT(t.cheque_dd_date, '%d/%m/%Y') as cheque_date"),
+                     //       't.bank_name',
+                     //       DB::raw('1 as no_of_tenants')
+                     //    ])
+                     //    ->where('t.id', $id)
+                     //    ->first();
+                     break;
+            }
+
+            $data = $qry->first();
+
+            if (!$data) {
+               return format_response(
+                  'Record not found',
+                  null,
+                  Response::HTTP_NOT_FOUND
+               );
+            }
+
+            return format_response(
+                  'Success',
+                  $data,
+                  Response::HTTP_OK
+            );
+
+         } catch (\Exception $e) {
+            return format_response(
+                  'Server Error',
+                  null,
+                  Response::HTTP_INTERNAL_SERVER_ERROR
+               );
+         }
+      }
+
 
 
    //   public function getReceipt(Request $request, $ratepayerId)
@@ -1022,6 +1216,7 @@ class TransactionController extends Controller
       $validator = Validator::make($request->all(), [
          'ulb_id' => 'required|exists:ulbs,id',
          'ward_id' => 'nullable|numeric',
+         'cluster_id' => 'nullable|numeric|exists:clusters,id',
          'subcategory_id' => 'required|numeric|exists:sub_categories,id',
          'cluster_id'     => 'nullable|exists:clusters,id',
          'holding_no' => 'nullable|string|max:255',
@@ -1090,25 +1285,53 @@ class TransactionController extends Controller
          ]);
 
          // Create Ratepayer
-         $ratepayer = Ratepayer::create([
-               'consumer_no' => $this->assignConsumerNo($request->ward_id,$subCategory->category_id,$subCategory->id),
-               'ulb_id' => $request->ulb_id,
-               'ward_id' => $request->ward_id,
-               'paymentzone_id' => $request->ward_id,
-               'subcategory_id' => $request->subcategory_id,
-               'holding_no' => $request->holding_no,
-               'ratepayer_name' => $request->entity_name,
-               'ratepayer_address' => $request->entity_address,
-               'pincode' => $request->pincode,
-               'mobile_no' => $request->mobile_no,
-               'landmark' => $request->landmark,
-               'whatsapp_no' => $request->whatsapp_no,
-               'longitude' => $request->longitude,
-               'latitude' => $request->latitude,
-               'monthly_demand' => $monthlyRate,
-               'vrno' => 0,
-               'entity_id' => $entity->id,
-         ]);
+         // $ratepayer = Ratepayer::create([
+         //       'consumer_no' => $this->assignConsumerNo($request->ward_id,$subCategory->category_id,$subCategory->id),
+         //       'ulb_id' => $request->ulb_id,
+         //       'ward_id' => $request->ward_id,
+         //       'paymentzone_id' => $request->ward_id,
+         //       'subcategory_id' => $request->subcategory_id,
+         //       'holding_no' => $request->holding_no,
+         //       'ratepayer_name' => $request->entity_name,
+         //       'ratepayer_address' => $request->entity_address,
+         //       'pincode' => $request->pincode,
+         //       'mobile_no' => $request->mobile_no,
+         //       'landmark' => $request->landmark,
+         //       'whatsapp_no' => $request->whatsapp_no,
+         //       'longitude' => $request->longitude,
+         //       'latitude' => $request->latitude,
+         //       'monthly_demand' => $monthlyRate,
+         //       'vrno' => 0,
+         //       'entity_id' => $entity->id,
+         // ]);
+
+         //Create Ratepayer
+         $ratepayerData = [
+            'consumer_no'     => $this->assignConsumerNo($request->ward_id, $subCategory->category_id, $subCategory->id),
+            'ulb_id'          => $request->ulb_id,
+            'ward_id'         => $request->ward_id,
+            'paymentzone_id'  => $request->ward_id,
+            'subcategory_id'  => $request->subcategory_id,
+            'holding_no'      => $request->holding_no,
+            'ratepayer_name'  => $request->entity_name,
+            'ratepayer_address'=> $request->entity_address,
+            'pincode'         => $request->pincode,
+            'mobile_no'       => $request->mobile_no,
+            'landmark'        => $request->landmark,
+            'whatsapp_no'     => $request->whatsapp_no,
+            'longitude'       => $request->longitude,
+            'latitude'        => $request->latitude,
+            'monthly_demand'  => $monthlyRate,
+            'vrno'            => 0,
+            'entity_id'       => $entity->id,
+         ];
+
+         if (!is_null($request->cluster_id)) {
+            $ratepayerData['cluster_id'] = $request->cluster_id;
+         }
+
+         $ratepayer = Ratepayer::create($ratepayerData);
+
 
          // Link entity with ratepayer
          $entity->update(['ratepayer_id' => $ratepayer->id]);
@@ -1128,6 +1351,15 @@ class TransactionController extends Controller
                   'vrno' => 0
                ]);
                $start->addMonth();
+         }
+
+         // If Cluster entity update cluster_current_demands table
+         if (!is_null($request->cluster_id)) {
+            $cluster = Cluster::find($request->cluster_id);
+            $result = $cluster->calculateUpdateClusterDemand((int) $request->cluster_id);
+            if (!$result) {
+               throw new \Exception('Cluster demand update process failed.');
+            }
          }
 
          DB::commit();
@@ -1406,7 +1638,8 @@ class TransactionController extends Controller
                ->join('payments as p', 't.id', '=', 'p.tran_id')
                ->where('p.ratepayer_id', $ratepayerId)
                ->select(
-                  't.id as tran_id,t.transaction_no',
+                  't.id as tran_id',
+                  't.transaction_no',
                   't.event_type',
                   't.event_time',
                   't.schedule_date',
@@ -1436,6 +1669,7 @@ class TransactionController extends Controller
                ->join('payments as p', 't.id', '=', 'p.tran_id')
                ->where('p.ratepayer_id', $ratepayerId)
                ->select(
+                  't.id as tran_id',
                   't.transaction_no',
                   't.event_type',
                   't.event_time',

@@ -399,6 +399,7 @@ class DemandController extends Controller
             $qry = DB::table('ratepayers as r')
                ->select([
                   'r.id as ratepayer_id',
+                  'r.cluster_id',
                   'r.consumer_no',
                   'r.ratepayer_name',
                   'r.ratepayer_address',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\Client\Response as ClientResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
@@ -176,6 +177,13 @@ class AuthController extends Controller
             }
 
             $user = Auth::user();
+            if ($user->is_active == 0) {
+               return response()->json([
+                  'message' => 'Inactive User',
+                  'errors' => '',
+               ], Response::HTTP_BAD_REQUEST);
+            }
+
             $token = $user->createToken('auth-token');
             // $token = $user->createToken('API Token')->plainTextToken;
 
@@ -188,7 +196,7 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Invalid credentials',
                 'errors' => $e->errors(),
-            ], 422);
+            ], Response::HTTP_BAD_REQUEST);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'An error occurred during login',
@@ -401,8 +409,9 @@ class AuthController extends Controller
             return format_response(
                 'Suspended',
                 null,
-                Response::HTTP_BAD_REQUEST
+                Response::HTTP_UNAUTHORIZED
             );
+
         }
 
         $data = [

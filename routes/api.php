@@ -231,7 +231,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'force-json', 'api'])->prefix('
 });
 
 //Operations
-Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('operations')->group(function () {
+Route::middleware(['auth:sanctum', 'append-ulb','tc', 'api'])->prefix('operations')->group(function () {
     // API-ID: ADMIN-021 [Update Entity with Ratepayer]
     Route::put('entities/{id}', [EntityController::class, 'update']);                                   //Done
     // API-ID: ADMIN-022 [Update Cluster with Ratepayer]
@@ -270,7 +270,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('operations')->
 });
 
 //Demand
-Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('demand')->group(function () {
+Route::middleware(['auth:sanctum','tc', 'append-ulb', 'api'])->prefix('demand')->group(function () {
     // API-ID: DEMAND-001 [Get pending demands of zone]
     Route::get('zone/{id}', [DemandController::class, 'zoneCurrentDemands']);
 
@@ -341,6 +341,8 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api'])->prefix('transactions')
     Route::post('cluster-payment', [ClusterPaymentController::class, 'processClusterPayment']);
     //Transactions - API-ID: TRAN-010
     Route::get('receipt/{ratepayerId}', [TransactionController::class, 'getReceipt']);
+    //Transactions - API-ID: TRAN-010
+    Route::get('receipt-new/{id}', [TransactionController::class, 'getReceiptNew']);
     //Transactions - API-ID: TRAN-015
     Route::get('receipt-data/{tranId}', [TransactionController::class, 'getReceiptData']);
     //Transactions - API-ID: TRAN-011
