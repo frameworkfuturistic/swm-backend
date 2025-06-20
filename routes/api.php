@@ -183,6 +183,15 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
 });
 
 
+Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('demand')->group(function () {
+       // API-ID: DEMAND-007 [printable demand notice]
+    Route::get('demand-notice/{id}', [DemandController::class, 'printableDemandNotice']);
+
+    // API-ID: DEMAND-008 [new demand notice]
+    Route::post('new-demand-notice', [DemandController::class, 'generateDemandNotice']);
+
+});
+
 
 //Accounts
 Route::middleware(['auth:sanctum', 'append-ulb', 'force-json', 'api'])->prefix('accounts')->group(function () {
@@ -295,11 +304,7 @@ Route::middleware(['auth:sanctum','tc', 'append-ulb', 'api'])->prefix('demand')-
     // API-ID: DEMAND-006 [Get pending demands of zone]
     Route::get('pending-demandnotices', [DemandController::class, 'pendingDemandNotices']);
 
-    // API-ID: DEMAND-007 [printable demand notice]
-    Route::get('demand-notice/{id}', [DemandController::class, 'printableDemandNotice']);
-
-    // API-ID: DEMAND-008 [new demand notice]
-    Route::post('new-demand-notice', [DemandController::class, 'generateDemandNotice']);
+ 
 
     //Done
 
