@@ -22,7 +22,7 @@ class TCMiddleware
       
 
       $user = $request->user();
-      if ($user && in_array($user->role, ['tax_collector', 'team_leader']) && $user->is_active == 1) {
+      if ($user && in_array($user->role, ['tax_collector', 'team_leader', 'agency_admin', 'municipal_office']) && $user->is_active == 1) {
          return $next($request);
       }
 
