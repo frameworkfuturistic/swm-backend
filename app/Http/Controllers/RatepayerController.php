@@ -8,6 +8,7 @@ use App\Http\Services\RatepayerService;
 use App\Models\Cluster;
 use App\Models\Entity;
 use App\Models\Ratepayer;
+use Illuminate\Database\Eloquent\Casts\Json;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
@@ -233,10 +234,24 @@ class RatepayerController extends Controller
             $entity = Entity::find($ratepayer->entity_id);
             $cluster = Cluster::find($ratepayer->cluster_id);
 
+            $summary = DB::selectOne("
+                  SELECT 
+                        SUM(IF(((bill_year*12)+bill_month) < ((YEAR(SYSDATE())*12)+MONTH(SYSDATE())), demand, 0)) AS outstanding_demand,
+                        SUM(IF(((bill_year*12)+bill_month) = ((YEAR(SYSDATE())*12)+MONTH(SYSDATE())), demand, 0)) AS month_demand,
+                        SUM(demand) AS total_demand
+                  FROM current_demands
+                  WHERE ((bill_year*12)+bill_month) <= ((YEAR(SYSDATE())*12)+MONTH(SYSDATE()))
+                     AND ratepayer_id = ?
+                  LIMIT 1
+               ", $id);
+
+            return response()->json($summary);
+
             $response = [
                 'ratepayer' => $ratepayer,
                 'entity' => $entity,
                 'cluster' => $cluster,
+                'summary' => json_encode($summary),
             ];
 
             // $ratepayer = Ratepayer::with(['entity', 'cluster'])

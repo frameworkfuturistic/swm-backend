@@ -1706,6 +1706,7 @@ class TransactionController extends Controller
             // Validate request parameters
             $request->validate([
                 'event_date' => 'nullable|date_format:Y-m-d',
+                'event_date1' => 'nullable|date_format:Y-m-d',
                 'ward_id' => 'nullable|integer|min:1',
                 'tc_id' => 'nullable|integer|min:1',
                 'subcategory_id' => 'nullable|integer|min:1',
@@ -1740,9 +1741,19 @@ class TransactionController extends Controller
                 ]);
 
             // Apply filters only if provided
-            if ($request->filled('event_date')) {
-                $query->whereDate('t.event_time', $request->event_date);
+            // if ($request->filled('event_date')) {
+            //     $query->whereDate('t.event_time', $request->event_date);
+            // }
+            
+            if ($request->filled('event_date') && $request->filled('event_date1')) {
+               $startDate = $request->event_date . ' 00:00:00';
+               $endDate = $request->event_date1 . ' 23:59:59';
+
+               $query->whereBetween('t.event_time', [$startDate, $endDate]);
+            } elseif ($request->filled('event_date')) {
+               $query->whereDate('t.event_time', $request->event_date);
             }
+
 
             if ($request->filled('ward_id')) {
                 $query->where('r.ward_id', $request->ward_id);

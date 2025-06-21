@@ -107,7 +107,7 @@ class AdminDashboardController extends Controller
      */
     private function getCardSummary($startDate, $endDate)
     {
-        $result = DB::select("
+        $transactionSummary = DB::select("
             SELECT
                 COUNT(id) AS totaltransactions,
                 SUM(IF(event_type='PAYMENT',1,0)) AS payments,
@@ -119,7 +119,36 @@ class AdminDashboardController extends Controller
             WHERE DATE(event_time) BETWEEN ? AND ?
         ", [$startDate, $endDate]);
 
-        return $result[0] ?? [];
+        $demandSummary = DB::selectOne("
+            SELECT
+                  SUM(
+                     IF(
+                        ((bill_year * 12) + bill_month) < ((YEAR(SYSDATE()) * 12) + MONTH(SYSDATE())),
+                        demand,
+                        0
+                     )
+                  ) AS outstanding_demand,
+                  
+                  SUM(
+                     IF(
+                        ((bill_year * 12) + bill_month) = ((YEAR(SYSDATE()) * 12) + MONTH(SYSDATE())),
+                        demand,
+                        0
+                     )
+                  ) AS month_demand,
+                  
+                  SUM(demand) AS total_demand
+            FROM current_demands
+            WHERE ((bill_year * 12) + bill_month) <= ((YEAR(SYSDATE()) * 12) + MONTH(SYSDATE()))
+         ");
+
+         // Merge both summaries into one array/object
+         return [
+            'transactions' => $transactionSummary,
+            'demand_summary' => $demandSummary
+         ];
+
+      //   return $result[0] ?? [];
     }
 
     /**
