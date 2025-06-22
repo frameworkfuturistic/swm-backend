@@ -243,15 +243,15 @@ class RatepayerController extends Controller
                   WHERE ((bill_year*12)+bill_month) <= ((YEAR(SYSDATE())*12)+MONTH(SYSDATE()))
                      AND ratepayer_id = ?
                   LIMIT 1
-               ", $id);
+               ", [$id]);
 
-            return response()->json($summary);
+            // return response()->json($summary);
 
             $response = [
                 'ratepayer' => $ratepayer,
                 'entity' => $entity,
                 'cluster' => $cluster,
-                'summary' => json_encode($summary),
+                'summary' => $summary,
             ];
 
             // $ratepayer = Ratepayer::with(['entity', 'cluster'])
