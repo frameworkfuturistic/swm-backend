@@ -1334,7 +1334,11 @@ class TransactionController extends Controller
 
 
          // Link entity with ratepayer
-         $entity->update(['ratepayer_id' => $ratepayer->id]);
+         //$entity->update(['ratepayer_id' => $ratepayer->id]);
+         $entity->update([
+            'ratepayer_id' => $ratepayer->id,
+            'cluster_id' => $request->cluster_id, // or any value you want to assign
+         ]);
 
          // Generate demand rows
          $start = \Carbon\Carbon::createFromDate($request->from_year, $request->from_month, 1);
