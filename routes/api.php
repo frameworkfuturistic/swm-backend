@@ -528,7 +528,7 @@ Route::middleware(['auth:sanctum', 'api', 'admin'])->prefix('admin/masters')->gr
 // API-ID: RTRANS-001 [RateTransaction]
 Route::get('/tp/demand', [RateTransactionController::class, 'getCurrentBill']);
 // API-ID: RTRANS-002 [RateTransaction]
-Route::post('/tp/payment', [RateTransactionController::class, 'postPayment']);
+Route::post('/tp/payment', [RateTransactionController::class, 'postWhatappPayment']);
 
 //Payment Records - API-ID: OPEN-015 [Download PDF receipt by receipt number]
 Route::get('receipts/{receipt_no}', [ReceiptController::class, 'generateReceipt'])
