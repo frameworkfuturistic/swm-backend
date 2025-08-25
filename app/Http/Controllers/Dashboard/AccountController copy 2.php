@@ -59,120 +59,60 @@ class AccountController extends Controller
     }
 
    // API-ID: ACDASH-003 [Cash Verification]    
-   //  public function getDateCashForVerification(Request $request)
-   //  {
-   //    try {
-   //       // Validate the date input
-   //       $validated = $request->validate([
-   //          'tranDate' => [
-   //              'required',
-   //              'date',
-   //              'after_or_equal:' . now()->subYear()->format('Y-m-d'),
-   //              'before_or_equal:' . now()->format('Y-m-d'),
-   //          ],
-   //          'tc_id' => 'required|exists:users,id',
-   //      ]);
-
-   //      $date = $validated['tranDate'];
-   //      $tcId = $validated['tc_id'];
-
-   //       $cashTransactions = DB::table('current_transactions as t')
-   //          ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
-   //          ->join('payments as p', 't.payment_id', '=', 'p.id')
-   //          ->join('users as u', 't.tc_id', '=', 'u.id')
-   //          ->select(
-   //             'p.id as payment_id',
-   //             'r.id as ratepayer_id',
-   //             'u.name as tc_name',
-   //             'r.ratepayer_name',
-   //             'r.ratepayer_address',
-   //             'r.consumer_no',
-   //             'r.mobile_no',
-   //             'r.usage_type',
-   //             'r.monthly_demand',
-   //             'p.payment_mode',
-   //             'p.amount'
-   //          )
-   //          ->whereRaw('DATE(t.event_time) = ?', [$date])
-   //          ->where('p.payment_mode', '=', 'CASH')
-   //          ->where('t.tc_id', '=', $tcId)
-   //          ->get();
-
-   //       return format_response(
-   //          'Success',
-   //          $cashTransactions,
-   //          Response::HTTP_OK
-   //       );                
-
-   //    } catch (Exception $e) {
-   //       return format_response(
-   //           'An error occurred during insertion. '.$e->getMessage(),
-   //           null,
-   //           Response::HTTP_INTERNAL_SERVER_ERROR
-   //       );
-   //    }
-      
-   //  }
-
-   // API-ID: ACDASH-003 [Cash Verification]    
-public function getDateCashForVerification(Request $request)
-{
-    try {
-        // Validate the date input
-        $validated = $request->validate([
+    public function getDateCashForVerification(Request $request)
+    {
+      try {
+         // Validate the date input
+         $validated = $request->validate([
             'tranDate' => [
                 'required',
                 'date',
                 'after_or_equal:' . now()->subYear()->format('Y-m-d'),
                 'before_or_equal:' . now()->format('Y-m-d'),
             ],
-            // Remove the required validation for tc_id to make it optional
-            'tc_id' => 'sometimes|exists:users,id',
+            'tc_id' => 'required|exists:users,id',
         ]);
 
         $date = $validated['tranDate'];
-        // Check if tc_id is provided, otherwise set to null
-        $tcId = $validated['tc_id'] ?? null;
+        $tcId = $validated['tc_id'];
 
-        $cashTransactions = DB::table('current_transactions as t')
+         $cashTransactions = DB::table('current_transactions as t')
             ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
             ->join('payments as p', 't.payment_id', '=', 'p.id')
             ->join('users as u', 't.tc_id', '=', 'u.id')
             ->select(
-                'p.id as payment_id',
-                'r.id as ratepayer_id',
-                'u.name as tc_name',
-                'r.ratepayer_name',
-                'r.ratepayer_address',
-                'r.consumer_no',
-                'r.mobile_no',
-                'r.usage_type',
-                'r.monthly_demand',
-                'p.payment_mode',
-                'p.amount'
+               'p.id as payment_id',
+               'r.id as ratepayer_id',
+               'u.name as tc_name',
+               'r.ratepayer_name',
+               'r.ratepayer_address',
+               'r.consumer_no',
+               'r.mobile_no',
+               'r.usage_type',
+               'r.monthly_demand',
+               'p.payment_mode',
+               'p.amount'
             )
             ->whereRaw('DATE(t.event_time) = ?', [$date])
             ->where('p.payment_mode', '=', 'CASH')
-            // Conditionally apply tc_id filter
-            ->when($tcId, function($query, $tcId) {
-                return $query->where('t.tc_id', '=', $tcId);
-            })
+            ->where('t.tc_id', '=', $tcId)
             ->get();
 
-        return format_response(
+         return format_response(
             'Success',
             $cashTransactions,
             Response::HTTP_OK
-        );                
+         );                
 
-    } catch (Exception $e) {
-        return format_response(
-            'An error occurred during insertion. '.$e->getMessage(),
-            null,
-            Response::HTTP_INTERNAL_SERVER_ERROR
-        );
+      } catch (Exception $e) {
+         return format_response(
+             'An error occurred during insertion. '.$e->getMessage(),
+             null,
+             Response::HTTP_INTERNAL_SERVER_ERROR
+         );
+      }
+      
     }
-}
 
     // API-ID: ACDASH-001 [Non Cash Verification]
     public function getDateOtherPaymentsForVerification(Request $request)
