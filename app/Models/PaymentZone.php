@@ -34,6 +34,6 @@ class PaymentZone extends Model
             'tc_has_zones',   // Pivot table
             'paymentzone_id', // Foreign key for PaymentZone
             'tc_id'           // Foreign key for User
-        );
+        )->wherePivot('is_active', true); 
     }
 }

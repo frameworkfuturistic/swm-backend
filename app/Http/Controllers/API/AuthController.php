@@ -65,7 +65,7 @@ class AuthController extends Controller
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
                 'password' => ['required', 'confirmed', Password::defaults()],
-                'role' => 'required|in:agency_admin,municipal_office,tax_collector',
+                'role' => 'required|in:agency_admin,municipal_office,tax_collector,accountant,team_leader'
             ]);
 
             $user = User::create([

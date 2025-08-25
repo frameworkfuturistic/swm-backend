@@ -45,6 +45,6 @@ class User extends Authenticatable
             'tc_has_zones',  // Pivot table
             'tc_id',         // Foreign key for User
             'paymentzone_id' // Foreign key for PaymentZone
-        );
+        )->wherePivot('is_active', true);
     }
 }
