@@ -20,7 +20,7 @@ class AdminMiddleware
             return $next($request);
         }
 
-        if ($request->user() && in_array($request->user()->role, ['agency_admin', 'municipal_office']))
+        if ($request->user() && in_array($request->user()->role, ['agency_admin', 'municipal_office', 'accountant', 'team_leader']))
         {
             return $next($request);
         }
