@@ -128,6 +128,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('admin
     Route::put('ratepayers/update-rateid/{ratepayer_id}', [RatepayerController::class, 'updateRateID']);
     // API-ID: ADMIN-003 [Create new TC]
     Route::post('tc', [AuthController::class, 'createTC']);
+    
     // API-ID: ADMIN-004 [Assign Zone to the TC]
     Route::post('tc/assign-zone', [TCController::class, 'assignZone']);
     // API-ID: ADMIN-005 [Generate Demand]

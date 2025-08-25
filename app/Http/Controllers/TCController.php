@@ -245,78 +245,163 @@ class TCController extends Controller
     }
 
     //REVOKE ZONE FROM TC
+    // public function revokeZone(Request $request)
+    // {
+    //     try {
+    //         $validated = $request->validate([
+    //             'tcId' => 'required|exists:users,id',
+    //             'paymentzoneId' => 'required|exists:payment_zones,id',
+    //         ]);
+
+    //         $tc = User::find($validated['tcId']);
+    //         $paymentzone = PaymentZone::find($validated['paymentzoneId']);
+
+    //         if ($tc == null) {
+    //             return format_response(
+    //                 'TC not found',
+    //                 null,
+    //                 Response::HTTP_NOT_FOUND
+    //             );
+    //         }
+
+    //         if ($tc->role != 'tax_collector') {
+    //             return format_response(
+    //                 'TC not found',
+    //                 null,
+    //                 Response::HTTP_NOT_FOUND
+    //             );
+    //         }
+
+    //         if ($paymentzone == null) {
+    //             return format_response(
+    //                 'Payment Zone not found',
+    //                 null,
+    //                 Response::HTTP_NOT_FOUND
+    //             );
+    //         }
+
+    //         $tcHasZone = TCHasZone::where('tc_id', $tc->id)
+    //             ->where('paymentzone_id', $paymentzone->id)
+    //             ->where('is_active', true)
+    //             ->first();
+
+    //         if ($tcHasZone == null) {
+    //             return format_response(
+    //                 'No Active Record Found',
+    //                 null,
+    //                 Response::HTTP_NOT_FOUND
+    //             );
+    //         }
+
+    //         $tcHasZone->update([
+    //             'is_active' => false,
+    //             'deactivation_date' => now(),
+    //         ]);
+
+    //         return format_response(
+    //             'Successfully Revoked Zone',
+    //             null,
+    //             Response::HTTP_OK
+    //         );
+    //     } catch (\Illuminate\Validation\ValidationException $e) {
+    //         return format_response(
+    //             $e->getMessage(),
+    //             null,
+    //             Response::HTTP_UNPROCESSABLE_ENTITY
+    //         );
+    //     } catch (\Exception $e) {
+    //         return format_response(
+    //             'An error occurred during data extraction',
+    //             null,
+    //             Response::HTTP_INTERNAL_SERVER_ERROR
+    //         );
+    //     }
+    // }
+
     public function revokeZone(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'tcId' => 'required|exists:users,id',
-                'paymentzoneId' => 'required|exists:payment_zones,id',
-            ]);
+{
+    DB::beginTransaction();
+    
+    try {
+        $validated = $request->validate([
+            'tcId' => 'required|exists:users,id',
+            'paymentzoneId' => 'required|exists:payment_zones,id',
+        ]);
 
-            $tc = User::find($validated['tcId']);
-            $paymentzone = PaymentZone::find($validated['paymentzoneId']);
+        \Log::info('Revoke request received', $validated);
 
-            if ($tc == null) {
-                return format_response(
-                    'TC not found',
-                    null,
-                    Response::HTTP_NOT_FOUND
-                );
-            }
+        $tc = User::find($validated['tcId']);
+        $paymentzone = PaymentZone::find($validated['paymentzoneId']);
 
-            if ($tc->role != 'tax_collector') {
-                return format_response(
-                    'TC not found',
-                    null,
-                    Response::HTTP_NOT_FOUND
-                );
-            }
+        \Log::info('TC found: ' . ($tc ? 'yes' : 'no'));
+        \Log::info('PaymentZone found: ' . ($paymentzone ? 'yes' : 'no'));
 
-            if ($paymentzone == null) {
-                return format_response(
-                    'Payment Zone not found',
-                    null,
-                    Response::HTTP_NOT_FOUND
-                );
-            }
-
-            $tcHasZone = TCHasZone::where('tc_id', $tc->id)
-                ->where('paymentzone_id', $paymentzone->id)
-                ->where('is_active', true)
-                ->first();
-
-            if ($tcHasZone == null) {
-                return format_response(
-                    'No Active Record Found',
-                    null,
-                    Response::HTTP_NOT_FOUND
-                );
-            }
-
-            $tcHasZone->update([
-                'is_active' => false,
-                'deactivation_date' => now(),
-            ]);
-
+        if ($tc == null || $tc->role != 'tax_collector') {
+            DB::rollBack();
+            \Log::warning('TC not found or invalid role');
             return format_response(
-                'Successfully Revoked Zone',
+                'Tax collector not found or invalid role',
                 null,
-                Response::HTTP_OK
-            );
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return format_response(
-                $e->getMessage(),
-                null,
-                Response::HTTP_UNPROCESSABLE_ENTITY
-            );
-        } catch (\Exception $e) {
-            return format_response(
-                'An error occurred during data extraction',
-                null,
-                Response::HTTP_INTERNAL_SERVER_ERROR
+                Response::HTTP_NOT_FOUND
             );
         }
+
+        $tcHasZone = TCHasZone::where('tc_id', $tc->id)
+            ->where('paymentzone_id', $paymentzone->id)
+            ->where('is_active', true)
+            ->first();
+
+        \Log::info('Active assignment found: ' . ($tcHasZone ? 'yes' : 'no'));
+
+        if ($tcHasZone == null) {
+            DB::rollBack();
+            \Log::warning('No active assignment found');
+            return format_response(
+                'No active zone assignment found',
+                null,
+                Response::HTTP_NOT_FOUND
+            );
+        }
+
+        \Log::info('Before update - Assignment details:', [
+            'id' => $tcHasZone->id,
+            'is_active' => $tcHasZone->is_active,
+            'deactivation_date' => $tcHasZone->deactivation_date
+        ]);
+
+        $tcHasZone->update([
+            'is_active' => false,
+            'deactivation_date' => now(),
+        ]);
+
+        // Refresh the model to get updated values
+        $tcHasZone->refresh();
+
+        \Log::info('After update - Assignment details:', [
+            'id' => $tcHasZone->id,
+            'is_active' => $tcHasZone->is_active,
+            'deactivation_date' => $tcHasZone->deactivation_date
+        ]);
+
+        DB::commit();
+        \Log::info('Zone revoked successfully');
+
+        return format_response(
+            'Zone revoked successfully',
+            $tcHasZone, // Return the updated object for verification
+            Response::HTTP_OK
+        );
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Revoke zone error: ' . $e->getMessage());
+        return format_response(
+            'Failed to revoke zone',
+            null,
+            Response::HTTP_INTERNAL_SERVER_ERROR
+        );
     }
+}
 
     public function tcDashboard(Request $request)
     {
