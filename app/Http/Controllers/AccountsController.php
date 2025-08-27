@@ -232,6 +232,7 @@ class AccountsController extends Controller
             $transaction = CurrentTransaction::find($request->tranId);
             $transaction->verification_date = now();
             $transaction->verifiedby_id = $userId;
+            $transaction->is_verified = true;
             $transaction->auto_remarks = $request->remarks;
             $transaction->save();
 

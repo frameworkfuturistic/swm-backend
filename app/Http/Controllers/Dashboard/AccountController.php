@@ -94,6 +94,7 @@ class AccountController extends Controller
                 )
                 ->whereRaw('DATE(t.event_time) = ?', [$date])
                 ->where('p.payment_mode', '=', 'CASH')
+                ->where('p.is_verified', '=', true)
                 // Conditionally apply tc_id filter
                //  ->when($tcId, function($query, $tcId) {
                //      return $query->where('t.tc_id', '=', $tcId);
