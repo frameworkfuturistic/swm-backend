@@ -266,56 +266,78 @@ class AccountsController extends Controller
 
         DB::beginTransaction();
         try {
-            // Validate Input
+            //Validate Input
             $validator = Validator::make($request->all(), [
-                'tranId' => 'required|integer|exists:current_transactions,id',
+                'tranId' => 'required|integer|exists:current_transactions,id', // Ensures the ID is valid and exists in the 'ratepayers' table
                 'remarks' => 'nullable|string|max:255',
             ]);
 
             if ($validator->fails()) {
+                $errorMessages = $validator->errors()->all();
+
                 return format_response(
                     'validation error',
-                    $validator->errors()->all(),
+                    $errorMessages,
                     Response::HTTP_UNPROCESSABLE_ENTITY
                 );
             }
 
-            // Find Current Transaction
+            //Find Current Transaction
             $transaction = CurrentTransaction::find($request->tranId);
-            
-            // Reset verification status
-            $transaction->is_verified = false;
             $transaction->verification_date = now();
             $transaction->verifiedby_id = $userId;
             $transaction->auto_remarks = $request->remarks;
             $transaction->save();
 
-            // Update payment verification status if exists
-            if ($transaction->payment_id) {
-                $payment = Payment::find($transaction->payment_id);
-                if ($payment) {
-                    $payment->payment_verified = false;
-                    $payment->verified_by = null;
-                    $payment->save();
-                }
+            $paymentId = $transaction->payment_id;
+            if ($paymentId == null) {
+                DB::rollBack();
+
+                return format_response(
+                    'An error occurred during insertion',
+                    null,
+                    Response::HTTP_INTERNAL_SERVER_ERROR
+                );
+            }
+
+            //Find Payment
+            $payment = Payment::find($transaction->payment_id);
+            if ($payment == null) {
+                DB::rollBack();
+
+                return format_response(
+                    'An error occurred during insertion',
+                    null,
+                    Response::HTTP_INTERNAL_SERVER_ERROR
+                );
+            }
+            $payment->is_canceled = true;
+            $payment->verified_by = $userId;
+            $payment->save();
+
+            //Rollback Demands to current_demand
+            $demands = Demand::where('payment_id', $transaction->payment_id)->get();
+            foreach ($demands as $demand) {
+                CurrentDemand::create($demand->toArray()); // Create a new record using the attributes of each demand
+                $demand->delete();
             }
 
             DB::commit();
 
             return format_response(
-                'Verification cancelled successfully',
-                $transaction->id,
+                'Cancelled and updated Demand',
+                $request->tranId,
                 Response::HTTP_OK
             );
 
         } catch (Exception $e) {
-            DB::rollBack();
             return format_response(
-                'An error occurred during cancellation: '.$e->getMessage(),
+                'An error occurred during insertion. '.$e->getMessage(),
                 null,
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
+
     }
 
     public function unclearedCheques(Request $request)

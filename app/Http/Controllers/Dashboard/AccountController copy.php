@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 
 class AccountController extends Controller
 {
@@ -60,30 +59,27 @@ class AccountController extends Controller
     public function getDateCashForVerification(Request $request)
     {
         try {
-            $validator = Validator::make($request->all(), [
+            // Validate the date input
+            $validated = $request->validate([
                 'tranDate' => [
                     'required',
                     'date',
                     'after_or_equal:' . now()->subYear()->format('Y-m-d'),
                     'before_or_equal:' . now()->format('Y-m-d'),
                 ],
-                'searchKey' => 'nullable|string|in:tc_id,paymentStatus',
-                'tc_id' => 'nullable|exists:users,id',
-                'paymentStatus' => 'nullable|in:verified,pending'
+                // Remove the required validation for tc_id to make it optional
+               //  'tc_id' => 'sometimes|exists:users,id',
             ]);
 
-            if ($validator->fails()) {
-                $errorMessages = $validator->errors()->all();
-                return format_response('validation error', $errorMessages, Response::HTTP_UNPROCESSABLE_ENTITY);
-            }
+            $date = $validated['tranDate'];
+            // Check if tc_id is provided, otherwise set to null
+            // $tcId = $validated['tc_id'] ?? null;
 
-            $date = $request->tranDate;
-            $query = DB::table('current_transactions as t')
+            $cashTransactions = DB::table('current_transactions as t')
                 ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
                 ->join('payments as p', 't.payment_id', '=', 'p.id')
                 ->join('users as u', 't.tc_id', '=', 'u.id')
                 ->select(
-                    't.id as tran_id',
                     'p.id as payment_id',
                     'r.id as ratepayer_id',
                     'u.name as tc_name',
@@ -94,42 +90,26 @@ class AccountController extends Controller
                     'r.usage_type',
                     'r.monthly_demand',
                     'p.payment_mode',
-                    'p.amount',
-                    'p.payment_verified',
-                    't.is_verified as transaction_verified',
-                    't.verification_date',
-                    't.auto_remarks as verification_remarks',
-                    'u.id as tc_id'
+                    'p.amount'
                 )
-                ->whereDate('t.event_time', $date)
-                ->where('p.payment_mode', 'CASH');
-
-            // Apply search filters if provided
-            if ($request->filled('searchKey') && $request->searchKey === 'tc_id' && $request->filled('tc_id')) {
-                $query->where('t.tc_id', $request->tc_id);
-            }
-
-            if ($request->filled('searchKey') && $request->searchKey === 'paymentStatus') {
-                if ($request->paymentStatus === 'verified') {
-                    $query->where('p.payment_verified', true);
-                } else if ($request->paymentStatus === 'pending') {
-                    $query->whereNull('p.payment_verified');
-                }
-            }
-
-            $transactions = $query->orderBy('p.payment_verified')
-                                ->orderBy('t.id')
-                                ->get();
+                ->whereRaw('DATE(t.event_time) = ?', [$date])
+                ->where('p.payment_mode', '=', 'CASH')
+                // ->where('p.payment_verified', '=', true)
+                // Conditionally apply tc_id filter
+               //  ->when($tcId, function($query, $tcId) {
+               //      return $query->where('t.tc_id', '=', $tcId);
+               //  })
+                ->get();
 
             return format_response(
                 'Success',
-                $transactions,
+                $cashTransactions,
                 Response::HTTP_OK
-            );
+            );                
 
         } catch (Exception $e) {
             return format_response(
-                'An error occurred: ' . $e->getMessage(),
+                'An error occurred during insertion. '.$e->getMessage(),
                 null,
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
