@@ -255,4 +255,74 @@ class AccountController extends Controller
             );
         }
     }
+
+    // API-ID: ACDASH-005 [Verified Transactions]
+    public function getVerifiedTransactions(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'tranDate' => [
+                    'required',
+                    'date',
+                    'after_or_equal:' . now()->subYear()->format('Y-m-d'),
+                    'before_or_equal:' . now()->format('Y-m-d'),
+                ],
+                'searchKey' => 'nullable|string|in:tc_id',
+                'tc_id' => 'nullable|exists:users,id',
+            ]);
+
+            if ($validator->fails()) {
+                $errorMessages = $validator->errors()->all();
+                return format_response('validation error', $errorMessages, Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $query = DB::table('current_transactions as t')
+                ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
+                ->join('payments as p', 't.payment_id', '=', 'p.id')
+                ->join('users as u', 't.tc_id', '=', 'u.id')
+                ->select(
+                    't.id as tran_id',
+                    'p.id as payment_id',
+                    'r.id as ratepayer_id',
+                    'u.name as tc_name',
+                    'r.ratepayer_name',
+                    'r.ratepayer_address',
+                    'r.consumer_no',
+                    'r.mobile_no',
+                    'r.usage_type',
+                    'r.monthly_demand',
+                    'p.payment_mode',
+                    'p.amount',
+                    'p.payment_verified',
+                    't.is_verified as transaction_verified',
+                    't.verification_date',
+                    't.auto_remarks as verification_remarks',
+                    'u.id as tc_id'
+                )
+                ->whereDate('t.event_time', $request->tranDate)
+                ->where('p.payment_verified', 1)
+                ->where('t.is_verified', 1);
+
+            // Apply search filter if tc_id is provided
+            if ($request->filled('searchKey') && $request->searchKey === 'tc_id' && $request->filled('tc_id')) {
+                $query->where('t.tc_id', $request->tc_id);
+            }
+
+            $transactions = $query->orderBy('t.id')
+                                ->get();
+
+            return format_response(
+                'Success',
+                $transactions,
+                Response::HTTP_OK
+            );
+
+        } catch (Exception $e) {
+            return format_response(
+                'An error occurred: ' . $e->getMessage(),
+                null,
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
 }

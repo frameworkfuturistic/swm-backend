@@ -510,6 +510,10 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('accou
 
     // API-ID: ACDASH-004 [Date Receipt Summary] -OK
     Route::get('/date-collection-summary', [AccountController::class, 'getDatePaymentSummary']);
+
+    // API-ID: ACDASH-005 [Verified Transactions]
+    Route::get('/verified-transactions', [AccountController::class, 'getVerifiedTransactions']);
+
 });
 
 
