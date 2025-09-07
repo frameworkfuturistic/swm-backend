@@ -356,16 +356,19 @@ class ClusterPmtController extends Controller
       {
          $ratepayer = Ratepayer::find($demand->ratepayer_id);
          $entityDemands = $this->getCurrentDemands($ratepayer->cluster_id, $demand->bill_year, $demand->bill_month);
+         
+         $totalPayment = 0;
          foreach ($entityDemands as $entityDemand)
          {
             $entityDemand->tc_id=$tcId;
             $entityDemand->payment = $entityDemand->total_demand;
             $entityDemand->payment_id=$paymentId;
+            $totalPayment += $entityDemand->total_demand;
             $this->transferToDemandTable($entityDemand);
             // Now move to demands table
          }
          $demand->tc_id=$tcId;
-         $demand->payment = $entityDemand->total_demand;
+         $demand->payment = $totalPayment; //$entityDemand->total_demand;
          $demand->payment_id=$paymentId;
          $this->transferToClusterDemandTable($demand);
          // Now move to cluster_demands

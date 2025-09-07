@@ -39,6 +39,7 @@ class AccountController extends Controller
                 ])
                 ->join('users as u', 'p.tc_id', '=', 'u.id')
                 ->whereDate('p.payment_date', $validated['tranDate'])
+                ->where('p.is_canceled', 0)
                 ->groupBy('u.id')
                 ->get();
                 
