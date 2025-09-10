@@ -244,27 +244,77 @@ class AdminDashboardController extends Controller
      * @param int $limit
      * @return array
      */
-    private function getTransactions($startDate, $endDate, $limit = 100)
+
+    private function getTransactions($startDate, $endDate, $limit = 1000)
     {
-        return DB::select("
-            SELECT 
-                t.id AS transaction_id,
-                u.ulb_name,
-                r.ratepayer_name,
-                t.event_time,
-                t.event_type,
-                p.payment_mode,
-                p.payment_status,
-                p.amount
-            FROM current_transactions t
-            INNER JOIN ulbs u ON u.id = t.ulb_id
-            INNER JOIN ratepayers r ON t.ratepayer_id = r.id
-            LEFT JOIN payments p ON p.id = t.payment_id
-            WHERE DATE(t.event_time) BETWEEN ? AND ?
-            ORDER BY t.event_time DESC
-            LIMIT ?
-        ", [$startDate, $endDate, $limit]);
+      //   return DB::select("
+      //       SELECT 
+      //           t.id AS transaction_id,
+      //           u.ulb_name,
+      //           r.ratepayer_name,
+      //           t.event_time,
+      //           t.event_type,
+      //           p.payment_mode,
+      //           p.payment_status,
+      //           p.amount
+      //       FROM current_transactions t
+      //       INNER JOIN ulbs u ON u.id = t.ulb_id
+      //       INNER JOIN ratepayers r ON t.ratepayer_id = r.id
+      //       LEFT JOIN payments p ON p.id = t.payment_id
+      //       WHERE DATE(t.event_time) BETWEEN ? AND ?
+      //       ORDER BY t.event_time DESC
+      //       LIMIT ?
+      //   ", [$startDate, $endDate, $limit]);
+
+      return DB::select("
+        SELECT 
+            t.id AS transaction_id,
+            u.ulb_name,
+            r.ratepayer_name,
+            t.event_time,
+            t.event_type,
+            p.payment_mode,
+            p.payment_status,
+            p.amount
+        FROM (
+            SELECT * FROM current_transactions
+            WHERE DATE(event_time) BETWEEN ? AND ?
+            
+            UNION ALL
+            
+            SELECT * FROM transactions
+            WHERE DATE(event_time) BETWEEN ? AND ?
+        ) t
+        INNER JOIN ulbs u ON u.id = t.ulb_id
+        INNER JOIN ratepayers r ON t.ratepayer_id = r.id
+        LEFT JOIN payments p ON p.id = t.payment_id
+        ORDER BY t.event_time DESC
+        LIMIT ?
+     ", [$startDate, $endDate, $startDate, $endDate, $limit]);
+
     }
+
+   //  private function getTransactions($startDate, $endDate, $limit = 100)
+   //  {
+   //      return DB::select("
+   //          SELECT 
+   //              t.id AS transaction_id,
+   //              u.ulb_name,
+   //              r.ratepayer_name,
+   //              t.event_time,
+   //              t.event_type,
+   //              p.payment_mode,
+   //              p.payment_status,
+   //              p.amount
+   //          FROM current_transactions t
+   //          INNER JOIN ulbs u ON u.id = t.ulb_id
+   //          INNER JOIN ratepayers r ON t.ratepayer_id = r.id
+   //          LEFT JOIN payments p ON p.id = t.payment_id
+   //          WHERE DATE(t.event_time) BETWEEN ? AND ?
+   //          ORDER BY t.event_time DESC
+   //          LIMIT ?
+   //      ", [$startDate, $endDate, $limit]);
+   //  }
 
     private function getVisitOutcomesDistribution($startDate, $endDate)
     {
