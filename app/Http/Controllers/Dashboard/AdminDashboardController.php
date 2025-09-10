@@ -267,7 +267,7 @@ class AdminDashboardController extends Controller
       //   ", [$startDate, $endDate, $limit]);
 
       return DB::select("
-        SELECT 
+         SELECT 
             t.id AS transaction_id,
             u.ulb_name,
             r.ratepayer_name,
@@ -276,21 +276,24 @@ class AdminDashboardController extends Controller
             p.payment_mode,
             p.payment_status,
             p.amount
-        FROM (
-            SELECT * FROM current_transactions
+         FROM (
+            SELECT id, ulb_id, ratepayer_id, event_time, event_type, payment_id 
+            FROM current_transactions
             WHERE DATE(event_time) BETWEEN ? AND ?
-            
+
             UNION ALL
-            
-            SELECT * FROM transactions
+
+            SELECT id, ulb_id, ratepayer_id, event_time, event_type, payment_id 
+            FROM transactions
             WHERE DATE(event_time) BETWEEN ? AND ?
-        ) t
-        INNER JOIN ulbs u ON u.id = t.ulb_id
-        INNER JOIN ratepayers r ON t.ratepayer_id = r.id
-        LEFT JOIN payments p ON p.id = t.payment_id
-        ORDER BY t.event_time DESC
-        LIMIT ?
-     ", [$startDate, $endDate, $startDate, $endDate, $limit]);
+         ) t
+         INNER JOIN ulbs u ON u.id = t.ulb_id
+         INNER JOIN ratepayers r ON t.ratepayer_id = r.id
+         LEFT JOIN payments p ON p.id = t.payment_id
+         ORDER BY t.event_time DESC
+         LIMIT ?
+      ", [$startDate, $endDate, $startDate, $endDate, $limit]);
+
 
     }
 
