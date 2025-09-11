@@ -187,7 +187,7 @@ class AdminDashboardController extends Controller
                 payment_mode,
                 SUM(amount) AS total_amount
             FROM payments
-            WHERE DATE(payment_date) BETWEEN ? AND ?
+            WHERE is_canceled = 0 AND DATE(payment_date) BETWEEN ? AND ?
             GROUP BY payment_mode
         ", [$startDate, $endDate]);
     }
