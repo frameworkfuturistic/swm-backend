@@ -289,7 +289,8 @@ class AdminDashboardController extends Controller
          ) t
          INNER JOIN ulbs u ON u.id = t.ulb_id
          INNER JOIN ratepayers r ON t.ratepayer_id = r.id
-         LEFT JOIN payments p ON p.id = t.payment_id
+         INNER JOIN payments p ON p.id = t.payment_id
+         WHERE p.is_canceled=0
          ORDER BY t.event_time DESC
          LIMIT ?
       ", [$startDate, $endDate, $startDate, $endDate, $limit]);
