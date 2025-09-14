@@ -160,17 +160,34 @@ class AdminDashboardController extends Controller
      */
     private function getMonthlyTransactions($startDate, $endDate)
     {
-        return DB::select("
-            SELECT
-                MONTH(event_time) AS month,
-                MONTHNAME(event_time) AS monthName,
-                COUNT(id) AS transactions,
-                SUM(IF(event_type='PAYMENT',1,0)) AS payments
-            FROM current_transactions
-            WHERE DATE(event_time) BETWEEN ? AND ?
-            GROUP BY MONTH(event_time), MONTHNAME(event_time)
-            ORDER BY MONTH(event_time)
-        ", [$startDate, $endDate]);
+      //   return DB::select("
+      //       SELECT
+      //           MONTH(event_time) AS month,
+      //           MONTHNAME(event_time) AS monthName,
+      //           COUNT(id) AS transactions,
+      //           SUM(IF(event_type='PAYMENT',1,0)) AS payments
+      //       FROM current_transactions
+      //       WHERE DATE(event_time) BETWEEN ? AND ?
+      //       GROUP BY MONTH(event_time), MONTHNAME(event_time)
+      //       ORDER BY MONTH(event_time)
+      //   ", [$startDate, $endDate]);
+
+      return DB::select("
+         SELECT 
+            MONTH(event_time) AS month,
+            MONTHNAME(event_time) AS monthName,
+            COUNT(id) AS transactions,
+            SUM(IF(event_type='PAYMENT',1,0)) AS payments
+         FROM (
+            SELECT id, event_time, event_type FROM current_transactions
+            UNION ALL
+            SELECT id, event_time, event_type FROM transactions
+         ) AS all_txn
+         WHERE DATE(event_time) BETWEEN ? AND ?
+         GROUP BY MONTH(event_time), MONTHNAME(event_time)
+         ORDER BY MONTH(event_time)
+      ", [$startDate, $endDate]);
+
     }
 
     /**
