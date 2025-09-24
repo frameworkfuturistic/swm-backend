@@ -107,17 +107,35 @@ class AdminDashboardController extends Controller
      */
     private function getCardSummary($startDate, $endDate)
     {
-        $transactionSummary = DB::select("
+      //   $transactionSummary = DB::select("
+      //       SELECT
+      //           COUNT(id) AS totaltransactions,
+      //           SUM(IF(event_type='PAYMENT',1,0)) AS payments,
+      //           SUM(IF(event_type='DENIAL',1,0)) AS denials,
+      //           SUM(IF(event_type='DOOR-CLOSED',1,0)) AS doorclosed,
+      //           SUM(IF(event_type='DEFERRED',1,0)) AS reschedules,
+      //           SUM(IF(event_type='CHEQUE',1,0)) AS cheques
+      //       FROM current_transactions
+      //       WHERE DATE(event_time) BETWEEN ? AND ?
+      //   ", [$startDate, $endDate]);
+
+         $transactionSummary = DB::select("
             SELECT
-                COUNT(id) AS totaltransactions,
-                SUM(IF(event_type='PAYMENT',1,0)) AS payments,
-                SUM(IF(event_type='DENIAL',1,0)) AS denials,
-                SUM(IF(event_type='DOOR-CLOSED',1,0)) AS doorclosed,
-                SUM(IF(event_type='DEFERRED',1,0)) AS reschedules,
-                SUM(IF(event_type='CHEQUE',1,0)) AS cheques
-            FROM current_transactions
-            WHERE DATE(event_time) BETWEEN ? AND ?
-        ", [$startDate, $endDate]);
+               COUNT(id) AS totaltransactions,
+               SUM(IF(event_type='PAYMENT',1,0)) AS payments,
+               SUM(IF(event_type='DENIAL',1,0)) AS denials,
+               SUM(IF(event_type='DOOR-CLOSED',1,0)) AS doorclosed,
+               SUM(IF(event_type='DEFERRED',1,0)) AS reschedules,
+               SUM(IF(event_type='CHEQUE',1,0)) AS cheques
+            FROM (
+               SELECT id, event_type, event_time, is_cancelled
+               FROM current_transactions
+               UNION ALL
+               SELECT id, event_type, event_time, is_cancelled
+               FROM transactions
+            ) AS all_txns
+            WHERE is_cancelled=false and DATE(event_time) BETWEEN ? and ?
+         ", [$startDate, $endDate]);
 
         $demandSummary = DB::selectOne("
             SELECT
