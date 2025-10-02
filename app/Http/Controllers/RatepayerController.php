@@ -238,7 +238,8 @@ class RatepayerController extends Controller
                   SELECT 
                         SUM(IF(((bill_year*12)+bill_month) < ((YEAR(SYSDATE())*12)+MONTH(SYSDATE())), demand, 0)) AS outstanding_demand,
                         SUM(IF(((bill_year*12)+bill_month) = ((YEAR(SYSDATE())*12)+MONTH(SYSDATE())), demand, 0)) AS month_demand,
-                        SUM(demand) AS total_demand
+                        SUM(demand) AS total_demand,
+                        MIN(bill_year) as year_from, MIN(bill_month) as month_from
                   FROM current_demands
                   WHERE ((bill_year*12)+bill_month) <= ((YEAR(SYSDATE())*12)+MONTH(SYSDATE()))
                      AND ratepayer_id = ?
