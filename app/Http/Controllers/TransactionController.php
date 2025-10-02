@@ -1686,11 +1686,18 @@ class TransactionController extends Controller
     
             $old_transactions = $qry->get();
 
+            $pendingDemands = DB::table('current_demands')
+            ->select('bill_month', 'bill_year', 'total_demand', 'is_active')
+            ->where('ratepayer_id', $ratepayerId)
+            ->get();
+            
+
             return format_response(
                'Success',
                [
                   'current_trans' => $current_transactions,
-                  'old_trans' => $old_transactions
+                  'old_trans' => $old_transactions,
+                  'pending_demands' => $pendingDemands
                ] ,
                Response::HTTP_OK
             );

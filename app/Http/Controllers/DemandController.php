@@ -678,6 +678,7 @@ class DemandController extends Controller
                'd.demand_amount'
             )
             ->whereNull('d.served_on')
+            ->orderBy('d.demand_amount', 'desc')
             ->get();
 
              return format_response(
