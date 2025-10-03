@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Models\Payment;
 use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
@@ -13,6 +14,158 @@ use Illuminate\Support\Facades\Validator;
 
 class AccountController extends Controller
 {
+
+    /**
+     * Get non-cash payments by date
+     */
+    public function getNonCashPendingTransactions(Request $request)
+    {
+      //   // validate incoming date
+      //   $request->validate([
+      //       'payment_date' => 'required|date',
+      //   ]);
+
+      //   $paymentDate = $request->payment_date;
+
+        $data = DB::table('payments as p')
+            ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
+            ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+            ->select(
+                'p.id as payment_id',
+                'r.ratepayer_name',
+                'r.consumer_no',
+                's.sub_category',
+                'p.payment_mode',
+                'p.receipt_no',
+                'p.amount',
+                'p.payment_from',
+                'p.payment_to',
+                'p.payment_verified',
+                'p.upi_id',
+                'p.cheque_number',
+                'p.bank_name',
+                'p.neft_id',
+                'p.neft_date',
+                'p.clearance_date'
+            )
+            ->where('p.payment_mode', '<>', 'CASH')
+            ->whereNull('p.clearance_date')
+            ->orderBy('p.payment_date', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
+
+    /**
+     * Get non-cash payments by date
+     */
+    public function getNonCashCompletedTransactions(Request $request)
+    {
+      //   // validate incoming date
+      //   $request->validate([
+      //       'payment_date' => 'required|date',
+      //   ]);
+
+      //   $paymentDate = $request->payment_date;
+
+        $data = DB::table('payments as p')
+            ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
+            ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+            ->select(
+                'p.id as payment_id',
+                'r.ratepayer_name',
+                'r.consumer_no',
+                's.sub_category',
+                'p.payment_mode',
+                'p.receipt_no',
+                'p.amount',
+                'p.payment_from',
+                'p.payment_to',
+                'p.payment_verified',
+                'p.upi_id',
+                'p.cheque_number',
+                'p.bank_name',
+                'p.neft_id',
+                'p.neft_date',
+                'p.clearance_date'
+            )
+            ->where('p.payment_mode', '<>', 'CASH')
+            ->whereNotNull('p.clearance_date')
+            ->orderBy('p.payment_date', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
+
+
+    public function updatePaymentDetails(Request $request, $id)
+    {
+        // Validate input
+        $request->validate([
+            'upi_id'        => 'nullable|string|max:255',
+            'cheque_number' => 'nullable|string|max:255',
+            'bank_name'     => 'nullable|string|max:255',
+            'neft_id'       => 'nullable|string|max:255',
+            'neft_date'     => 'nullable|date',
+        ]);
+
+        $payment = Payment::find($id);
+
+        if (!$payment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment not found'
+            ], 404);
+        }
+
+        $payment->update($request->only([
+            'upi_id',
+            'cheque_number',
+            'bank_name',
+            'neft_id',
+            'neft_date',
+        ]));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment updated successfully',
+            'data' => $payment
+        ]);
+    }
+
+
+   public function updateClearanceDate(Request $request, $id)
+   {
+      // validate only clearance_date
+      $request->validate([
+         'clearance_date' => 'required|date',
+      ]);
+
+      $payment = \App\Models\Payment::find($id);
+
+      if (!$payment) {
+         return response()->json([
+               'success' => false,
+               'message' => 'Payment not found'
+         ], 404);
+      }
+
+      $payment->clearance_date = $request->clearance_date;
+      $payment->save();
+
+      return response()->json([
+         'success' => true,
+         'message' => 'Clearance date updated successfully',
+         'data' => $payment
+      ]);
+   }
+
     // API-ID: ACDASH-004 [Date Receipt Summary]
     public function getDatePaymentSummary(Request $request)
     {

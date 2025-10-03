@@ -514,6 +514,18 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('accou
     // API-ID: ACDASH-005 [Verified Transactions]
     Route::get('/verified-transactions', [AccountController::class, 'getVerifiedTransactions']);
 
+   //     [Verified Transactions]
+    Route::get('/noncash-pending-transactions', [AccountController::class, 'getNonCashPendingTransactions']);
+
+    // API-ID: ACDASH-006 [Verified Transactions]
+    Route::get('/noncash-completed-transactions', [AccountController::class, 'getNonCashCompletedTransactions']);
+
+    // API-ID: ACDASH-007 [Update Payment Details]
+    Route::put('/payments/{id}', [AccountController::class, 'updatePaymentDetails']);
+
+    // API-ID: ACDASH-008 [Update Clearance Date]
+    Route::patch('/payments/{id}/clearance-date', [AccountController::class, 'updateClearanceDate']);
+
 });
 
 
