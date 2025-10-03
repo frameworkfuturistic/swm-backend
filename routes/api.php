@@ -524,7 +524,10 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'api', 'admin'])->prefix('accou
     Route::put('/payments/{id}', [AccountController::class, 'updatePaymentDetails']);
 
     // API-ID: ACDASH-008 [Update Clearance Date]
-    Route::patch('/payments/{id}/clearance-date', [AccountController::class, 'updateClearanceDate']);
+    Route::put('/payments/{id}/set-clearance-date', [AccountController::class, 'updateClearanceDate']);
+
+    // API-ID: ACDASH-009 [Update Cheque Confirmation]
+    Route::put('/payments/{id}/cheque-confirmation', [AccountController::class, 'updateChequeConfirmation']);
 
 });
 

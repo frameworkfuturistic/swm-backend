@@ -110,14 +110,27 @@ class TransactionController extends Controller
 
      public function getReceiptData($tranId)
      {
+         // $validator = Validator::make(['tranId' => $tranId], [
+         //   'tranId' => 'required|integer|exists:current_transactions,id', // Customize this as needed
+         // ]);
+
          $validator = Validator::make(['tranId' => $tranId], [
-           'tranId' => 'required|integer|exists:current_transactions,id', // Customize this as needed
+            'tranId' => 'required|integer',
          ]);
+
+         $validator->after(function ($validator) use ($tranId) {
+            $inCurrent = DB::table('current_transactions')->where('id', $tranId)->exists();
+            $inArchive = DB::table('transactions')->where('id', $tranId)->exists();
+
+            if (! ($inCurrent || $inArchive)) {
+               $validator->errors()->add('tranId', 'The selected transaction ID does not exist in current or past transactions.');
+            }
+         });
 
          if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error retrieving payment records: ' . $e->getMessage()
+                'message' => 'Error retrieving payment records: ' . $validator->errors()
             ], Response::HTTP_NOT_FOUND);
          }
 
@@ -128,8 +141,58 @@ class TransactionController extends Controller
          // ]);
 
          try {
-            $query = DB::table('current_transactions')
-               ->select([
+            // $query = DB::table('current_transactions')
+            //    ->select([
+            //       'rec_name as ratepayer_name',
+            //       'rec_address as ratepayer_address',
+            //       'rec_consumerno as consumer_no',
+            //       DB::raw("DATE_FORMAT(event_time, '%d/%m/%Y') as payment_date"),
+            //       'rec_paymentmode as payment_mode',
+            //       'rec_receiptno as receipt_no',
+            //       'rec_period as period',
+            //       'rec_amount as amount',
+            //       DB::raw("rec_monthlycharge as monthly_demand"),
+            //    //  DB::raw("cast(rec_monthlycharge as char) as monthly_demand"),
+            //       'rec_tcname as tc_name',
+            //       'rec_tcmobile as tc_mobile',
+            //       'rec_ward as ward_name',
+            //       'rec_category as category',
+            //       'rec_subcategory as sub_category',
+            //       'rec_chequeno as cheque_no',
+            //       'rec_chequedate as cheque_date',
+            //       'rec_bankname as bank_name',
+            //       'rec_nooftenants'
+            //    ])
+            //    ->where('id', $tranId);
+
+      $transaction = DB::table('current_transactions')
+         ->select([
+            'rec_name as ratepayer_name',
+            'rec_address as ratepayer_address',
+            'rec_consumerno as consumer_no',
+            DB::raw("DATE_FORMAT(event_time, '%d/%m/%Y') as payment_date"),
+            'rec_paymentmode as payment_mode',
+            'rec_receiptno as receipt_no',
+            'rec_period as period',
+            'rec_amount as amount',
+            DB::raw("rec_monthlycharge as monthly_demand"),
+            'rec_tcname as tc_name',
+            'rec_tcmobile as tc_mobile',
+            'rec_ward as ward_name',
+            'rec_category as category',
+            'rec_subcategory as sub_category',
+            'rec_chequeno as cheque_no',
+            'rec_chequedate as cheque_date',
+            'rec_bankname as bank_name',
+            'rec_nooftenants'
+         ])
+         ->where('id', $tranId)
+         ->first();
+
+      // If not found in current_transactions, check transactions table
+      if (!$transaction) {
+         $transaction = DB::table('transactions')
+            ->select([
                   'rec_name as ratepayer_name',
                   'rec_address as ratepayer_address',
                   'rec_consumerno as consumer_no',
@@ -139,7 +202,6 @@ class TransactionController extends Controller
                   'rec_period as period',
                   'rec_amount as amount',
                   DB::raw("rec_monthlycharge as monthly_demand"),
-               //  DB::raw("cast(rec_monthlycharge as char) as monthly_demand"),
                   'rec_tcname as tc_name',
                   'rec_tcmobile as tc_mobile',
                   'rec_ward as ward_name',
@@ -149,12 +211,14 @@ class TransactionController extends Controller
                   'rec_chequedate as cheque_date',
                   'rec_bankname as bank_name',
                   'rec_nooftenants'
-               ])
-               ->where('id', $tranId);
+            ])
+            ->where('id', $tranId)
+            ->first();
+      }
 
-            $latestPayment= $query->first();
+            // $latestPayment= $query->first();
      
-             if (!$latestPayment) {
+             if (!$transaction) {
                return format_response(
                   'Could not fetch data',
                   null,
@@ -164,7 +228,7 @@ class TransactionController extends Controller
             }else {
                   return format_response(
                      'Success',
-                     $latestPayment,
+                     $transaction,
                      Response::HTTP_OK
                   );
              }

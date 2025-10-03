@@ -139,6 +139,27 @@ class AccountController extends Controller
         ]);
     }
 
+   public function updateChequeConfirmation($id)
+   {
+      $payment = Payment::find($id);
+
+      if (!$payment) {
+         return response()->json([
+               'success' => false,
+               'message' => 'Payment not found'
+         ], 404);
+      }
+
+      $payment->payment_verified = true; // or 1 depending on your column type
+      $payment->save();
+
+      return response()->json([
+         'success' => true,
+         'message' => 'Payment method updated to true',
+         'data' => $payment
+      ]);
+   }
+
 
    public function updateClearanceDate(Request $request, $id)
    {
