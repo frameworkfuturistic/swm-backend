@@ -18,46 +18,85 @@ class AccountController extends Controller
     /**
      * Get non-cash payments by date
      */
+   //  public function getNonCashPendingTransactions(Request $request)
+   // {
+   //      $data = DB::table('payments as p')
+   //          ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
+   //          ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+   //          ->select(
+   //              'p.id as payment_id',
+   //              'r.ratepayer_name',
+   //              'r.consumer_no',
+   //              's.sub_category',
+   //              'p.payment_mode',
+   //              'p.receipt_no',
+   //              'p.amount',
+   //              'p.payment_from',
+   //              'p.payment_to',
+   //              'p.payment_verified',
+   //              'p.upi_id',
+   //              'p.cheque_number',
+   //              'p.bank_name',
+   //              'p.neft_id',
+   //              'p.neft_date',
+   //              'p.clearance_date'
+   //          )
+   //          ->where('p.payment_mode', '<>', 'CASH')
+   //          ->whereNull('p.clearance_date')
+   //          ->orderBy('p.payment_date', 'desc')
+   //          ->get();
+
+   //      return response()->json([
+   //          'success' => true,
+   //          'data' => $data
+   //      ]);
+   //  }
+
     public function getNonCashPendingTransactions(Request $request)
-    {
-      //   // validate incoming date
-      //   $request->validate([
-      //       'payment_date' => 'required|date',
-      //   ]);
+   {
+      // Validate incoming date range
+      $request->validate([
+         'payment_from_date' => 'required|date',
+         'payment_to_date' => 'required|date|after_or_equal:payment_from_date',
+      ]);
 
-      //   $paymentDate = $request->payment_date;
+      $fromDate = $request->payment_from_date;
+      $toDate = $request->payment_to_date;
 
-        $data = DB::table('payments as p')
-            ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
-            ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
-            ->select(
-                'p.id as payment_id',
-                'r.ratepayer_name',
-                'r.consumer_no',
-                's.sub_category',
-                'p.payment_mode',
-                'p.receipt_no',
-                'p.amount',
-                'p.payment_from',
-                'p.payment_to',
-                'p.payment_verified',
-                'p.upi_id',
-                'p.cheque_number',
-                'p.bank_name',
-                'p.neft_id',
-                'p.neft_date',
-                'p.clearance_date'
-            )
-            ->where('p.payment_mode', '<>', 'CASH')
-            ->whereNull('p.clearance_date')
-            ->orderBy('p.payment_date', 'desc')
-            ->get();
+      $data = DB::table('payments as p')
+         ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
+         ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+         ->select(
+               'p.id as payment_id',
+               'r.ratepayer_name',
+               'r.consumer_no',
+               'p.payment_date',
+               's.sub_category',
+               'p.payment_mode',
+               'p.receipt_no',
+               'p.amount',
+               'p.payment_from',
+               'p.payment_to',
+               'p.payment_verified',
+               'p.upi_id',
+               'p.cheque_number',
+               'p.bank_name',
+               'p.neft_id',
+               'p.neft_date',
+               'p.clearance_date'
+         )
+         ->where('p.payment_mode', '<>', 'CASH')
+         ->whereNull('p.clearance_date')
+         ->whereBetween('p.payment_date', [$fromDate, $toDate])
+         ->orderBy('p.payment_date', 'desc')
+         ->paginate($request->input('perPage', 50));
 
-        return response()->json([
-            'success' => true,
-            'data' => $data
-        ]);
-    }
+      return response()->json([
+         'success' => true,
+         'data' => $data
+      ]);
+   }
+
 
     /**
      * Get non-cash payments by date
