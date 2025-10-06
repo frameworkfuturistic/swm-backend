@@ -233,7 +233,7 @@ Route::middleware(['auth:sanctum', 'append-ulb', 'force-json', 'api'])->prefix('
     // API-ID: SEARCH-003 [Search Nearby Ratepayers]
     Route::get('ratepayers/nearby', [RatepayerController::class, 'searchNearby']);
     // API-ID: SEARCH-004 [Search Ratepayers against multiple parameters]
-    Route::get('ratepayers', [RatepayerController::class, 'deepSearch']);
+    Route::get('ratepayers', [RatepayerController::class, 'deepSearchNew']);
     // API-ID: SEARCH-005 [Search Ratepayers by ID]
     Route::get('ratepayers/{id}', [RatepayerController::class, 'show'])->where('id', '[0-9]+');
     //Done

@@ -60,6 +60,63 @@ class RatepayerService
     // sort_by = ratepayerName
     // per_page=20                           // Pagination
 
+   public function deepSearchNew(Request $request)
+   {
+      // ✅ Validate inputs
+      $request->validate([
+         'ward_id' => 'required|exists:wards,id',
+         'consumer_no' => 'nullable|string',
+         'ratepayer_name' => 'nullable|string',
+         'mobile_no' => 'nullable|string',
+         'subcategory' => 'nullable|string', // search by name, not id
+         'perPage' => 'nullable|integer|min:1|max:100',
+         'page' => 'nullable|integer|min:1',
+      ]);
+
+      // ✅ Base query
+      $query = DB::table('ratepayers as r')
+         ->select([
+               'r.id',
+               'r.consumer_no as consumerNo',
+               'r.ratepayer_name as ratepayerName',
+               'r.ratepayer_address as ratepayerAddress',
+               'r.mobile_no as mobileNo',
+               's.sub_category as subCategory',
+               'w.ward_name as wardName',
+         ])
+         ->join('wards as w', 'r.ward_id', '=', 'w.id')
+         ->leftJoin('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+         ->where('r.ward_id', $request->ward_id);
+
+      // ✅ Apply exactly one optional filter
+      if ($request->filled('consumer_no')) {
+         $query->where('r.consumer_no', 'LIKE', "%{$request->consumer_no}%");
+      } elseif ($request->filled('ratepayer_name')) {
+         $query->where('r.ratepayer_name', 'LIKE', "%{$request->ratepayer_name}%");
+      } elseif ($request->filled('mobile_no')) {
+         $query->where('r.mobile_no', 'LIKE', "%{$request->mobile_no}%");
+      } elseif ($request->filled('subcategory')) {
+         $query->where('s.sub_category', 'LIKE', "%{$request->subcategory}%");
+      }
+
+      // ✅ Pagination
+      $perPage = $request->input('perPage', 50); // default 50 per page
+      $results = $query->orderBy('r.ratepayer_name')->paginate($perPage);
+
+      // ✅ Response
+      return response()->json([
+         'status' => true,
+         'data' => $results->items(),
+         'pagination' => [
+               'current_page' => $results->currentPage(),
+               'per_page' => $results->perPage(),
+               'total' => $results->total(),
+               'last_page' => $results->lastPage(),
+         ],
+      ]);
+   }
+
+
     public function deepSearch(Request $request)
     {
         $ulbId = $request->ulb_id;
