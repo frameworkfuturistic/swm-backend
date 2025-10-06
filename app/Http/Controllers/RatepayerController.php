@@ -348,7 +348,7 @@ class RatepayerController extends Controller
     {
         try {
             $service = new RatepayerService;
-            $results = $service->deepSearch($request);
+            $results = $service->deepSearchNew($request);
 
             return format_response(
                 'Success',
