@@ -1793,6 +1793,8 @@ class TransactionController extends Controller
 
         // ✅ Define select fields with explicit collation for string fields
         $select = [
+            't.id as tran_id',
+            'r.id as ratepayer_id',
             DB::raw("CONVERT(t.transaction_no USING utf8mb4) COLLATE utf8mb4_unicode_ci as transaction_no"),
             DB::raw("CONVERT(r.ratepayer_name USING utf8mb4) COLLATE utf8mb4_unicode_ci as ratepayer_name"),
             DB::raw("CONVERT(r.ratepayer_address USING utf8mb4) COLLATE utf8mb4_unicode_ci as ratepayer_address"),
