@@ -15,57 +15,72 @@ use Illuminate\Support\Facades\Validator;
 class AccountController extends Controller
 {
 
-    /**
-     * Get non-cash payments by date
-     */
    //  public function getNonCashPendingTransactions(Request $request)
    // {
-   //      $data = DB::table('payments as p')
-   //          ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
-   //          ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
-   //          ->select(
-   //              'p.id as payment_id',
-   //              'r.ratepayer_name',
-   //              'r.consumer_no',
-   //              's.sub_category',
-   //              'p.payment_mode',
-   //              'p.receipt_no',
-   //              'p.amount',
-   //              'p.payment_from',
-   //              'p.payment_to',
-   //              'p.payment_verified',
-   //              'p.upi_id',
-   //              'p.cheque_number',
-   //              'p.bank_name',
-   //              'p.neft_id',
-   //              'p.neft_date',
-   //              'p.clearance_date'
-   //          )
-   //          ->where('p.payment_mode', '<>', 'CASH')
-   //          ->whereNull('p.clearance_date')
-   //          ->orderBy('p.payment_date', 'desc')
-   //          ->get();
+   //    // Validate incoming date range
+   //    $request->validate([
+   //       'payment_from_date' => 'required|date',
+   //       'payment_to_date' => 'required|date|after_or_equal:payment_from_date',
+   //    ]);
 
-   //      return response()->json([
-   //          'success' => true,
-   //          'data' => $data
-   //      ]);
-   //  }
+   //    $fromDate = $request->payment_from_date;
+   //    $toDate = $request->payment_to_date;
 
-    public function getNonCashPendingTransactions(Request $request)
+   //    $data = DB::table('payments as p')
+   //       ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
+   //       ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+   //       ->join('users as u', 'p.tc_id', '=', 'u.id')
+   //       ->select(
+   //             'p.id as payment_id',
+   //             'r.ratepayer_name',
+   //             'r.consumer_no',
+   //             'p.payment_date',
+   //             's.sub_category',
+   //             'p.payment_mode',
+   //             'p.receipt_no',
+   //             'p.amount',
+   //             'p.payment_from',
+   //             'p.payment_to',
+   //             'p.payment_verified',
+   //             'p.upi_id',
+   //             'p.cheque_number',
+   //             'p.bank_name',
+   //             'p.neft_id',
+   //             'p.neft_date',
+   //             'p.clearance_date',
+   //             'u.name'
+   //       )
+   //       ->where('p.payment_mode', '<>', 'CASH')
+   //       ->whereNull('p.clearance_date')
+   //       ->whereBetween('p.payment_date', [$fromDate, $toDate])
+   //       ->orderBy('p.payment_date', 'desc')
+   //       ->paginate($request->input('perPage', 50));
+
+   //    return response()->json([
+   //       'success' => true,
+   //       'data' => $data
+   //    ]);
+   // }
+
+   public function getNonCashPendingTransactions(Request $request)
    {
-      // Validate incoming date range
+      // Validate incoming request
       $request->validate([
          'payment_from_date' => 'required|date',
          'payment_to_date' => 'required|date|after_or_equal:payment_from_date',
+         'tc_id' => 'nullable|integer|exists:users,id',
+         'payment_mode' => 'nullable|string|in:CASH,CARD,UPI,CHEQUE,ONLINE,DD,NEFT,WHATSAPP',
       ]);
 
       $fromDate = $request->payment_from_date;
       $toDate = $request->payment_to_date;
+      $tcId = $request->tc_id;
+      $paymentMode = $request->payment_mode;
 
-      $data = DB::table('payments as p')
+      $query = DB::table('payments as p')
          ->join('ratepayers as r', 'p.ratepayer_id', '=', 'r.id')
          ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+         ->join('users as u', 'p.tc_id', '=', 'u.id')
          ->select(
                'p.id as payment_id',
                'r.ratepayer_name',
@@ -83,20 +98,30 @@ class AccountController extends Controller
                'p.bank_name',
                'p.neft_id',
                'p.neft_date',
-               'p.clearance_date'
+               'p.clearance_date',
+               'u.name as tc_name'
          )
-         ->where('p.payment_mode', '<>', 'CASH')
          ->whereNull('p.clearance_date')
-         ->whereBetween('p.payment_date', [$fromDate, $toDate])
-         ->orderBy('p.payment_date', 'desc')
-         ->paginate($request->input('perPage', 50));
+         ->whereBetween('p.payment_date', [$fromDate, $toDate]);
+
+      // Optional filters
+      if ($tcId) {
+         $query->where('p.tc_id', $tcId);
+      }
+
+      if ($paymentMode) {
+         $query->where('p.payment_mode', $paymentMode);
+      }
+
+      $data = $query->orderBy('p.payment_date', 'desc')
+                     ->paginate($request->input('perPage', 50));
 
       return response()->json([
          'success' => true,
          'data' => $data
       ]);
    }
-
+   
 
     /**
      * Get non-cash payments by date
@@ -225,6 +250,7 @@ class AccountController extends Controller
          'data' => $payment
       ]);
    }
+
 
     // API-ID: ACDASH-004 [Date Receipt Summary]
     public function getDatePaymentSummary(Request $request)
