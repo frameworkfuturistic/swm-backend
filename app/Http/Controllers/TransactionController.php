@@ -1804,6 +1804,7 @@ class TransactionController extends Controller
             't.event_time',
             't.rec_period',
             'p.payment_mode',
+            'p.amount',
             DB::raw("CONVERT(s.sub_category USING utf8mb4) COLLATE utf8mb4_unicode_ci as sub_category")
         ];
 
