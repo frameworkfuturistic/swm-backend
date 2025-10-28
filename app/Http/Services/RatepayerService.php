@@ -68,7 +68,7 @@ class RatepayerService
          'consumer_no' => 'nullable|string',
          'ratepayer_name' => 'nullable|string',
          'mobile_no' => 'nullable|string',
-         'subcategory' => 'nullable|string', // search by name, not id
+         'subcategory_id' => 'nullable|string', // search by name, not id
          'perPage' => 'nullable|integer|min:1|max:100',
          'page' => 'nullable|integer|min:1',
       ]);
@@ -95,8 +95,8 @@ class RatepayerService
          $query->where('r.ratepayer_name', 'LIKE', "%{$request->ratepayer_name}%");
       } elseif ($request->filled('mobile_no')) {
          $query->where('r.mobile_no', 'LIKE', "%{$request->mobile_no}%");
-      } elseif ($request->filled('subcategory')) {
-         $query->where('s.sub_category', 'LIKE', "%{$request->subcategory}%");
+      } elseif ($request->filled('subcategory_id')) {
+         $query->where('r.subcategory_id',$request->subcategory_id);
       }
 
       // ✅ Pagination

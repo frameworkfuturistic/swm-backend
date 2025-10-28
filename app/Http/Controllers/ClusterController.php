@@ -6,6 +6,7 @@ use App\Http\Requests\ClusterRatepayerRequest;
 use App\Http\Requests\ClusterRequest;
 use App\Http\Requests\EntityGeolocationRequest;
 use App\Models\Cluster;
+use App\Models\Entity;
 use App\Models\Ratepayer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -26,6 +27,133 @@ use Illuminate\Support\Facades\Schema;
  */
 class ClusterController extends Controller
 {
+
+   public function addClusterWithEntities(ClusterRequest $request)
+   {
+      DB::beginTransaction();
+
+      try {
+         $validatedData = $request->validate([
+               'ward_id' => 'required|integer|exists:wards,id',
+               'cluster_name' => 'required|string|max:255',
+               'cluster_address' => 'required|string|max:500',
+               'landmark' => 'nullable|string|max:255',
+               'pincode' => 'nullable|string|max:10',
+               'cluster_type' => 'required|string|max:100',
+               'mobile_no' => 'nullable|string|max:15',
+               'subcategory_id' => 'nullable|integer|exists:sub_categories,id',
+               'no_of_entities' => 'required|integer|min:1|max:1000',
+         ]);
+
+         $ulbId = $validatedData['ulb_id'];
+
+         /**
+            * 1️⃣ Create Cluster
+            */
+         $cluster = Cluster::create([
+               'ulb_id' => $ulbId,
+               'tc_id' => 1,
+               'ward_id' => $validatedData['ward_id'],
+               'cluster_name' => $validatedData['cluster_name'],
+               'cluster_address' => $validatedData['cluster_address'],
+               'landmark' => $validatedData['landmark'],
+               'pincode' => $validatedData['pincode'],
+               'cluster_type' => $validatedData['cluster_type'],
+               'mobile_no' => $validatedData['mobile_no'],
+               'whatsapp_no' => $validatedData['mobile_no'],
+               'is_active' => true,
+               'is_verified' => false,
+               'vrno' => 1,
+         ]);
+
+         /**
+            * 2️⃣ Create Cluster-level Ratepayer
+            */
+         $clusterRatepayer = Ratepayer::create([
+               'ulb_id' => $ulbId,
+               'cluster_id' => $cluster->id,
+               'entity_id' => null, // cluster-level
+               'ward_id' => $validatedData['ward_id'],
+               'subcategory_id' => $validatedData['subcategory_id'] ?? null,
+               'paymentzone_id' => $validatedData['ward_id'] ?? null,
+               'ratepayer_name' => $cluster->cluster_name,
+               'ratepayer_address' => $cluster->cluster_address,
+               'consumer_no' => strtoupper(uniqid('CL')),
+               'longitude' => $cluster->longitude,
+               'latitude' => $cluster->latitude,
+               'mobile_no' => $cluster->mobile_no,
+               'landmark' => $cluster->landmark,
+               'whatsapp_no' => $cluster->whatsapp_no,
+               'monthly_demand' => $validatedData['monthly_demand'] ?? 0,
+               'is_active' => true,
+               'vrno' => 1,
+         ]);
+
+         // optionally link the ratepayer id to cluster
+         $cluster->ratepayer_id = $clusterRatepayer->id;
+         $cluster->save();
+
+         /**
+            * 3️⃣ Create Entity-level Ratepayers
+            */
+         $noOfEntities = (int) $validatedData['no_of_entities'];
+
+         for ($i = 1; $i <= $noOfEntities; $i++) {
+            $entity = Entity::create([
+               'ulb_id' => $ulbId,
+               'cluster_id' => $cluster->id,
+               'ward_id' => $validatedData['ward_id'],
+               'subcategory_id' => $validatedData['subcategory_id'] ?? null,
+               'paymentzone_id' => $validatedData['ward_id'] ?? null,
+               'entity_name' => $cluster->cluster_name . ' - Entity ' . $i,
+               'address' => $cluster->cluster_address,
+               'longitude' => $cluster->longitude,
+               'latitude' => $cluster->latitude,
+               'mobile_no' => $cluster->mobile_no,
+               'landmark' => $cluster->landmark,
+               'is_active' => true,
+               'vrno' => 1,
+            ]);
+
+            // Every entity is also a ratepayer
+            Ratepayer::create([
+               'ulb_id' => $ulbId,
+               'cluster_id' => $cluster->id,
+               'entity_id' => $entity->id,
+               'ward_id' => $validatedData['ward_id'],
+               'subcategory_id' => $validatedData['subcategory_id'] ?? null,
+               'paymentzone_id' => $validatedData['paymentzone_id'] ?? null,
+               'ratepayer_name' => $entity->entity_name,
+               'ratepayer_address' => $entity->address,
+               'consumer_no' => strtoupper(uniqid('ENT')),
+               'longitude' => $entity->longitude,
+               'latitude' => $entity->latitude,
+               'mobile_no' => $entity->mobile_no,
+               'landmark' => $entity->landmark,
+               'whatsapp_no' => $entity->mobile_no,
+               'monthly_demand' => $validatedData['monthly_demand'] ?? 0,
+               'is_active' => true,
+               'vrno' => 1,
+            ]);
+         }
+
+         DB::commit();
+
+         return format_response(
+               'Cluster, cluster-level ratepayer, and entity ratepayers created successfully',
+               $cluster,
+               Response::HTTP_CREATED
+         );
+      } catch (\Exception $e) {
+         DB::rollBack();
+         return format_response(
+               'An error occurred during cluster creation: ' . $e->getMessage(),
+               null,
+               Response::HTTP_INTERNAL_SERVER_ERROR
+         );
+      }
+   }
+
     /**
      * [POST]  /api/clusters               1. Admin can add Clusters
      * Completed [Pending]
