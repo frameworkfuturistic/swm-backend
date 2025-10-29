@@ -101,6 +101,7 @@ class AccountController extends Controller
                'p.clearance_date',
                'u.name as tc_name'
          )
+         ->where('p.payment_mode', '<>', 'CASH')
          ->whereNull('p.clearance_date')
          ->whereBetween('p.payment_date', [$fromDate, $toDate]);
 
@@ -109,9 +110,9 @@ class AccountController extends Controller
          $query->where('p.tc_id', $tcId);
       }
 
-      if ($paymentMode) {
-         $query->where('p.payment_mode', $paymentMode);
-      }
+      // if ($paymentMode) {
+      //    $query->where('p.payment_mode', $paymentMode);
+      // }
 
       $data = $query->orderBy('p.payment_date', 'desc')
                      ->paginate($request->input('perPage', 50));
@@ -317,6 +318,7 @@ class AccountController extends Controller
                 return format_response('validation error', $errorMessages, Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
+            $paymentMode = 'CASH';
             $date = $request->tranDate;
             $query = DB::table('current_transactions as t')
                 ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
@@ -342,7 +344,7 @@ class AccountController extends Controller
                     'u.id as tc_id'
                 )
                 ->whereDate('t.event_time', $date)
-                ->where('p.payment_mode', 'CASH');
+                ->where('p.payment_mode', $paymentMode);
 
             // Apply search filters if provided
             if ($request->filled('searchKey') && $request->searchKey === 'tc_id' && $request->filled('tc_id')) {
