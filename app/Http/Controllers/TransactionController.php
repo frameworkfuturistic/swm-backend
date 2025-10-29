@@ -1775,72 +1775,166 @@ class TransactionController extends Controller
         }
     }
 
-    public function getFilteredTransactions(Request $request)
-    {
-        $request->validate([
-            'from_date'       => 'required|date',
-            'to_date'         => 'required|date|after_or_equal:from_date',
-            'ward_id'         => 'nullable|integer',
-            'subcategory_id'  => 'nullable|integer',
-            'event_type'      => 'nullable|string|in:PAYMENT,DENIAL,DOOR-CLOSED,DEFERRED,CHEQUE,OTHER',
-        ]);
+   //  public function getFilteredTransactions(Request $request)
+   //  {
+   //      $request->validate([
+   //          'from_date'       => 'required|date',
+   //          'to_date'         => 'required|date|after_or_equal:from_date',
+   //          'ward_id'         => 'nullable|integer',
+   //          'subcategory_id'  => 'nullable|integer',
+   //          'event_type'      => 'nullable|string|in:PAYMENT,DENIAL,DOOR-CLOSED,DEFERRED,CHEQUE,OTHER',
+   //      ]);
 
-        $fromDate      = $request->from_date;
-        $toDate        = $request->to_date;
-        $wardId        = $request->ward_id;
-        $subcategoryId = $request->subcategory_id;
-        $eventType     = $request->event_type;
+   //      $fromDate      = $request->from_date;
+   //      $toDate        = $request->to_date;
+   //      $wardId        = $request->ward_id;
+   //      $subcategoryId = $request->subcategory_id;
+   //      $eventType     = $request->event_type;
 
-        // ✅ Define select fields with explicit collation for string fields
-        $select = [
-            't.id as tran_id',
-            'r.id as ratepayer_id',
-            DB::raw("CONVERT(t.transaction_no USING utf8mb4) COLLATE utf8mb4_unicode_ci as transaction_no"),
-            DB::raw("CONVERT(r.ratepayer_name USING utf8mb4) COLLATE utf8mb4_unicode_ci as ratepayer_name"),
-            DB::raw("CONVERT(r.ratepayer_address USING utf8mb4) COLLATE utf8mb4_unicode_ci as ratepayer_address"),
-            DB::raw("CONVERT(u.name USING utf8mb4) COLLATE utf8mb4_unicode_ci as tc_name"),
-            DB::raw("IF(r.cluster_id IS NOT NULL, 'Cluster', 'Entity') as ratepayer_type"),
-            't.event_type',
-            't.event_time',
-            't.rec_period',
-            'p.payment_mode',
-            'p.amount',
-            DB::raw("CONVERT(s.sub_category USING utf8mb4) COLLATE utf8mb4_unicode_ci as sub_category")
-        ];
+   //      // ✅ Define select fields with explicit collation for string fields
+   //      $select = [
+   //          't.id as tran_id',
+   //          'r.id as ratepayer_id',
+   //          DB::raw("CONVERT(t.transaction_no USING utf8mb4) COLLATE utf8mb4_unicode_ci as transaction_no"),
+   //          DB::raw("CONVERT(r.ratepayer_name USING utf8mb4) COLLATE utf8mb4_unicode_ci as ratepayer_name"),
+   //          DB::raw("CONVERT(r.ratepayer_address USING utf8mb4) COLLATE utf8mb4_unicode_ci as ratepayer_address"),
+   //          DB::raw("CONVERT(u.name USING utf8mb4) COLLATE utf8mb4_unicode_ci as tc_name"),
+   //          DB::raw("IF(r.cluster_id IS NOT NULL, 'Cluster', 'Entity') as ratepayer_type"),
+   //          't.event_type',
+   //          't.event_time',
+   //          't.rec_period',
+   //          'p.payment_mode',
+   //          'p.amount',
+   //          DB::raw("CONVERT(s.sub_category USING utf8mb4) COLLATE utf8mb4_unicode_ci as sub_category")
+   //      ];
 
-        $archivedQuery = DB::table('transactions as t')
-            ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
-            ->join('users as u', 't.tc_id', '=', 'u.id')
-            ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
-            ->leftJoin('payments as p', 'p.tran_id', '=', 't.id')
-            ->select($select)
-            ->whereBetween(DB::raw('DATE(t.event_time)'), [$fromDate, $toDate]);
+   //      $archivedQuery = DB::table('transactions as t')
+   //          ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
+   //          ->join('users as u', 't.tc_id', '=', 'u.id')
+   //          ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+   //          ->leftJoin('payments as p', 'p.tran_id', '=', 't.id')
+   //          ->select($select)
+   //          ->whereBetween(DB::raw('DATE(t.event_time)'), [$fromDate, $toDate]);
 
-        if ($wardId) $archivedQuery->where('r.ward_id', $wardId);
-        if ($subcategoryId) $archivedQuery->where('r.subcategory_id', $subcategoryId);
-        if ($eventType) $archivedQuery->where('t.event_type', $eventType);
+   //      if ($wardId) $archivedQuery->where('r.ward_id', $wardId);
+   //      if ($subcategoryId) $archivedQuery->where('r.subcategory_id', $subcategoryId);
+   //      if ($eventType) $archivedQuery->where('t.event_type', $eventType);
 
-        $currentQuery = DB::table('current_transactions as t')
-            ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
-            ->join('users as u', 't.tc_id', '=', 'u.id')
-            ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
-            ->leftJoin('payments as p', 'p.tran_id', '=', 't.id')
-            ->select($select)
-            ->whereBetween(DB::raw('DATE(t.event_time)'), [$fromDate, $toDate]);
+   //      $currentQuery = DB::table('current_transactions as t')
+   //          ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
+   //          ->join('users as u', 't.tc_id', '=', 'u.id')
+   //          ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+   //          ->leftJoin('payments as p', 'p.tran_id', '=', 't.id')
+   //          ->select($select)
+   //          ->whereBetween(DB::raw('DATE(t.event_time)'), [$fromDate, $toDate]);
 
-        if ($wardId) $currentQuery->where('r.ward_id', $wardId);
-        if ($subcategoryId) $currentQuery->where('r.subcategory_id', $subcategoryId);
-        if ($eventType) $currentQuery->where('t.event_type', $eventType);
+   //      if ($wardId) $currentQuery->where('r.ward_id', $wardId);
+   //      if ($subcategoryId) $currentQuery->where('r.subcategory_id', $subcategoryId);
+   //      if ($eventType) $currentQuery->where('t.event_type', $eventType);
 
-        $data = $archivedQuery->unionAll($currentQuery)
-                              ->orderBy('event_time', 'desc')
-                              ->get();
+   //      $data = $archivedQuery->unionAll($currentQuery)
+   //                            ->orderBy('event_time', 'desc')
+   //                            ->get();
 
-        return response()->json([
-            'status' => 'success',
-            'data'   => $data
-        ]);
-    }
+   //      return response()->json([
+   //          'status' => 'success',
+   //          'data'   => $data
+   //      ]);
+   //  }
+
+
+   public function getFilteredTransactions(Request $request)
+   {
+      $request->validate([
+         'from_date'       => 'required|date',
+         'to_date'         => 'required|date|after_or_equal:from_date',
+         'ward_id'         => 'nullable|integer',
+         'subcategory_id'  => 'nullable|integer',
+         'event_type'      => 'nullable|string|in:PAYMENT,DENIAL,DOOR-CLOSED,DEFERRED,CHEQUE,OTHER',
+      ]);
+
+      $fromDate      = $request->from_date;
+      $toDate        = $request->to_date;
+      $wardId        = $request->ward_id;
+      $subcategoryId = $request->subcategory_id;
+      $eventType     = $request->event_type;
+
+      // ✅ Define select fields
+      $select = [
+         't.id as tran_id',
+         'r.id as ratepayer_id',
+         DB::raw("CONVERT(t.transaction_no USING utf8mb4) COLLATE utf8mb4_unicode_ci as transaction_no"),
+         DB::raw("CONVERT(r.ratepayer_name USING utf8mb4) COLLATE utf8mb4_unicode_ci as ratepayer_name"),
+         DB::raw("CONVERT(r.ratepayer_address USING utf8mb4) COLLATE utf8mb4_unicode_ci as ratepayer_address"),
+         DB::raw("CONVERT(u.name USING utf8mb4) COLLATE utf8mb4_unicode_ci as tc_name"),
+         DB::raw("IF(r.cluster_id IS NOT NULL, 'Cluster', 'Entity') as ratepayer_type"),
+         't.event_type',
+         't.event_time',
+         't.rec_period',
+         'p.payment_mode',
+         'p.amount',
+         DB::raw("CONVERT(s.sub_category USING utf8mb4) COLLATE utf8mb4_unicode_ci as sub_category")
+      ];
+
+      // 🗃 Archived Query
+      $archivedQuery = DB::table('transactions as t')
+         ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
+         ->join('users as u', 't.tc_id', '=', 'u.id')
+         ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+         ->leftJoin('payments as p', 'p.tran_id', '=', 't.id')
+         ->select($select)
+         ->whereBetween(DB::raw('DATE(t.event_time)'), [$fromDate, $toDate]);
+
+      if ($wardId) $archivedQuery->where('r.ward_id', $wardId);
+      if ($subcategoryId) $archivedQuery->where('r.subcategory_id', $subcategoryId);
+      if ($eventType) $archivedQuery->where('t.event_type', $eventType);
+
+      // 🗃 Current Query
+      $currentQuery = DB::table('current_transactions as t')
+         ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
+         ->join('users as u', 't.tc_id', '=', 'u.id')
+         ->join('sub_categories as s', 'r.subcategory_id', '=', 's.id')
+         ->leftJoin('payments as p', 'p.tran_id', '=', 't.id')
+         ->select($select)
+         ->whereBetween(DB::raw('DATE(t.event_time)'), [$fromDate, $toDate]);
+
+      if ($wardId) $currentQuery->where('r.ward_id', $wardId);
+      if ($subcategoryId) $currentQuery->where('r.subcategory_id', $subcategoryId);
+      if ($eventType) $currentQuery->where('t.event_type', $eventType);
+
+      // 🧩 Combine Queries
+      $data = $archivedQuery->unionAll($currentQuery);
+
+      // ⚡ Get as Collection
+      $transactions = DB::query()->fromSub($data, 'combined')
+         ->orderBy('event_time', 'desc')
+         ->get();
+
+      // 🧮 Summary Calculation
+      $totalCount = $transactions->count();
+      $totalAmount = $transactions->sum('amount');
+
+      $paymentModeSummary = $transactions
+         ->groupBy('payment_mode')
+         ->map(function ($group) {
+               return [
+                  'count'  => $group->count(),
+                  'amount' => $group->sum('amount'),
+               ];
+         })
+         ->values();
+
+      // ✅ Return both data + summary
+      return response()->json([
+         'status'  => 'success',
+         'summary' => [
+               'totalCount' => $totalCount,
+               'totalAmount' => $totalAmount,
+               'paymentModeSummary' => $paymentModeSummary,
+         ],
+         'data' => $transactions,
+      ]);
+   }
 
 
     
