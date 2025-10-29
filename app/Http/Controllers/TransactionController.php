@@ -1876,7 +1876,7 @@ class TransactionController extends Controller
          DB::raw("CONVERT(s.sub_category USING utf8mb4) COLLATE utf8mb4_unicode_ci as sub_category")
       ];
 
-      // 🗃 Archived Query
+      // 🗃 Archived transactions query
       $archivedQuery = DB::table('transactions as t')
          ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
          ->join('users as u', 't.tc_id', '=', 'u.id')
@@ -1889,7 +1889,7 @@ class TransactionController extends Controller
       if ($subcategoryId) $archivedQuery->where('r.subcategory_id', $subcategoryId);
       if ($eventType) $archivedQuery->where('t.event_type', $eventType);
 
-      // 🗃 Current Query
+      // 🗃 Current transactions query
       $currentQuery = DB::table('current_transactions as t')
          ->join('ratepayers as r', 't.ratepayer_id', '=', 'r.id')
          ->join('users as u', 't.tc_id', '=', 'u.id')
@@ -1902,39 +1902,42 @@ class TransactionController extends Controller
       if ($subcategoryId) $currentQuery->where('r.subcategory_id', $subcategoryId);
       if ($eventType) $currentQuery->where('t.event_type', $eventType);
 
-      // 🧩 Combine Queries
-      $data = $archivedQuery->unionAll($currentQuery);
+      // 🧩 Combine archived + current
+      $combinedQuery = $archivedQuery->unionAll($currentQuery);
 
-      // ⚡ Get as Collection
-      $transactions = DB::query()->fromSub($data, 'combined')
+      // ⚡ Fetch all transactions
+      $transactions = DB::query()
+         ->fromSub($combinedQuery, 'combined')
          ->orderBy('event_time', 'desc')
          ->get();
 
-      // 🧮 Summary Calculation
-      $totalCount = $transactions->count();
+      // 🧮 Summary Calculations
+      $totalCount  = $transactions->count();
       $totalAmount = $transactions->sum('amount');
 
       $paymentModeSummary = $transactions
          ->groupBy('payment_mode')
-         ->map(function ($group) {
+         ->map(function ($group, $paymentMode) {
                return [
-                  'count'  => $group->count(),
-                  'amount' => $group->sum('amount'),
+                  'payment_mode' => $paymentMode ?? 'UNKNOWN',
+                  'count'        => $group->count(),
+                  'amount'       => $group->sum('amount'),
                ];
          })
          ->values();
 
-      // ✅ Return both data + summary
+      // ✅ Final JSON Response
       return response()->json([
          'status'  => 'success',
          'summary' => [
-               'totalCount' => $totalCount,
-               'totalAmount' => $totalAmount,
-               'paymentModeSummary' => $paymentModeSummary,
+               'totalCount'        => $totalCount,
+               'totalAmount'       => $totalAmount,
+               'paymentModeSummary'=> $paymentModeSummary,
          ],
          'data' => $transactions,
       ]);
    }
+
 
 
     
