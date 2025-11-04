@@ -1842,6 +1842,7 @@ class TransactionController extends Controller
    //      ]);
    //  }
 
+   //Tested and optimized version
 
    public function getFilteredTransactions(Request $request)
    {
@@ -1885,7 +1886,7 @@ class TransactionController extends Controller
          ->select($select)
          ->whereBetween(DB::raw('DATE(t.event_time)'), [$fromDate, $toDate]);
 
-      if ($wardId) $archivedQuery->where('r.tc_id', $wardId);
+      if ($wardId) $archivedQuery->where('t.tc_id', $wardId);
       if ($subcategoryId) $archivedQuery->where('r.subcategory_id', $subcategoryId);
       if ($eventType) $archivedQuery->where('t.event_type', $eventType);
 
@@ -1898,7 +1899,7 @@ class TransactionController extends Controller
          ->select($select)
          ->whereBetween(DB::raw('DATE(t.event_time)'), [$fromDate, $toDate]);
 
-      if ($wardId) $currentQuery->where('r.tc_id', $wardId);
+      if ($wardId) $currentQuery->where('t.tc_id', $wardId);
       if ($subcategoryId) $currentQuery->where('r.subcategory_id', $subcategoryId);
       if ($eventType) $currentQuery->where('t.event_type', $eventType);
 
