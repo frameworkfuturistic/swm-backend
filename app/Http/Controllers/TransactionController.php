@@ -1848,14 +1848,14 @@ class TransactionController extends Controller
       $request->validate([
          'from_date'       => 'required|date',
          'to_date'         => 'required|date|after_or_equal:from_date',
-         'ward_id'         => 'nullable|integer',
+         'tc_id'         => 'nullable|integer',
          'subcategory_id'  => 'nullable|integer',
          'event_type'      => 'nullable|string|in:PAYMENT,DENIAL,DOOR-CLOSED,DEFERRED,CHEQUE,OTHER',
       ]);
 
       $fromDate      = $request->from_date;
       $toDate        = $request->to_date;
-      $wardId        = $request->ward_id;
+      $wardId        = $request->tc_id;   // Note: 'ward_id' changed to 'tc_id'
       $subcategoryId = $request->subcategory_id;
       $eventType     = $request->event_type;
 
@@ -1885,7 +1885,7 @@ class TransactionController extends Controller
          ->select($select)
          ->whereBetween(DB::raw('DATE(t.event_time)'), [$fromDate, $toDate]);
 
-      if ($wardId) $archivedQuery->where('r.ward_id', $wardId);
+      if ($wardId) $archivedQuery->where('r.tc_id', $wardId);
       if ($subcategoryId) $archivedQuery->where('r.subcategory_id', $subcategoryId);
       if ($eventType) $archivedQuery->where('t.event_type', $eventType);
 
@@ -1898,7 +1898,7 @@ class TransactionController extends Controller
          ->select($select)
          ->whereBetween(DB::raw('DATE(t.event_time)'), [$fromDate, $toDate]);
 
-      if ($wardId) $currentQuery->where('r.ward_id', $wardId);
+      if ($wardId) $currentQuery->where('r.tc_id', $wardId);
       if ($subcategoryId) $currentQuery->where('r.subcategory_id', $subcategoryId);
       if ($eventType) $currentQuery->where('t.event_type', $eventType);
 
